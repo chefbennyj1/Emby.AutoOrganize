@@ -40,6 +40,7 @@
 
     ApiClient.performOrganization = function (id, options) {
 
+        //Only one option: RequestToOverwriteFile = true
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
 
         return this.ajax({
