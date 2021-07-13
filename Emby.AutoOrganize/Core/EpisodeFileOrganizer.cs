@@ -20,7 +20,6 @@ using Emby.Naming.Common;
 using Emby.Naming.TV;
 using MediaBrowser.Model.Providers;
 using EpisodeInfo = MediaBrowser.Controller.Providers.EpisodeInfo;
-using MediaBrowser.Controller.Session;
 
 namespace Emby.AutoOrganize.Core
 {
