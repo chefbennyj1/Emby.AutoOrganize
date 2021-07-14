@@ -175,7 +175,7 @@ namespace Emby.AutoOrganize.Core
                     var movieOrganizer = new MovieFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
                         _libraryMonitor, _providerManager);
 
-                    organizeResult = await movieOrganizer.OrganizeMovieFile(result.OriginalPath, options.MovieOptions, CancellationToken.None)
+                    organizeResult = await movieOrganizer.OrganizeMovieFile(requestToOverwriteExistsingFile, result.OriginalPath, options.MovieOptions, CancellationToken.None)
                         .ConfigureAwait(false);
                     break;
                 default:

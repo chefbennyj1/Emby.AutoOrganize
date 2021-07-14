@@ -44,7 +44,11 @@ namespace Emby.AutoOrganize.Core
 
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Movie;
 
-        public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
+        public async Task<FileOrganizationResult> OrganizeMovieFile(
+            bool? requestToOverwriteExistsingFile,
+            string path, 
+            MovieFileOrganizationOptions options, 
+            CancellationToken cancellationToken)
         {
             _logger.Info("Sorting file {0}", path);
 
@@ -62,7 +66,7 @@ namespace Emby.AutoOrganize.Core
             {
                 if (_libraryMonitor.IsPathLocked(path.AsSpan()))
                 {
-                    result.Status = FileSortingStatus.Processing;
+                    result.Status = FileSortingStatus.Waiting;
                     result.StatusMessage = "Path is locked by other processes. Please try again later.";
                     _logger.Info("Auto-organize Path is locked by other processes. Please try again later.");
                     return result;
@@ -78,7 +82,8 @@ namespace Emby.AutoOrganize.Core
 
                     _logger.Debug("Extracted information from {0}. Movie {1}, Year {2}", path, movieName, movieYear);
 
-                    await OrganizeMovie(path,
+                    await OrganizeMovie(requestToOverwriteExistsingFile,
+                        path,
                         movieName,
                         movieYear,
                         GetResolution(path),
@@ -147,7 +152,10 @@ namespace Emby.AutoOrganize.Core
             return movie;
         }
 
-        public FileOrganizationResult OrganizeWithCorrection(MovieFileOrganizationRequest request, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
+        public FileOrganizationResult OrganizeWithCorrection(
+            MovieFileOrganizationRequest request, 
+            MovieFileOrganizationOptions options, 
+            CancellationToken cancellationToken)
         {
             var result = _organizationService.GetResult(request.ResultId);
 
@@ -186,7 +194,8 @@ namespace Emby.AutoOrganize.Core
                 // We manually set the media as Movie 
                 result.Type = CurrentFileOrganizerType;
 
-                OrganizeMovie(result.OriginalPath,
+                OrganizeMovie(request.RequestToOverwriteExistsingFile,
+                   result.OriginalPath,
                    movie,
                    options,
                    null,
@@ -206,7 +215,8 @@ namespace Emby.AutoOrganize.Core
 
 
 
-        private async Task OrganizeMovie(string sourcePath,
+        private async Task OrganizeMovie(bool? requestOverwriteExistsingFile,
+            string sourcePath,
             string movieName,
             int? movieYear,
             string resolution,
@@ -238,7 +248,8 @@ namespace Emby.AutoOrganize.Core
             // We have all the chance that the media type is an Movie
             result.Type = CurrentFileOrganizerType;
 
-            OrganizeMovie(sourcePath,
+            OrganizeMovie(requestOverwriteExistsingFile,
+               sourcePath,
                movie,
                options,
                searchResult,
@@ -246,21 +257,24 @@ namespace Emby.AutoOrganize.Core
                cancellationToken);
         }
 
-        private void OrganizeMovie(string sourcePath,
+        private void OrganizeMovie(bool? requestOverwriteExistsingFile,
+            string sourcePath,
             Movie movie,
             MovieFileOrganizationOptions options,
             RemoteSearchResult remoteResult,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
-            OrganizeMovie(sourcePath,
+            OrganizeMovie(requestOverwriteExistsingFile,
+               sourcePath,
                movie,
                options,
                result,
                cancellationToken);
         }
 
-        private void OrganizeMovie(string sourcePath,
+        private void OrganizeMovie(bool? requestOverwriteExistsingFile,
+            string sourcePath,
             Movie movie,
             MovieFileOrganizationOptions options,
             FileOrganizationResult result,
@@ -291,6 +305,17 @@ namespace Emby.AutoOrganize.Core
 
                 if (!options.OverwriteExistingFiles)
                 {
+                    _logger.Info("Plugin options: no overwrite movie");
+                    if (requestOverwriteExistsingFile != null)
+                    {                         
+                        if (requestOverwriteExistsingFile == true)
+                        {
+                            _logger.Info("request to overwrite movie: " + requestOverwriteExistsingFile);
+                            PerformFileSorting(options, result);
+                            return;
+                        }
+                    }
+
                     if (options.CopyOriginalFile && fileExists && IsSameMovie(sourcePath, newPath))
                     {
                         var msg = string.Format("File '{0}' already copied to new path '{1}', stopping organization", sourcePath, newPath);

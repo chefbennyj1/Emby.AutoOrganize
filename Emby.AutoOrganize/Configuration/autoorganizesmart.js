@@ -182,7 +182,7 @@
         var html = "";
 
         if (infos.length) {
-            html += '<div class="paperList">';
+            html += '<div class="paperList" style="padding:4%">';
         }
 
         for (var i = 0, length = infos.length; i < length; i++) {

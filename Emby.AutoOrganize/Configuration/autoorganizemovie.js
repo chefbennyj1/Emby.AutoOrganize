@@ -28,19 +28,9 @@
         });
     };
 
-    ApiClient.performOrganization = function (id) {
+    ApiClient.performOrganization = function (id, options) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
-
-        return this.ajax({
-            type: "POST",
-            url: url
-        });
-    };
-
-    ApiClient.performEpisodeOrganization = function (id, options) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
 
         return this.ajax({
             type: "POST",
@@ -49,6 +39,18 @@
             contentType: 'application/json'
         });
     };
+
+    //ApiClient.performEpisodeOrganization = function (id, options) {
+
+    //    var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
+
+    //    return this.ajax({
+    //        type: "POST",
+    //        url: url,
+    //        data: JSON.stringify(options),
+    //        contentType: 'application/json'
+    //    });
+    //};
 
     ApiClient.performMovieOrganization = function (id, options) {
 
