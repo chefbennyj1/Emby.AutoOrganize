@@ -1,4 +1,4 @@
-﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse'], function (mainTabsManager) {
+﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -270,9 +270,11 @@
 
         function toggleMovieLocation() {
             if (view.querySelector('#chkEnableMovieAutoDetect').checked) {
+                view.querySelector('.fldSubMovieFolder').classList.remove('hide');
                 view.querySelector('.fldSelectMovieFolder').classList.remove('hide');
                 view.querySelector('#selectMovieFolder').setAttribute('required', 'required');
             } else {
+                view.querySelector('.fldSubMovieFolder').classList.add('hide');
                 view.querySelector('.fldSelectMovieFolder').classList.add('hide');
                 view.querySelector('#selectMovieFolder').removeAttribute('required');
             }

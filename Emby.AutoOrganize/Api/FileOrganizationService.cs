@@ -60,8 +60,7 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "Id", Description = "Result Id", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "POST")]
         public string Id { get; set; }
 
-        //TODO check if this needs to be required
-        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Optional. Should overwrite the existsing File, if it exists. If empty the file will not overwrite.", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToOverwriteExistsingFile { get; set; }
     }
 
