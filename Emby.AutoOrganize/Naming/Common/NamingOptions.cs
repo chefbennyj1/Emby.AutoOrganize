@@ -422,6 +422,7 @@ namespace Emby.Naming.Common
             CleanStringRegexes = CleanStrings.Select(Compile).ToArray();
             EpisodeWithoutSeasonRegexes = EpisodeWithoutSeasonExpressions.Select(Compile).ToArray();
             EpisodeMultiPartRegexes = EpisodeMultiPartExpressions.Select(Compile).ToArray();
+            
         }
 
         private Regex Compile(string exp)

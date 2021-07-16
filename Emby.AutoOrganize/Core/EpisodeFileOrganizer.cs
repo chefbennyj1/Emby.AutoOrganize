@@ -493,7 +493,8 @@ namespace Emby.AutoOrganize.Core
                     {                         
                         if (requestOverwriteExistsingFile == true)
                         {
-                            _logger.Info("request to overwrite episode: " + requestOverwriteExistsingFile);
+                            var msg = string.Format("User request to overwrite file: {0}", requestOverwriteExistsingFile);
+                            _logger.Info(msg);
                             PerformFileSorting(options, result);
                             return;
                         }
@@ -511,7 +512,7 @@ namespace Emby.AutoOrganize.Core
                    
                     if (fileExists)
                     {
-                        var msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, newPath);
+                        var msg = string.Format("File '{0}' already exists as '{1}', stopping organization. Waiting for user interaction", sourcePath, newPath);
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;

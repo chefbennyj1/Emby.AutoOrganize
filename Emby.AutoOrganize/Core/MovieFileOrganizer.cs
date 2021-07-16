@@ -3,7 +3,6 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Logging;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -57,7 +56,7 @@ namespace Emby.AutoOrganize.Core
                 Date = DateTime.UtcNow,
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
-                ExtractedResolution = GetResolution(Path.GetFileName(path)),
+                ExtractedResolution = FileOrganizerHelper.GetFileResolutionFromName(Path.GetFileName(path)),
                 Type = FileOrganizerType.Unknown,
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };
@@ -86,7 +85,7 @@ namespace Emby.AutoOrganize.Core
                         path,
                         movieName,
                         movieYear,
-                        GetResolution(path),
+                        FileOrganizerHelper.GetFileResolutionFromName(path),
                         options,
                         result,
                         cancellationToken).ConfigureAwait(false);
@@ -162,6 +161,7 @@ namespace Emby.AutoOrganize.Core
             try
             {
                 Movie movie = null;
+                result.Status = FileSortingStatus.Processing;
 
                 if (request.NewMovieProviderIds.Count > 0)
                 {
@@ -226,6 +226,7 @@ namespace Emby.AutoOrganize.Core
         {
             var movie = GetMatchingMovie(movieName, movieYear, null, result, options);
             RemoteSearchResult searchResult = null;
+            result.Status = FileSortingStatus.Processing;
 
             if (movie == null)
             {
@@ -305,7 +306,7 @@ namespace Emby.AutoOrganize.Core
 
                 if (!options.OverwriteExistingFiles)
                 {
-                    _logger.Info("Plugin options: no overwrite movie");
+                    _logger.Info("Plugin options: No overwrite movie");
                     if (requestOverwriteExistsingFile != null)
                     {                         
                         if (requestOverwriteExistsingFile == true)
@@ -365,7 +366,9 @@ namespace Emby.AutoOrganize.Core
 
             _libraryMonitor.ReportFileSystemChangeBeginning(result.TargetPath);
 
-            _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(result.TargetPath));
+            try {
+                _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(result.TargetPath));
+            } catch {} //It is possible we are overwriting a file, and therefore can not create this directory.
 
             var targetAlreadyExists = _fileSystem.FileExists(result.TargetPath);
 
@@ -494,14 +497,7 @@ namespace Emby.AutoOrganize.Core
         }
 
 
-        private string GetResolution(string movieName)
-        {
-            return 
-                movieName.Contains("480p") ? "480p" :
-                movieName.Contains("720p") ? "720p" : 
-                movieName.Contains("1080p") ? "1080p" :                
-                movieName.Contains("2160p") ? "2160p" : "";
-        }
+        
         private Movie GetMatchingMovie(string movieName, int? movieYear, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
         {
             var parsedName = _libraryManager.ParseName(movieName.AsSpan());
@@ -521,7 +517,8 @@ namespace Emby.AutoOrganize.Core
 
             result.ExtractedName = nameWithoutYear;
             result.ExtractedYear = yearInName;
-            result.ExtractedResolution = GetResolution(movieName);
+            result.ExtractedResolution = FileOrganizerHelper.GetFileResolutionFromName(movieName);
+
             var movie = _libraryManager.GetItemList(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { typeof(Movie).Name },
@@ -593,7 +590,7 @@ namespace Emby.AutoOrganize.Core
                 .Replace("%m.n", movieName.Replace(" ", "."))
                 .Replace("%m_n", movieName.Replace(" ", "_"))
                 .Replace("%my", productionYear.ToString())
-                .Replace("%res", GetResolution(sourcePath))
+                .Replace("%res", FileOrganizerHelper.GetFileResolutionFromName(sourcePath))
                 .Replace("%ext", sourceExtension)
                 .Replace("%fn", Path.GetFileNameWithoutExtension(sourcePath));
 

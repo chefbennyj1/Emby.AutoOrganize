@@ -1,6 +1,11 @@
 ﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'paper-icon-button-light', 'emby-linkbutton', 'detailtablecss'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager) {
     'use strict';
 
+    ApiClient.getScheduledTask = function (options) {
+        var url = this.getUrl("ScheduledTasks?IsHidden=false&IsEnabled=true", options || {});
+        return this.getJSON(url);
+    };
+
     ApiClient.getFileOrganizationResults = function (options) {
 
         var url = this.getUrl("Library/FileOrganization", options || {});
@@ -126,21 +131,6 @@
 
         return elem;
     }
-
-    function showStatusMessage(id) {
-
-        var item = currentResult.Items.filter(function (i) {
-
-            return i.Id === id;
-        })[0];
-
-        Dashboard.alert({
-
-            title: getStatusText(item, false),
-            message: item.StatusMessage
-        });
-    }
-
     function deleteOriginalFile(page, id) {
 
         var item = currentResult.Items.filter(function (i) {
@@ -210,7 +200,6 @@
 
             confirm(message, 'Organize File').then(function () {
 
-                loading.show();
                 var options = {
                     RequestToOverwriteExistsingFile: true
                 }
@@ -218,10 +207,12 @@
 
                     loading.hide();
 
-                    reloadItems(page, true);
+                    reloadItems(page, false);
 
                 }, reloadItems(page, false));
             });
+
+            reloadItems(page, false);
         });
     }
 
@@ -240,43 +231,7 @@
         });
     }
 
-    function getStatusText(item, enhance) {
-
-        var status = item.Status;
-
-        var color = null;
-
-        if (status === 'SkippedExisting') {
-            status = 'Skipped';
-        }
-        else if (status === 'Failure') {
-            color = '#cc0000';
-            status = 'Attention';
-        }
-        if (status === 'Success') {
-            color = 'green';
-            status = 'Success';
-        }
-        if (status === "Processing") {
-            color = 'green';
-            status = "Processing"
-        }
-        if (status === "Waiting") {
-            color = 'blue';
-            status = "Waiting"
-        }
-        if (enhance) {
-
-            if (item.StatusMessage) {
-
-                return '<a style="color:' + color + ';" data-resultid="' + item.Id + '" is="emby-linkbutton" href="#" class="button-link btnShowStatusMessage">' + status + '</a>';
-            } else {
-                return '<span data-resultid="' + item.Id + '" style="color:' + color + ';">' + status + '</span>';
-            }
-        }
-
-        return status;
-    }
+    
 
     function getQueryPagingHtml(options) {
         var startIndex = options.startIndex;
@@ -462,10 +417,26 @@
         }
     }
 
+    function showStatusMessage(id) {
+        var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
+        var renderStatusData = getStatusRenderData(item.Status);
+        var msg = item.StatusMessage 
+            ? '<a style="color:' + renderStatusData.color + ';" data-resultid="' + item.Id + '" is="emby-linkbutton" href="#" class="button-link btnShowStatusMessage">' + renderStatusData.text + '</a>' 
+            : '';
+            
+        Dashboard.alert({
+            title: renderStatusData.text,
+            message:msg
+        });
+    }
+
     function renderItemRow(item, page) {
 
         var html = '';
-        var statusRenderData = item.IsInProgress && item.Status !== "Processing" ? getStatusRenderData("Waiting") : getStatusRenderData(item.Status);
+        var statusRenderData = item.IsInProgress && item.Status !== "Processing" &&  item.Status !== "Failure" ? 
+                               getStatusRenderData("Waiting") : 
+                               item.IsInProgress && item.Status === "Failure" ? 
+                               getStatusRenderData("Processing") : getStatusRenderData(item.Status);
         
         //Progress Icon
         html += '<td class="detailTableBodyCell">';           
@@ -494,6 +465,10 @@
         html += formatBytes(item.FileSize)
         html += '</td>';
 
+         //Resolution
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += item.ExtractedResolution ?  item.ExtractedResolution : "";
+        html += '</td>';
 
         //Type Icon
         var icon = getResultItemTypeIcon((item.Status !== "Failure" ? item.Type : "Unknown"))
@@ -625,9 +600,15 @@
 
         if (e.type === 'ScheduledTaskEnded') {
 
-            if (data && data.Key === 'AutoOrganize') {
+            if (data && data.ScheduledTask.Key === 'AutoOrganize') {
                 reloadItems(pageGlobal, false);
-            }        
+            }
+
+        } else if (e.type === 'TaskData') {
+
+            if (data && data.ScheduledTask.Key === 'AutoOrganize') {
+                updateTaskScheduleLastRun(data);                
+            }
 
         } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
 
@@ -641,6 +622,15 @@
 
             reloadItems(pageGlobal, false);
 
+        }
+    }
+
+    function updateTaskScheduleLastRun(data) {
+       
+        if (data) {
+            var last_task_run_header = pageGlobal.querySelector('.last-execution-time');
+            var last_run_time = datetime.parseISO8601Date(data.LastExecutionResult.EndTimeUtc, true);
+            last_task_run_header.innerHTML = "Task last run: " + datetime.toLocaleTimeString(last_run_time);
         }
     }
 
@@ -707,7 +697,7 @@
             events.on(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
             events.on(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
             events.on(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
-            events.on(serverNotifications, "ScheduledTaskStarted", onServerEvent)
+            events.on(serverNotifications, "TaskData", onServerEvent)
             // on here
             taskButton({
                 mode: 'on',
@@ -716,6 +706,11 @@
                 taskKey: 'AutoOrganize',
                 button: view.querySelector('.btnOrganize')
             });
+
+            ApiClient.getScheduledTask().then(tasks => {
+                var data = tasks.filter(t => t.Key == 'AutoOrganize')[0];
+                updateTaskScheduleLastRun(data);
+            })
         });
 
         view.addEventListener('viewhide', function (e) {
@@ -727,7 +722,7 @@
             events.off(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
             events.off(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
             events.off(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
-            events.off(serverNotifications, "ScheduledTaskStarted", onServerEvent)
+            events.off(serverNotifications, "TaskData", onServerEvent)
 
             // off here
             taskButton({

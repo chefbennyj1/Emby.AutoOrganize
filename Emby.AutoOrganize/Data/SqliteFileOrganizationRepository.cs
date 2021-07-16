@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Persistence;
@@ -37,7 +38,7 @@ namespace Emby.AutoOrganize.Data
 
                 string[] queries = {
 
-                                "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, DuplicatePaths TEXT int null)",
+                                "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedResolution TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, DuplicatePaths TEXT int null)",
                                 "create index if not exists idx_FileOrganizerResults on FileOrganizerResults(ResultId)",
                                 "create table if not exists SmartMatch (Id GUID PRIMARY KEY, ItemName TEXT, DisplayName TEXT, OrganizerType TEXT, MatchStrings TEXT null)",
                                 "create index if not exists idx_SmartMatch on SmartMatch(Id)",
@@ -263,7 +264,9 @@ namespace Emby.AutoOrganize.Data
             }
 
             result.OriginalFileName = Path.GetFileName(result.OriginalPath);
-
+            
+            result.ExtractedResolution = FileOrganizerHelper.GetFileResolutionFromName(result.OriginalFileName);
+                        
             index++;
             if (!reader.IsDBNull(index))
             {

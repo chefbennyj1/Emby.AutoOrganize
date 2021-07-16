@@ -141,7 +141,7 @@ namespace Emby.AutoOrganize.Core
             EventHelper.FireEventIfNotNull(ItemRemoved, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
         }
 
-        private AutoOrganizeOptions GetAutoOrganizeOptions()
+        public AutoOrganizeOptions GetAutoOrganizeOptions()
         {
             return _config.GetAutoOrganizeOptions();
         }

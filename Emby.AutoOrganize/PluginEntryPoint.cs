@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Data;
@@ -31,7 +33,7 @@ namespace Emby.AutoOrganize
         private readonly IFileSystem _fileSystem;
         private readonly IProviderManager _providerManager;
         private readonly IJsonSerializer _json;
-
+        
         public IFileOrganizationRepository Repository;
 
         public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogger logger, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager config, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer json)
@@ -65,12 +67,25 @@ namespace Emby.AutoOrganize
             FileOrganizationService.ItemRemoved += _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
             FileOrganizationService.LogReset += _organizationService_LogReset;
-           
+            _taskManager.TaskExecuting += _taskManager_TaskExecuting;
+          
             // Convert Config
             _config.Convert(FileOrganizationService);
+         
         }
 
-       
+        private void Fw_Changed(object sender, FileSystemEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void _taskManager_TaskExecuting(object sender, GenericEventArgs<IScheduledTaskWorker> e)
+        {
+            if (e.Argument.ScheduledTask.Key == "AutoOrganize")
+            {
+                _sessionManager.SendMessageToAdminSessions("TaskData", e.Argument, CancellationToken.None);
+            }
+        }
 
         private IFileOrganizationRepository GetRepository()
         {
