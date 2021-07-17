@@ -5,17 +5,41 @@
         <div class="content-primary">
 
             <div>
-                <div style="text-align: right;" class="organizeTaskPanel hide">
+
+                <div style="display:flex; justify-content:center; align-items:center" class="organizeTaskPanel hide">
+                    <h3>Sort:</h3>
+                    <button is="emby-button" type="button" class="btnSortByName button-cancel fab">
+                        <svg id="sortByName" style="width:24px;height:24px; cursor:pointer; padding-right:8%" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M19 17H22L18 21L14 17H17V3H19M11 13V15L7.67 19H11V21H5V19L8.33 15H5V13M9 3H7C5.9 3 5 3.9 5 5V11H7V9H9V11H11V5C11 3.9 10.11 3 9 3M9 7H7V5H9Z" />
+                        </svg>
+                    </button>
+                    <button is="emby-button" type="button" class="btnSortByStatus button-cancel fab">
+                        <svg id="sortByStatus" style="width:24px;height:24px; cursor:pointer; padding-right:8%" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M19 17H22L18 21L14 17H17V3H19V17M9 13H5C3.89 13 3 13.89 3 15V19C3 20.11 3.89 21 5 21H9C10.11 21 11 20.11 11 19V15C11 13.89 10.11 13 9 13M6.27 19.5L3.74 16.95L4.81 15.9L6.28 17.39L9.2 14.5L10.26 15.55L6.27 19.5M9 3H5C3.89 3 3 3.89 3 5V9C3 10.11 3.89 11 5 11H9C10.11 11 11 10.11 11 9V5C11 3.89 10.11 3 9 3M9 9H5V5H9V9Z" />
+                        </svg>
+                    </button>
+                    <button is="emby-button" type="button" class="btnSortByDate raised button-cancel fab">
+                        <svg id="sortByDate" style="width:24px;height:24px; cursor:pointer; padding-right:8%" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M21 17H24L20 21L16 17H19V3H21V17M8 16H11V13H8V16M13 5H12V3H10V5H6V3H4V5H3C1.89 5 1 5.89 1 7V18C1 19.11 1.89 20 3 20H13C14.11 20 15 19.11 15 18V7C15 5.89 14.11 5 13 5M3 18L3 11H13L13 18L3 18Z" />
+                        </svg>
+                    </button>
+
                     <button is="emby-button" type="button" class="btnClearCompleted raised button-cancel">
-                        <i class="md-icon">clear_all</i><span>Clear Completed</span>
+                        <span>Clear Completed</span>
                     </button>
                     <button is="emby-button" type="button" class="btnClearLog raised button-cancel">
-                        <i class="md-icon">clear_all</i><span>${ButtonClear}</span>
+                        <span>${ButtonClear} All</span>
                     </button>
-                    <button is="emby-button" type="button" class="btnOrganize raised button-cancel"><i class="md-icon">check</i><span>Organize</span></button>
+                    <div style="flex-grow:1"></div>
+                    <button is="emby-button" type="button" class="btnOrganize raised button-cancel fab">
+                        <svg style="width:24px;height:24px" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12M12.5,8V12.25L16,14.33L15.28,15.54L11,13V8H12.5Z" />
+                        </svg>
+                    </button>
                     <progress max="100" min="0" style="width: 100px;" class="organizeProgress"></progress>
                     <h3 class="last-execution-time"></h3>
                 </div>
+
                 <div class="listTopPaging">
                 </div>
 
@@ -26,6 +50,7 @@
                                 <th class="detailTableHeaderCell" data-priority="1"></th> <!--Status Icon-->
                                 <th class="detailTableHeaderCell" data-priority="2">Date</th>
                                 <th class="detailTableHeaderCell" data-priority="1">Status</th>
+                                <th class="detailTableHeaderCell" data-priority="1">Name</th>
                                 <th class="detailTableHeaderCell" data-priority="1">File Size</th>
                                 <th class="detailTableHeaderCell" data-priority="1">Resolution</th>
                                 <th class="detailTableHeaderCell" data-priority="1"></th> <!--Type-->
@@ -39,13 +64,13 @@
                 </div>
                 <br />
                 <!--<div style="text-align: right; vertical-align: middle;" class="legend">
-                    <div style="display: inline-block; height: 10px; width: 10px; background: green; margin-right: 1px;"></div>
-                    <span>Completed</span>
-                    <div style="display: inline-block; height: 10px; width: 10px; background: red; margin-left: 1em; margin-right: 1px;"></div>
-                    <span>Failed</span>
-                    <div style="display: inline-block; height: 10px; width: 10px; background: blue; margin-left: 1em; margin-right: 1px;"></div>
-                    <span>Skipped</span>
-                </div>-->
+        <div style="display: inline-block; height: 10px; width: 10px; background: green; margin-right: 1px;"></div>
+        <span>Completed</span>
+        <div style="display: inline-block; height: 10px; width: 10px; background: red; margin-left: 1em; margin-right: 1px;"></div>
+        <span>Failed</span>
+        <div style="display: inline-block; height: 10px; width: 10px; background: blue; margin-left: 1em; margin-right: 1px;"></div>
+        <span>Skipped</span>
+    </div>-->
                 <div class="listBottomPaging">
                 </div>
             </div>

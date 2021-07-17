@@ -118,7 +118,7 @@
 
     var currentResult;
     var pageGlobal;
-
+    var sort = {type: 'date', ascending: true};
     function parentWithClass(elem, className) {
 
         while (!elem.classList || !elem.classList.contains(className)) {
@@ -267,12 +267,50 @@
         return html;
     }
 
+    function sortListResultsByDate(items) {
+        return items.sort((a, b) => {
+            var da = new Date(datetime.parseISO8601Date(a.Date, true)),
+                db = new Date(datetime.parseISO8601Date(b.Date, true))
+            return da + db;
+        })
+    }
+
+    function sortListResultItemsByName(items) {
+        return items.sort((a, b) => {
+        var fa = a.ExtractedName.toLowerCase(),
+            fb = b.ExtractedName.toLowerCase();
+            if (fa < fb) {
+                return -1;
+            }
+            if (fa > fb) {
+                return 1
+            }
+            return 0;
+        })
+    }
+
+    function sortListResultItemsByStatus(items) {
+        return items.sort((a, b) => a.Status = b.Status)
+    }
+
     function renderResults(page, result) {
 
+        var items;
+        switch (sort.type) {
+            case "date": 
+                items = sortListResultsByDate(result.Items);
+                break;
+            case "status":
+                items = sortListResultItemsByStatus(result.Items);
+                break;
+            case "name":
+                items = sortListResultItemsByName(result.Items);
+                break;
+        }
+        
         if (Object.prototype.toString.call(page) !== "[object Window]") {
-
-            var rows = result.Items.map(function (item) {
-
+            var rows ='';
+            items.forEach(item => {
                 var html = '';
 
                 html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '">';
@@ -280,9 +318,20 @@
                 html += renderItemRow(item, page);
 
                 html += '</tr>';
+                rows += html;
+            })
+            //var rows = items.map(function (item) {
 
-                return html;
-            }).join('');
+            //    var html = '';
+
+            //    html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '">';
+
+            //    html += renderItemRow(item, page);
+
+            //    html += '</tr>';
+
+            //    return html;
+            //}).join('');
 
             var resultBody = page.querySelector('.resultBody');
             resultBody.innerHTML = rows;
@@ -362,6 +411,21 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
+    function capitalizeTheFirstLetterOfEachWord(words) {
+        var separateWord = words.toLowerCase().split(' ');
+        for (var i = 0; i < separateWord.length; i++) {
+            separateWord[i] = separateWord[i].charAt(0).toUpperCase() +
+                separateWord[i].substring(1);
+        }
+        return separateWord.join(' ');
+    }
+
+    function formatItemName(item_name) {
+        item_name = item_name.split(".").join(" ");
+        item_name = capitalizeTheFirstLetterOfEachWord(item_name)
+        return item_name;
+    }
+
     function getResultItemTypeIcon(type) {
         switch (type) {
             case "Unknown": return {path: ""}
@@ -387,6 +451,7 @@
             }
         }
     }
+    
     function getStatusRenderData(status) {
         switch (status) {
             case 'Success': return {
@@ -436,7 +501,8 @@
         var statusRenderData = item.IsInProgress && item.Status !== "Processing" &&  item.Status !== "Failure" ? 
                                getStatusRenderData("Waiting") : 
                                item.IsInProgress && item.Status === "Failure" ? 
-                               getStatusRenderData("Processing") : getStatusRenderData(item.Status);
+                               getStatusRenderData("Processing") : 
+                               getStatusRenderData(item.Status);
         
         //Progress Icon
         html += '<td class="detailTableBodyCell">';           
@@ -458,6 +524,11 @@
         //Status
         html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
         html += '<span>' + statusRenderData.text + '</span>';
+        html += '</td>';
+
+        //Name
+        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
+        html += '<span>' + formatItemName(item.ExtractedName) + '</span>';
         html += '</td>';
 
         //File Size
@@ -607,7 +678,8 @@
         } else if (e.type === 'TaskData') {
 
             if (data && data.ScheduledTask.Key === 'AutoOrganize') {
-                updateTaskScheduleLastRun(data);                
+                updateTaskScheduleLastRun(data);
+                reloadItems(pageGlobal, false);
             }
 
         } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
@@ -686,6 +758,21 @@
             }, Dashboard.processErrorResponse);
         });
 
+        view.querySelector('.btnSortByName').addEventListener('click', function (e) {
+            e.preventDefault();
+            sort = {type:'name', ascending: true};
+            reloadItems(view, false)
+        })
+        view.querySelector('.btnSortByStatus').addEventListener('click', function (e) {
+            e.preventDefault();
+            sort = {type: 'status', ascending:true};
+            reloadItems(view, false)
+        })
+        view.querySelector('.btnSortByDate').addEventListener('click', function (e) {
+            e.preventDefault();
+            sort = {type: 'date', ascending: true};
+            reloadItems(view, false)
+        })
         view.addEventListener('viewshow', function (e) {
 
             mainTabsManager.setTabs(this, 0, getTabs);
