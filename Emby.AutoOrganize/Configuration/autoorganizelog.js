@@ -119,6 +119,7 @@
     var currentResult;
     var pageGlobal;
     var sort = {type: 'date', ascending: true};
+
     function parentWithClass(elem, className) {
 
         while (!elem.classList || !elem.classList.contains(className)) {
@@ -131,6 +132,7 @@
 
         return elem;
     }
+    
     function deleteOriginalFile(page, id) {
 
         var item = currentResult.Items.filter(function (i) {
@@ -229,9 +231,7 @@
 
             loading.hide();
         });
-    }
-
-    
+    }   
 
     function getQueryPagingHtml(options) {
         var startIndex = options.startIndex;
@@ -271,7 +271,11 @@
         return items.sort((a, b) => {
             var da = new Date(datetime.parseISO8601Date(a.Date, true)),
                 db = new Date(datetime.parseISO8601Date(b.Date, true))
-            return da + db;
+            if (sort.ascending) {
+                return da + db;
+            } else {
+                return da - db;
+            }
         })
     }
 
@@ -279,13 +283,11 @@
         return items.sort((a, b) => {
         var fa = a.ExtractedName.toLowerCase(),
             fb = b.ExtractedName.toLowerCase();
-            if (fa < fb) {
-                return -1;
-            }
-            if (fa > fb) {
-                return 1
-            }
-            return 0;
+            if (sort.ascending) {
+                return fa < fb ? -1 : fa > fb ? 1 : 0;
+            } else {
+               return fb < fa ? -1 : fb > fa ? 1 : 0;
+            }             
         })
     }
 
@@ -352,9 +354,9 @@
             var bottomPaging = page.querySelector('.listBottomPaging');
             bottomPaging.innerHTML = pagingHtml;
 
-            var btnNextTop = topPaging.querySelector(".btnNextPage");
+            var btnNextTop    = topPaging.querySelector(".btnNextPage");
             var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
-            var btnPrevTop = topPaging.querySelector(".btnPreviousPage");
+            var btnPrevTop    = topPaging.querySelector(".btnPreviousPage");
             var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
 
             if (btnNextTop) {
@@ -760,17 +762,17 @@
 
         view.querySelector('.btnSortByName').addEventListener('click', function (e) {
             e.preventDefault();
-            sort = {type:'name', ascending: true};
+            sort = { type: 'name', ascending: sort.type == "name" ? sort.ascending ? false : true : true };
             reloadItems(view, false)
         })
         view.querySelector('.btnSortByStatus').addEventListener('click', function (e) {
-            e.preventDefault();
-            sort = {type: 'status', ascending:true};
+            e.preventDefault();            
+            sort = {type: 'status', ascending: sort.type == "status" ? sort.ascending ? false : true : true};
             reloadItems(view, false)
         })
         view.querySelector('.btnSortByDate').addEventListener('click', function (e) {
             e.preventDefault();
-            sort = {type: 'date', ascending: true};
+            sort = {type: 'date', ascending: sort.type == "date" ? sort.ascending ? false : true : true};
             reloadItems(view, false)
         })
         view.addEventListener('viewshow', function (e) {

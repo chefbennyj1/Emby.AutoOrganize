@@ -68,7 +68,7 @@ namespace Emby.AutoOrganize
             FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
             FileOrganizationService.LogReset += _organizationService_LogReset;
             _taskManager.TaskExecuting += _taskManager_TaskExecuting;
-          
+         
             // Convert Config
             _config.Convert(FileOrganizationService);
          
