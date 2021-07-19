@@ -155,6 +155,7 @@
         }).then(function (result) {
 
             loading.hide();
+           
 
             existingMediasHtml = result.Items.map(function (s) {
 
