@@ -134,6 +134,7 @@
         view.querySelector('#chkDeleteEmptyMovieFolders').checked = movieOptions.DeleteEmptyFolders;
 
         view.querySelector('#txtMovieMinFileSize').value = movieOptions.MinFileSizeMb;
+         view.querySelector('#txtIgnoreFileNameContains').value = movieOptions.IgnoredFileNameContains.join(';') || '';
         view.querySelector('#txtMoviePattern').value = movieOptions.MoviePattern;
         view.querySelector('#txtWatchMovieFolder').value = movieOptions.WatchLocations[0] || '';
 
@@ -160,6 +161,9 @@
             movieOptions.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyMovieFolders').checked;
 
             movieOptions.MinFileSizeMb = view.querySelector('#txtMovieMinFileSize').value;
+
+            movieOptions.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
+
             movieOptions.MoviePattern = view.querySelector('#txtMoviePattern').value;
             movieOptions.LeftOverFileExtensionsToDelete = view.querySelector('#txtDeleteLeftOverMovieFiles').value.split(';');
 

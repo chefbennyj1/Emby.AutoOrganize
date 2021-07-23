@@ -60,6 +60,10 @@
                     <div class="fieldDescription editorfieldDescription">Copy or move files from the watch folder</div>
                 </div>
 
+                <div class="inputContainer">
+                    <input is="emby-input" id="txtIgnoreFileNameContains" type="text" label="Ignore file names which contain:" />
+                    <div class="fieldDescription">Comma delimeted list of words which are contained in file names to be ignored in the watched folder.</div>
+                </div>
 
                 <div class="inputContainer">
                     <input is="emby-input" id="txtMinFileSize" type="number" label="Min file size:" pattern="[0-9]*" min="0" required />

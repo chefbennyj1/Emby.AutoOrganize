@@ -1,10 +1,13 @@
 ﻿
 namespace Emby.AutoOrganize.Model
 {
-    public class TvFileOrganizationOptions
+    public class EpisodeFileOrganizationOptions
     {
         public bool IsEnabled { get; set; }
         public int MinFileSizeMb { get; set; }
+
+        public string[] IgnoredFileNameContains { get; set; }
+
         public string[] LeftOverFileExtensionsToDelete { get; set; }
         public string[] WatchLocations { get; set; }
 
@@ -29,9 +32,11 @@ namespace Emby.AutoOrganize.Model
 
         public string SeriesFolderPattern { get; set; }
 
-        public TvFileOrganizationOptions()
+        public EpisodeFileOrganizationOptions()
         {
             MinFileSizeMb = 50;
+
+            IgnoredFileNameContains = new string[] { };
 
             LeftOverFileExtensionsToDelete = new string[] { };
 

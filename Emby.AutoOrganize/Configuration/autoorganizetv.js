@@ -145,6 +145,8 @@
         view.querySelector('#chkDeleteEmptyFolders').checked = tvOptions.DeleteEmptyFolders;
 
         view.querySelector('#txtMinFileSize').value = tvOptions.MinFileSizeMb;
+
+        view.querySelector('#txtIgnoreFileNameContains').value = tvOptions.IgnoredFileNameContains.join(';') || '';
         view.querySelector('#txtSeasonFolderPattern').value = tvOptions.SeasonFolderPattern;
         view.querySelector('#txtSeasonZeroName').value = tvOptions.SeasonZeroFolderName;
         view.querySelector('#txtWatchFolder').value = tvOptions.WatchLocations[0] || '';
@@ -174,6 +176,9 @@
             tvOptions.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyFolders').checked;
 
             tvOptions.MinFileSizeMb = view.querySelector('#txtMinFileSize').value;
+
+            tvOptions.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
+
             tvOptions.SeasonFolderPattern = view.querySelector('#txtSeasonFolderPattern').value;
             tvOptions.SeasonZeroFolderName = view.querySelector('#txtSeasonZeroName').value;
 

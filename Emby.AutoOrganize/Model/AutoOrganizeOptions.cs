@@ -7,12 +7,12 @@ namespace Emby.AutoOrganize.Model
         /// Gets or sets the tv options.
         /// </summary>
         /// <value>The tv options.</value>
-        public TvFileOrganizationOptions TvOptions { get; set; }
+        public EpisodeFileOrganizationOptions TvOptions { get; set; }
 
         /// <summary>
-        /// Gets or sets the tv options.
+        /// Gets or sets the movie options.
         /// </summary>
-        /// <value>The tv options.</value>
+        /// <value>The movie  options.</value>
         public MovieFileOrganizationOptions MovieOptions { get; set; }
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace Emby.AutoOrganize.Model
 
         public AutoOrganizeOptions()
         {
-            TvOptions = new TvFileOrganizationOptions();
+            TvOptions = new EpisodeFileOrganizationOptions();
             MovieOptions = new MovieFileOrganizationOptions();
             SmartMatchInfos = new SmartMatchInfo[] { };
             Converted = false;

@@ -13,7 +13,7 @@ using MediaBrowser.Model.Logging;
 
 namespace Emby.AutoOrganize.Core
 {
-    public class TvFolderOrganizer
+    public class EpisodeFolderOrganizer
     {
         private readonly ILibraryMonitor _libraryMonitor;
         private readonly ILibraryManager _libraryManager;
@@ -23,7 +23,7 @@ namespace Emby.AutoOrganize.Core
         private readonly IServerConfigurationManager _config;
         private readonly IProviderManager _providerManager;
 
-        public TvFolderOrganizer(ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IFileOrganizationService organizationService, IServerConfigurationManager config, IProviderManager providerManager)
+        public EpisodeFolderOrganizer(ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IFileOrganizationService organizationService, IServerConfigurationManager config, IProviderManager providerManager)
         {
             _libraryManager = libraryManager;
             _logger = logger;
@@ -34,13 +34,13 @@ namespace Emby.AutoOrganize.Core
             _providerManager = providerManager;
         }
 
-        private bool EnableOrganization(FileSystemMetadata fileInfo, TvFileOrganizationOptions options)
+        private bool EnableOrganization(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
         {
             var minFileBytes = options.MinFileSizeMb * 1024 * 1024;
-
+            
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes;
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFile(fileInfo, options); 
             }
             catch (Exception ex)
             {
@@ -50,6 +50,18 @@ namespace Emby.AutoOrganize.Core
             return false;
         }
 
+        private bool IgnoredFile(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
+        {            
+            foreach (var ignoredString in options.IgnoredFileNameContains)
+            {
+                if(ignoredString == string.Empty) continue;
+                if (fileInfo.Name.ToLowerInvariant().Contains(ignoredString.ToLowerInvariant()))
+                {                   
+                    return true;
+                }
+            }
+            return false;
+        }
         private bool IsValidWatchLocation(string path, List<string> libraryFolderPaths)
         {
             if (IsPathAlreadyInMediaLibrary(path, libraryFolderPaths))
@@ -66,7 +78,7 @@ namespace Emby.AutoOrganize.Core
             return libraryFolderPaths.Any(i => string.Equals(i, path, StringComparison.Ordinal) || _fileSystem.ContainsSubPath(i.AsSpan(), path.AsSpan()));
         }
 
-        public async Task Organize(TvFileOrganizationOptions options,
+        public async Task Organize(EpisodeFileOrganizationOptions options,
             CancellationToken cancellationToken, IProgress<double> progress)
         {
             var libraryFolderPaths = _libraryManager.GetVirtualFolders().SelectMany(i => i.Locations).ToList();

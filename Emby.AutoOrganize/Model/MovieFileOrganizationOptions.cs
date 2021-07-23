@@ -5,6 +5,9 @@ namespace Emby.AutoOrganize.Model
     {
         public bool IsEnabled { get; set; }
         public int MinFileSizeMb { get; set; }
+
+        public string[] IgnoredFileNameContains {get; set;}
+
         public string[] LeftOverFileExtensionsToDelete { get; set; }
         public string[] WatchLocations { get; set; }
 
@@ -29,6 +32,8 @@ namespace Emby.AutoOrganize.Model
         public MovieFileOrganizationOptions()
         {
             MinFileSizeMb = 50;
+
+            IgnoredFileNameContains = new string[] { };
 
             LeftOverFileExtensionsToDelete = new string[] { };
 

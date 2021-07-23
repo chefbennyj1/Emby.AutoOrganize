@@ -40,7 +40,7 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes;
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFile(fileInfo, options);
             }
             catch (Exception ex)
             {
@@ -64,6 +64,19 @@ namespace Emby.AutoOrganize.Core
         private bool IsPathAlreadyInMediaLibrary(string path, List<string> libraryFolderPaths)
         {
             return libraryFolderPaths.Any(i => string.Equals(i, path, StringComparison.Ordinal) || _fileSystem.ContainsSubPath(i.AsSpan(), path.AsSpan()));
+        }
+
+        private bool IgnoredFile(FileSystemMetadata fileInfo,  MovieFileOrganizationOptions options)
+        {            
+            foreach (var ignoredString in options.IgnoredFileNameContains)
+            {
+                if(ignoredString == string.Empty) continue;
+                if (fileInfo.Name.ToLowerInvariant().Contains(ignoredString.ToLowerInvariant()))
+                {                   
+                    return true;
+                }
+            }
+            return false;
         }
 
         public async Task Organize(MovieFileOrganizationOptions options, CancellationToken cancellationToken, IProgress<double> progress)

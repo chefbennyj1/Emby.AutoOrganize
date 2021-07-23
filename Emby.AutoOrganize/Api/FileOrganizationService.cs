@@ -121,6 +121,9 @@ namespace Emby.AutoOrganize.Api
 
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
+         
+        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool RequestToOverwriteExistsingFile { get; set; }
     }
 
     [Route("/Library/FileOrganizations/SmartMatches", "GET", Summary = "Gets smart match entries")]
@@ -253,7 +256,8 @@ namespace Emby.AutoOrganize.Api
                 NewMovieName = request.NewMovieName,
                 NewMovieYear = request.NewMovieYear,
                 NewMovieProviderIds = dicNewProviderIds,
-                TargetFolder = request.TargetFolder
+                TargetFolder = request.TargetFolder,
+                RequestToOverwriteExistsingFile = request.RequestToOverwriteExistsingFile
             });
         }
 

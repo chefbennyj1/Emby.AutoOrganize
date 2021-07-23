@@ -63,7 +63,7 @@ namespace Emby.AutoOrganize.Core
         public async Task<FileOrganizationResult> OrganizeEpisodeFile(
             bool? requestToOverwriteExistsingFile,
             string path,
-            TvFileOrganizationOptions options,
+            EpisodeFileOrganizationOptions options,
             CancellationToken cancellationToken)
         {
             _logger.Info("Sorting file {0}", path);
@@ -188,6 +188,17 @@ namespace Emby.AutoOrganize.Core
                 }
 
             }
+            catch(IOException ex)
+            {
+                if(ex.Message.Contains("used by another process"))
+                {                    
+                    var errorMsg = string.Format("Waiting to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
+                    result.Status = FileSortingStatus.Waiting; //We're waiting for the file to become available.
+                    result.StatusMessage = errorMsg;
+                    _logger.ErrorException(errorMsg, ex);
+                    
+                }
+            }
             catch (OrganizationException ex)
             {
                 result.Status = FileSortingStatus.Failure;
@@ -208,7 +219,7 @@ namespace Emby.AutoOrganize.Core
         private async Task<Series> AutoDetectSeries(
             string seriesName,
             int? seriesYear,
-            TvFileOrganizationOptions options,
+            EpisodeFileOrganizationOptions options,
             CancellationToken cancellationToken)
         {
             if (options.AutoDetectSeries)
@@ -266,7 +277,7 @@ namespace Emby.AutoOrganize.Core
             EpisodeFileOrganizationRequest request,
             BaseItem targetFolder,
             RemoteSearchResult result,
-            TvFileOrganizationOptions options,
+            EpisodeFileOrganizationOptions options,
             CancellationToken cancellationToken)
         {
             Series series;
@@ -294,7 +305,7 @@ namespace Emby.AutoOrganize.Core
 
         public async Task<FileOrganizationResult> OrganizeWithCorrection(
             EpisodeFileOrganizationRequest request,
-            TvFileOrganizationOptions options,
+            EpisodeFileOrganizationOptions options,
             CancellationToken cancellationToken)
         {
             var result = _organizationService.GetResult(request.ResultId);
@@ -354,7 +365,7 @@ namespace Emby.AutoOrganize.Core
             int? episodeNumber,
             int? endingEpiosdeNumber,
             DateTime? premiereDate,
-            TvFileOrganizationOptions options,
+            EpisodeFileOrganizationOptions options,
             bool rememberCorrection,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
@@ -411,7 +422,7 @@ namespace Emby.AutoOrganize.Core
             int? episodeNumber,
             int? endingEpiosdeNumber,
             DateTime? premiereDate,
-            TvFileOrganizationOptions options,
+            EpisodeFileOrganizationOptions options,
             bool rememberCorrection,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
@@ -445,7 +456,7 @@ namespace Emby.AutoOrganize.Core
             string sourcePath,
             Series series,
             Episode episode,
-            TvFileOrganizationOptions options,
+            EpisodeFileOrganizationOptions options,
             bool rememberCorrection,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
@@ -453,7 +464,7 @@ namespace Emby.AutoOrganize.Core
             _logger.Info("Beginning Episode Organization");
             _logger.Info("Sorting file {0} into series {1}", sourcePath, series.Path);
 
-            result.Status = FileSortingStatus.Processing;
+            result.Status = FileSortingStatus.Waiting;
            
             var originalExtractedSeriesString = result.ExtractedName;
 
@@ -715,7 +726,7 @@ namespace Emby.AutoOrganize.Core
                 .ToList();
         }
 
-        private void PerformFileSorting(TvFileOrganizationOptions options, FileOrganizationResult result)
+        private void PerformFileSorting(EpisodeFileOrganizationOptions options, FileOrganizationResult result)
         {
             _logger.Info("Perform Sorting");
             // We should probably handle this earlier so that we never even make it this far
@@ -822,7 +833,7 @@ namespace Emby.AutoOrganize.Core
             return episode;
         }
 
-        private Season GetMatchingSeason(Series series, Episode episode, TvFileOrganizationOptions options, CancellationToken cancellationToken)
+        private Season GetMatchingSeason(Series series, Episode episode, EpisodeFileOrganizationOptions options, CancellationToken cancellationToken)
         {
             var season = episode.Season;
 
@@ -910,7 +921,7 @@ namespace Emby.AutoOrganize.Core
         /// <param name="series"></param>
         /// <param name="options"></param>
         /// <returns></returns>
-        private string GetSeriesDirectoryName(string seriesName, int? seriesYear, TvFileOrganizationOptions options)
+        private string GetSeriesDirectoryName(string seriesName, int? seriesYear, EpisodeFileOrganizationOptions options)
         {
             var seriesFullName = seriesName;
 
@@ -1007,7 +1018,7 @@ namespace Emby.AutoOrganize.Core
         /// <param name="seasonNumber">The season number.</param>
         /// <param name="options">The options.</param>
         /// <returns>System.String.</returns>
-        private string GetSeasonFolderPath(Series series, int seasonNumber, TvFileOrganizationOptions options)
+        private string GetSeasonFolderPath(Series series, int seasonNumber, EpisodeFileOrganizationOptions options)
         {
             var path = series.Path;
 
@@ -1047,7 +1058,7 @@ namespace Emby.AutoOrganize.Core
             return false;
         }
 
-        private void SetEpisodeFileName(string sourcePath, string seriesName, Season season, Episode episode, TvFileOrganizationOptions options)
+        private void SetEpisodeFileName(string sourcePath, string seriesName, Season season, Episode episode, EpisodeFileOrganizationOptions options)
         {
             seriesName = _fileSystem.GetValidFilename(seriesName).Trim();
 

@@ -50,6 +50,7 @@ namespace Emby.AutoOrganize.Core
             CancellationToken cancellationToken)
         {
             _logger.Info("Sorting file {0}", path);
+           
 
             var result = new FileOrganizationResult
             {
@@ -61,16 +62,16 @@ namespace Emby.AutoOrganize.Core
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };
 
+            if (_libraryMonitor.IsPathLocked(path.AsSpan()))
+            {
+                result.Status = FileSortingStatus.Waiting;
+                result.StatusMessage = "Path is locked by other processes. Please try again later.";
+                _logger.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                return result;
+            }
+
             try
             {
-                if (_libraryMonitor.IsPathLocked(path.AsSpan()))
-                {
-                    result.Status = FileSortingStatus.Waiting;
-                    result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                    _logger.Info("Auto-organize Path is locked by other processes. Please try again later.");
-                    return result;
-                }
-
                 var movieInfo = _libraryManager.IsVideoFile(path.AsSpan()) ? _libraryManager.ParseName(Path.GetFileName(path).AsSpan()) : new ItemLookupInfo();
 
                 var movieName = movieInfo.Name;
