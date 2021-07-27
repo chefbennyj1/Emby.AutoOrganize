@@ -62,6 +62,10 @@ namespace Emby.AutoOrganize.Core
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };
 
+             _logger.Info("Checking for Subtitle file...");                     
+            result = FileOrganizerHelper.GetFolderSubtitleData( _fileSystem.GetDirectoryName(path),  _fileSystem, _libraryManager, result);
+            _logger.Info(path + (result.HasSubtitleFiles ? " has " : " has no " ) + " subtitle file.");
+
             if (_libraryMonitor.IsPathLocked(path.AsSpan()))
             {
                 result.Status = FileSortingStatus.Waiting;

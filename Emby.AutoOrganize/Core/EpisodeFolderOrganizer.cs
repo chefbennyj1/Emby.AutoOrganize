@@ -40,7 +40,8 @@ namespace Emby.AutoOrganize.Core
             
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFile(fileInfo, options); 
+                return !_libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan()) || 
+                    (_libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options)); 
             }
             catch (Exception ex)
             {
@@ -50,7 +51,7 @@ namespace Emby.AutoOrganize.Core
             return false;
         }
 
-        private bool IgnoredFile(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
+        private bool IgnoredFileName(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
         {            
             foreach (var ignoredString in options.IgnoredFileNameContains)
             {
@@ -107,11 +108,16 @@ namespace Emby.AutoOrganize.Core
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    
+                    //Check if the file is a subtitle. 
+                    //We may have to group the subtitle and media item it belongs to, together.
+                    //Perhaps a secondary list of subititles which are processed after media items
+
                     try
                     {
                         
                         //bool? requestToOverwriteExistingFile is null here.
-                        //requestToOverwriteExistingFile bool? param is from the UI, it shouldn't be used here.
+                        //requestToOverwriteExistingFile bool? param is from the UI, it shouldn't be used here during the scheduled task.
                         var result = await organizer.OrganizeEpisodeFile(null, file.FullName, options, cancellationToken).ConfigureAwait(false);
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))

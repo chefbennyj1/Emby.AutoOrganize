@@ -36,11 +36,11 @@ namespace Emby.AutoOrganize
         
         public IFileOrganizationRepository Repository;
 
-        public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogger logger, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager config, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer json)
+        public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogManager logManager, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager config, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer json)
         {
             _sessionManager = sessionManager;
             _taskManager = taskManager;
-            _logger = logger;
+            _logger = logManager.GetLogger("AutoOrganize");
             _libraryMonitor = libraryMonitor;
             _libraryManager = libraryManager;
             _config = config;
@@ -74,6 +74,7 @@ namespace Emby.AutoOrganize
          
         }
 
+        //Probabaly not a good idea to do anything directly with the FileSystem here, however we might be able to monitor for file changes to update the UI - in the future
         private void Fw_Changed(object sender, FileSystemEventArgs e)
         {
             throw new NotImplementedException();

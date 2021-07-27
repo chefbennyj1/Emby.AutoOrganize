@@ -427,10 +427,14 @@
         return separateWord.join(' ');
     }
 
-    function formatItemName(item_name) {
-        item_name = item_name.split(".").join(" ");
-        item_name = capitalizeTheFirstLetterOfEachWord(item_name)
-        return item_name;
+    function formatItemName(file_name) {
+
+        try {  //If a subtitle file makes it through during scanning process, we'll throw an error here. Could happen.
+            file_name = file_name.split(".").join(" ");
+        }catch{}
+
+        file_name = capitalizeTheFirstLetterOfEachWord(file_name)
+        return file_name;
     }
 
     function getResultItemTypeIcon(type) {
@@ -569,7 +573,7 @@
     }
 
     function renderItemRow(item, page) {
-
+        if(item.Type == "Unknown") return "";
         var html = '';
         var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" ?
             getStatusRenderData("Waiting") :

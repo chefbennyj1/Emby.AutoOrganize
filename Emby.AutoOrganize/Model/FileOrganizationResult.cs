@@ -106,7 +106,14 @@ namespace Emby.AutoOrganize.Model
         /// </summary>
         /// <remarks>Runtime property not persisted to the store.</remarks>
         public bool IsInProgress { get; set; }
-              
+          
+        public bool HasSubtitleFiles { get; set; }
+
+        /// <summary>
+        /// File paths for subtitle files that may exists with the media item
+        /// </summary>
+        public List<string> SubtitleFilePaths { get; set; }
+
         public FileOrganizationResult()
         {
             DuplicatePaths = new List<string>();

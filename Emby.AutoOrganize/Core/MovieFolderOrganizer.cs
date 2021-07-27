@@ -40,7 +40,8 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFile(fileInfo, options);
+                return !_libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan()) || 
+                    (_libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options)); 
             }
             catch (Exception ex)
             {
@@ -66,7 +67,7 @@ namespace Emby.AutoOrganize.Core
             return libraryFolderPaths.Any(i => string.Equals(i, path, StringComparison.Ordinal) || _fileSystem.ContainsSubPath(i.AsSpan(), path.AsSpan()));
         }
 
-        private bool IgnoredFile(FileSystemMetadata fileInfo,  MovieFileOrganizationOptions options)
+        private bool IgnoredFileName(FileSystemMetadata fileInfo,  MovieFileOrganizationOptions options)
         {            
             foreach (var ignoredString in options.IgnoredFileNameContains)
             {

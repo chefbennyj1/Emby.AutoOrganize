@@ -59,6 +59,7 @@ namespace Emby.AutoOrganize.Core
         }
 
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Episode;
+                
 
         public async Task<FileOrganizationResult> OrganizeEpisodeFile(
             bool? requestToOverwriteExistsingFile,
@@ -67,15 +68,20 @@ namespace Emby.AutoOrganize.Core
             CancellationToken cancellationToken)
         {
             _logger.Info("Sorting file {0}", path);
-
+           
             var result = new FileOrganizationResult
             {
                 Date = DateTime.UtcNow,
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
                 Type = FileOrganizerType.Unknown,
-                FileSize = _fileSystem.GetFileInfo(path).Length
+                FileSize = _fileSystem.GetFileInfo(path).Length                
             };
+
+            _logger.Info("Checking for Subtitle file...");                     
+            result = FileOrganizerHelper.GetFolderSubtitleData( _fileSystem.GetDirectoryName(path),  _fileSystem, _libraryManager, result);
+            _logger.Info(path + (result.HasSubtitleFiles ? " has " : " has no " ) + " subtitle file.");
+
 
             try
             {
@@ -247,13 +253,13 @@ namespace Emby.AutoOrganize.Core
                     MetadataLanguage = metadataLanguage
                 };
 
-                var searchResultsTask = await _providerManager.GetRemoteSearchResults<Series, SeriesInfo>(new RemoteSearchQuery<SeriesInfo>
+                var searchResults = await _providerManager.GetRemoteSearchResults<Series, SeriesInfo>(new RemoteSearchQuery<SeriesInfo>
                 {
                     SearchInfo = seriesInfo
 
                 }, targetFolder, cancellationToken);
 
-                var finalResult = searchResultsTask.FirstOrDefault();
+                var finalResult = searchResults.FirstOrDefault();
 
                 if (finalResult != null)
                 {
@@ -357,7 +363,8 @@ namespace Emby.AutoOrganize.Core
             return result;
         }
 
-        private async Task OrganizeEpisode(bool? requestOverwriteExistsingFile, 
+        private async Task OrganizeEpisode(
+            bool? requestOverwriteExistsingFile, 
             string sourcePath,
             string seriesName,
             int? seriesYear,

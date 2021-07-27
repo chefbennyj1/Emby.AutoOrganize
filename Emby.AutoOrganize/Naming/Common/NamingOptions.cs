@@ -22,6 +22,7 @@ namespace Emby.Naming.Common
 
         public string[] VideoFileExtensions { get; set; }
         public string[] StubFileExtensions { get; set; }
+               
 
         public char[] VideoFlagDelimiters { get; set; }
 
@@ -106,6 +107,7 @@ namespace Emby.Naming.Common
                 ".disc"
             };
 
+            
             VideoFileStackingExpressions = new[]
             {
                 "(.*?)([ _.-]*(?:cd|dvd|p(?:ar)?t|dis[ck])[ _.-]*[0-9]+)(.*?)(\\.[^.]+)$",
@@ -130,7 +132,8 @@ namespace Emby.Naming.Common
                 ".srt",
                 ".ssa",
                 ".ass",
-                ".sub"
+                ".sub",
+                ".idx"
             };
 
             SubtitleFlagDelimiters = new[]

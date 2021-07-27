@@ -14,6 +14,10 @@ namespace Emby.Naming.Common
         /// <summary>
         /// The video
         /// </summary>
-        Video = 2
+        Video = 2,
+        /// <summary>
+        /// A subtitle file
+        /// </summary>
+        Subtitle = 3
     }
 }

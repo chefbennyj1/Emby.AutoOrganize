@@ -63,11 +63,10 @@ namespace Emby.AutoOrganize.Core
                     .Organize(options.TvOptions, cancellationToken, progress).ConfigureAwait(false);
             }
 
-            //var queueMovie = false;
             if (options.MovieOptions.IsEnabled)
             {
                 var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
-
+                
                 await new MovieFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
                     .Organize(options.MovieOptions, cancellationToken, progress).ConfigureAwait(false);
             }
