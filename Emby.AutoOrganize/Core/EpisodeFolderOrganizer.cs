@@ -34,13 +34,15 @@ namespace Emby.AutoOrganize.Core
             _providerManager = providerManager;
         }
 
+
+
         private bool EnableOrganization(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
         {
             var minFileBytes = options.MinFileSizeMb * 1024 * 1024;
             
             try
             {
-                return !_libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan()) || 
+                return !FileOrganizerHelper.IsSubtitleFile(fileInfo) || 
                     (_libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options)); 
             }
             catch (Exception ex)

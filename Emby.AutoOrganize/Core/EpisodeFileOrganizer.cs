@@ -78,9 +78,7 @@ namespace Emby.AutoOrganize.Core
                 FileSize = _fileSystem.GetFileInfo(path).Length                
             };
 
-            _logger.Info("Checking for Subtitle file...");                     
-            result = FileOrganizerHelper.GetFolderSubtitleData( _fileSystem.GetDirectoryName(path),  _fileSystem, _libraryManager, result);
-            _logger.Info(path + (result.HasSubtitleFiles ? " has " : " has no " ) + " subtitle file.");
+           
 
 
             try
@@ -94,6 +92,12 @@ namespace Emby.AutoOrganize.Core
                 }
 
                 result.Status = FileSortingStatus.Processing;
+
+
+                _logger.Info("Checking for Subtitle file...");
+                result = FileOrganizerHelper.GetFolderSubtitleData(_fileSystem.GetDirectoryName(path), _fileSystem, _libraryManager, result);
+                _logger.Info(path + (result.HasSubtitleFiles ? " has " : " has no ") + " subtitle file.");
+
 
                 var namingOptions = GetNamingOptionsInternal();
                 var resolver = new EpisodeResolver(namingOptions);
@@ -471,7 +475,7 @@ namespace Emby.AutoOrganize.Core
             _logger.Info("Beginning Episode Organization");
             _logger.Info("Sorting file {0} into series {1}", sourcePath, series.Path);
 
-            result.Status = FileSortingStatus.Waiting;
+            result.Status = FileSortingStatus.Processing;
            
             var originalExtractedSeriesString = result.ExtractedName;
 

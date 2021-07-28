@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'loading', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller'], function (dialogHelper, loading) {
+﻿define(['dialogHelper', 'loading', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller', 'emby-toggle'], function (dialogHelper, loading) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -132,16 +132,9 @@
 
         extractedName = item.ExtractedName;
         extractedYear = item.ExtractedYear;
-    }
 
-    function initMovieForm(context, item) {
-
-        initBaseForm(context, item);
-
-        chosenType = 'Movie';
-
-        populateMedias(context);
-    }
+        
+    }    
 
     function populateMedias(context) {
 
@@ -226,10 +219,26 @@
         context.querySelector('#chkRememberCorrection').checked = false;
 
         populateMedias(context);
+
+        if (item.HasSubtitleFiles) {
+            context.querySelector('.chkMoveSubtitleFilesContainer').classList.remove('hide');
+        }
+    }
+
+    function initMovieForm(context, item) {
+
+        initBaseForm(context, item);
+
+        chosenType = 'Movie';
+
+        populateMedias(context);
+
+        if (item.HasSubtitleFiles) {
+            context.querySelector('.chkMoveSubtitleFilesContainer').classList.remove('hide');
+        }
     }
 
     function submitMediaForm(dlg) {
-
         
         var resultId = dlg.querySelector('#hfResultId').value;
         var mediaId = dlg.querySelector('#selectMedias').value;

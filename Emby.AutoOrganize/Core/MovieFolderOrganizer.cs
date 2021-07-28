@@ -40,8 +40,8 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                return !_libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan()) || 
-                    (_libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options)); 
+                return !FileOrganizerHelper.IsSubtitleFile(fileInfo) || 
+                    (_libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options));
             }
             catch (Exception ex)
             {

@@ -26,7 +26,18 @@ namespace Emby.AutoOrganize.Core
             
         }
 
-        
+        public static bool IsSubtitleFile(FileSystemMetadata fileInfo)
+        {
+            var namingOptions = new NamingOptions();
+            foreach(var subtitleExtention in namingOptions.SubtitleFileExtensions)
+            {
+                if (fileInfo.Extension.Contains(subtitleExtention))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         public static FileOrganizationResult GetFolderSubtitleData(string path, IFileSystem _fileSystem, ILibraryManager _libraryManager, FileOrganizationResult result)
         {
             var files = _fileSystem.GetFiles(path, true);
