@@ -5,7 +5,6 @@
         Unknown,
         Movie,
         Episode,
-        Song,
-        Subtitle
+        Song
     }
 }

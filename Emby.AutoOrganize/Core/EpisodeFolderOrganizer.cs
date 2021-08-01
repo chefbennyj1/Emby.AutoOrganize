@@ -34,16 +34,13 @@ namespace Emby.AutoOrganize.Core
             _providerManager = providerManager;
         }
 
-
-
         private bool EnableOrganization(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
         {
             var minFileBytes = options.MinFileSizeMb * 1024 * 1024;
-            
+
             try
             {
-                return !FileOrganizerHelper.IsSubtitleFile(fileInfo) || 
-                    (_libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options)); 
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !FileOrganizationHelper.IgnoredFileName(fileInfo, options.IgnoredFileNameContains);
             }
             catch (Exception ex)
             {
@@ -53,18 +50,6 @@ namespace Emby.AutoOrganize.Core
             return false;
         }
 
-        private bool IgnoredFileName(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
-        {            
-            foreach (var ignoredString in options.IgnoredFileNameContains)
-            {
-                if(ignoredString == string.Empty) continue;
-                if (fileInfo.Name.ToLowerInvariant().Contains(ignoredString.ToLowerInvariant()))
-                {                   
-                    return true;
-                }
-            }
-            return false;
-        }
         private bool IsValidWatchLocation(string path, List<string> libraryFolderPaths)
         {
             if (IsPathAlreadyInMediaLibrary(path, libraryFolderPaths))
@@ -110,16 +95,11 @@ namespace Emby.AutoOrganize.Core
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    
-                    //Check if the file is a subtitle. 
-                    //We may have to group the subtitle and media item it belongs to, together.
-                    //Perhaps a secondary list of subititles which are processed after media items
-
                     try
                     {
                         
                         //bool? requestToOverwriteExistingFile is null here.
-                        //requestToOverwriteExistingFile bool? param is from the UI, it shouldn't be used here during the scheduled task.
+                        //requestToOverwriteExistingFile bool? param is from the UI, it shouldn't be used here.
                         var result = await organizer.OrganizeEpisodeFile(null, file.FullName, options, cancellationToken).ConfigureAwait(false);
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))

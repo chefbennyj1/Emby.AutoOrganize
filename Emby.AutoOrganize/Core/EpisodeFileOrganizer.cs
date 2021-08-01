@@ -20,6 +20,7 @@ using Emby.Naming.Common;
 using Emby.Naming.TV;
 using MediaBrowser.Model.Providers;
 using EpisodeInfo = MediaBrowser.Controller.Providers.EpisodeInfo;
+using MediaBrowser.Controller.Session;
 
 namespace Emby.AutoOrganize.Core
 {
@@ -59,7 +60,6 @@ namespace Emby.AutoOrganize.Core
         }
 
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Episode;
-                
 
         public async Task<FileOrganizationResult> OrganizeEpisodeFile(
             bool? requestToOverwriteExistsingFile,
@@ -68,18 +68,15 @@ namespace Emby.AutoOrganize.Core
             CancellationToken cancellationToken)
         {
             _logger.Info("Sorting file {0}", path);
-           
+
             var result = new FileOrganizationResult
             {
                 Date = DateTime.UtcNow,
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
                 Type = FileOrganizerType.Unknown,
-                FileSize = _fileSystem.GetFileInfo(path).Length                
+                FileSize = _fileSystem.GetFileInfo(path).Length
             };
-
-           
-
 
             try
             {
@@ -92,12 +89,6 @@ namespace Emby.AutoOrganize.Core
                 }
 
                 result.Status = FileSortingStatus.Processing;
-
-
-                _logger.Info("Checking for Subtitle file...");
-                result = FileOrganizerHelper.GetFolderSubtitleData(_fileSystem.GetDirectoryName(path), _fileSystem, _libraryManager, result);
-                _logger.Info(path + (result.HasSubtitleFiles ? " has " : " has no ") + " subtitle file.");
-
 
                 var namingOptions = GetNamingOptionsInternal();
                 var resolver = new EpisodeResolver(namingOptions);
@@ -198,17 +189,6 @@ namespace Emby.AutoOrganize.Core
                 }
 
             }
-            catch(IOException ex)
-            {
-                if(ex.Message.Contains("used by another process"))
-                {                    
-                    var errorMsg = string.Format("Waiting to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
-                    result.Status = FileSortingStatus.Waiting; //We're waiting for the file to become available.
-                    result.StatusMessage = errorMsg;
-                    _logger.ErrorException(errorMsg, ex);
-                    
-                }
-            }
             catch (OrganizationException ex)
             {
                 result.Status = FileSortingStatus.Failure;
@@ -257,13 +237,13 @@ namespace Emby.AutoOrganize.Core
                     MetadataLanguage = metadataLanguage
                 };
 
-                var searchResults = await _providerManager.GetRemoteSearchResults<Series, SeriesInfo>(new RemoteSearchQuery<SeriesInfo>
+                var searchResultsTask = await _providerManager.GetRemoteSearchResults<Series, SeriesInfo>(new RemoteSearchQuery<SeriesInfo>
                 {
                     SearchInfo = seriesInfo
 
                 }, targetFolder, cancellationToken);
 
-                var finalResult = searchResults.FirstOrDefault();
+                var finalResult = searchResultsTask.FirstOrDefault();
 
                 if (finalResult != null)
                 {
@@ -367,8 +347,7 @@ namespace Emby.AutoOrganize.Core
             return result;
         }
 
-        private async Task OrganizeEpisode(
-            bool? requestOverwriteExistsingFile, 
+        private async Task OrganizeEpisode(bool? requestOverwriteExistsingFile, 
             string sourcePath,
             string seriesName,
             int? seriesYear,
@@ -515,8 +494,7 @@ namespace Emby.AutoOrganize.Core
                     {                         
                         if (requestOverwriteExistsingFile == true)
                         {
-                            var msg = string.Format("User request to overwrite file: {0}", requestOverwriteExistsingFile);
-                            _logger.Info(msg);
+                            _logger.Info("request to overwrite episode: " + requestOverwriteExistsingFile);
                             PerformFileSorting(options, result);
                             return;
                         }
@@ -534,7 +512,7 @@ namespace Emby.AutoOrganize.Core
                    
                     if (fileExists)
                     {
-                        var msg = string.Format("File '{0}' already exists as '{1}', stopping organization. Waiting for user interaction", sourcePath, newPath);
+                        var msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, newPath);
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;

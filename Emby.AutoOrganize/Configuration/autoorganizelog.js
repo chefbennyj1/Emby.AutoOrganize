@@ -488,8 +488,13 @@
             case "Waiting": return {
                 path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
                 color: "goldenrod",
-                text: "Waiting...File currently in use"
+                text: "Waiting..."
             };
+            case "NewResolution": return {
+                path: "M12 5.5L10 8H14L12 5.5M18 10V14L20.5 12L18 10M6 10L3.5 12L6 14V10M14 16H10L12 18.5L14 16M21 3H3C1.9 3 1 3.9 1 5V19C1 20.1 1.9 21 3 21H21C22.1 21 23 20.1 23 19V5C23 3.9 22.1 3 21 3M21 19H3V5H21V19Z",
+                color: "var(--theme-accent-text-color)",
+                text: "New Resolution Available"
+            }
         }
     }
 
@@ -562,9 +567,7 @@
     function showStatusMessage(id) {
         var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
         var renderStatusData = getStatusRenderData(item.Status);
-        var msg = item.StatusMessage
-            ? '<a style="color:' + renderStatusData.color + ';" data-resultid="' + item.Id + '" is="emby-linkbutton" href="#" class="button-link btnShowStatusMessage">' + renderStatusData.text + '</a>'
-            : '';
+        var msg = item.StatusMessage || '';
 
         Dashboard.alert({
             title: renderStatusData.text,
@@ -593,7 +596,7 @@
         //Date
         html += '<td class="detailTableBodyCell" data-title="Date">';
         var date = datetime.parseISO8601Date(item.Date, true);
-        html += datetime.toLocaleDateString(date);
+        html += '<span>' + datetime.toLocaleDateString(date)  + '</span>';
         html += '</td>';
 
         //Status
@@ -606,15 +609,20 @@
         html += '<span>' + formatItemName(item.ExtractedName) + '</span>';
         html += '</td>';
 
-        //File Size
-        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
-        html += formatBytes(item.FileSize)
+        //Production Year
+        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
+        html += '<span>' + item.ExtractedYear ? item.ExtractedYear : "" + '</span>';
         html += '</td>';
 
-        //Resolution
+         //Resolution
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += item.ExtractedResolution ? item.ExtractedResolution : "";
+        html += '<span>' + item.ExtractedResolution ? item.ExtractedResolution : ""  + '</span>';
         html += '</td>';
+
+        //File Size
+        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+        html += '<span>' + formatBytes(item.FileSize) + '</span>';
+        html += '</td>';        
 
         //Type Icon
         var icon = getResultItemTypeIcon((item.Status !== "Failure" ? item.Type : "Unknown"))
@@ -650,7 +658,7 @@
                     //We want to show this option if the item has been skipped because we think it alrerady exists, or the item failed to find a match.
                     //There is a chance that the Lookup was incorrect if there was a match to an existing item.
                     //Allow the user to identify the item.
-                    if (item.Status === "SkippedExisting" || item.Status === "Failure") {
+                    if (item.Status === "SkippedExisting" || item.Status === "Failure" || item.Status == "NewResolution") {
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
                         html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnIdentifyResult organizerButton autoSize" title="Identify">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -743,7 +751,11 @@
     }
 
     function onServerEvent(e, apiClient, data) {
-
+        if (e.type === "TaskCompleted") {
+            if (data && data == 'AutoOrganize') {
+                reloadItems(pageGlobal, false);
+            }
+        }
         if (e.type === 'ScheduledTaskEnded') {
 
             if (data && data.ScheduledTask.Key === 'AutoOrganize') {

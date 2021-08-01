@@ -13,7 +13,7 @@ namespace Emby.AutoOrganize
     {
         public override string Name => "Auto Organize";
 
-       
+
         public override string Description
             => "Automatically organize new media";
 

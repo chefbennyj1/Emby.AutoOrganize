@@ -5,9 +5,6 @@ namespace Emby.AutoOrganize.Model
     {
         public bool IsEnabled { get; set; }
         public int MinFileSizeMb { get; set; }
-
-        public string[] IgnoredFileNameContains { get; set; }
-
         public string[] LeftOverFileExtensionsToDelete { get; set; }
         public string[] WatchLocations { get; set; }
 
@@ -19,6 +16,9 @@ namespace Emby.AutoOrganize.Model
         public string MultiEpisodeNamePattern { get; set; }
 
         public bool OverwriteExistingEpisodes { get; set; }
+
+        public string[] IgnoredFileNameContains {get; set;}
+
 
         public bool DeleteEmptyFolders { get; set; }
 
@@ -36,12 +36,10 @@ namespace Emby.AutoOrganize.Model
         {
             MinFileSizeMb = 50;
 
-            IgnoredFileNameContains = new string[] { };
-
             LeftOverFileExtensionsToDelete = new string[] { };
 
             WatchLocations = new string[] { };
-
+            IgnoredFileNameContains = new string[] { };
             EpisodeNamePattern = "%sn - %sx%0e - %en.%ext";
             MultiEpisodeNamePattern = "%sn - %sx%0e-x%0ed - %en.%ext";
             SeasonFolderPattern = "Season %s";

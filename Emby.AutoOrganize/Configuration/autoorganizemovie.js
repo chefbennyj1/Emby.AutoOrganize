@@ -28,9 +28,19 @@
         });
     };
 
-    ApiClient.performOrganization = function (id, options) {
+    ApiClient.performOrganization = function (id) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
+
+        return this.ajax({
+            type: "POST",
+            url: url
+        });
+    };
+
+    ApiClient.performEpisodeOrganization = function (id, options) {
+
+        var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
 
         return this.ajax({
             type: "POST",
@@ -39,18 +49,6 @@
             contentType: 'application/json'
         });
     };
-
-    //ApiClient.performEpisodeOrganization = function (id, options) {
-
-    //    var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
-
-    //    return this.ajax({
-    //        type: "POST",
-    //        url: url,
-    //        data: JSON.stringify(options),
-    //        contentType: 'application/json'
-    //    });
-    //};
 
     ApiClient.performMovieOrganization = function (id, options) {
 
@@ -134,11 +132,10 @@
         view.querySelector('#chkDeleteEmptyMovieFolders').checked = movieOptions.DeleteEmptyFolders;
 
         view.querySelector('#txtMovieMinFileSize').value = movieOptions.MinFileSizeMb;
-         view.querySelector('#txtIgnoreFileNameContains').value = movieOptions.IgnoredFileNameContains.join(';') || '';
         view.querySelector('#txtMoviePattern').value = movieOptions.MoviePattern;
         view.querySelector('#txtWatchMovieFolder').value = movieOptions.WatchLocations[0] || '';
 
-        view.querySelector('#chkSubMovieFolders').checked = movieOptions.MovieFolder;
+        view.querySelector('#chkSubMovieFolders').checked = movieOptions.CreateMovieInFolder;
         view.querySelector('#txtMovieFolderPattern').value = movieOptions.MovieFolderPattern;
 
         view.querySelector('#txtDeleteLeftOverMovieFiles').value = movieOptions.LeftOverFileExtensionsToDelete.join(';');
@@ -161,9 +158,6 @@
             movieOptions.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyMovieFolders').checked;
 
             movieOptions.MinFileSizeMb = view.querySelector('#txtMovieMinFileSize').value;
-
-            movieOptions.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
-
             movieOptions.MoviePattern = view.querySelector('#txtMoviePattern').value;
             movieOptions.LeftOverFileExtensionsToDelete = view.querySelector('#txtDeleteLeftOverMovieFiles').value.split(';');
 
@@ -172,7 +166,7 @@
             movieOptions.AutoDetectMovie = view.querySelector('#chkEnableMovieAutoDetect').checked;
             movieOptions.DefaultMovieLibraryPath = view.querySelector('#selectMovieFolder').value;
 
-            movieOptions.MovieFolder = view.querySelector('#chkSubMovieFolders').checked;
+            movieOptions.CreateMovieInFolder = view.querySelector('#chkSubMovieFolders').checked;
             movieOptions.MovieFolderPattern =  view.querySelector('#txtMovieFolderPattern').value;
 
             var watchLocation = view.querySelector('#txtWatchMovieFolder').value;
@@ -274,11 +268,9 @@
 
         function toggleMovieLocation() {
             if (view.querySelector('#chkEnableMovieAutoDetect').checked) {
-                view.querySelector('.fldSubMovieFolder').classList.remove('hide');
                 view.querySelector('.fldSelectMovieFolder').classList.remove('hide');
                 view.querySelector('#selectMovieFolder').setAttribute('required', 'required');
             } else {
-                view.querySelector('.fldSubMovieFolder').classList.add('hide');
                 view.querySelector('.fldSelectMovieFolder').classList.add('hide');
                 view.querySelector('#selectMovieFolder').removeAttribute('required');
             }

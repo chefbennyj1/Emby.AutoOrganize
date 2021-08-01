@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using System.Threading;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Data;
@@ -33,14 +31,14 @@ namespace Emby.AutoOrganize
         private readonly IFileSystem _fileSystem;
         private readonly IProviderManager _providerManager;
         private readonly IJsonSerializer _json;
-        
+
         public IFileOrganizationRepository Repository;
 
-        public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogManager logManager, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager config, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer json)
+        public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogger logger, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager config, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer json)
         {
             _sessionManager = sessionManager;
             _taskManager = taskManager;
-            _logger = logManager.GetLogger("AutoOrganize");
+            _logger = logger;
             _libraryMonitor = libraryMonitor;
             _libraryManager = libraryManager;
             _config = config;
@@ -68,24 +66,20 @@ namespace Emby.AutoOrganize
             FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
             FileOrganizationService.LogReset += _organizationService_LogReset;
             _taskManager.TaskExecuting += _taskManager_TaskExecuting;
-         
+            _taskManager.TaskCompleted += _taskManager_TaskCompleted;
             // Convert Config
             _config.Convert(FileOrganizationService);
-         
         }
 
-        //Probabaly not a good idea to do anything directly with the FileSystem here, however we might be able to monitor for file changes to update the UI - in the future
-        private void Fw_Changed(object sender, FileSystemEventArgs e)
+        private void _taskManager_TaskCompleted(object sender, TaskCompletionEventArgs e)
         {
-            throw new NotImplementedException();
+            _sessionManager.SendMessageToAdminSessions("TaskComplete",  e.Task.Name, CancellationToken.None);
+           
         }
 
         private void _taskManager_TaskExecuting(object sender, GenericEventArgs<IScheduledTaskWorker> e)
         {
-            if (e.Argument.ScheduledTask.Key == "AutoOrganize")
-            {
-                _sessionManager.SendMessageToAdminSessions("TaskData", e.Argument, CancellationToken.None);
-            }
+            _sessionManager.SendMessageToAdminSessions("TaskData", e.Argument, CancellationToken.None);
         }
 
         private IFileOrganizationRepository GetRepository()

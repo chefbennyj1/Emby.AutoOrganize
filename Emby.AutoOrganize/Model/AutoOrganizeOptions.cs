@@ -10,9 +10,9 @@ namespace Emby.AutoOrganize.Model
         public EpisodeFileOrganizationOptions TvOptions { get; set; }
 
         /// <summary>
-        /// Gets or sets the movie options.
+        /// Gets or sets the tv options.
         /// </summary>
-        /// <value>The movie  options.</value>
+        /// <value>The tv options.</value>
         public MovieFileOrganizationOptions MovieOptions { get; set; }
 
         /// <summary>

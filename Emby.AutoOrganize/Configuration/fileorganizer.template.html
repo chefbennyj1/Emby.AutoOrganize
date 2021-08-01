@@ -5,7 +5,7 @@
 
 <div is="emby-scroller" data-horizontal="false" data-centerfocus="card" class="formDialogContent">
     <div class="scrollSlider">
-        <form class="dialogContentInner episodeCorrectionForm" style="max-width: 100%;margin: 2% 4% 4% 4%;">
+        <form class="dialogContentInner episodeCorrectionForm" style="max-width: 100%; margin:3% 3% 0 3%; padding-bottom: 1em">
             
             <div class="inputFile" style="display:flex; justify-content:center; align-items:center; padding-bottom:3%"></div>
 
@@ -34,13 +34,6 @@
                     <div class="fldSelectMediaFolder hide selectContainer">
                         <select id="selectMediaFolder" is="emby-select" label="Root folder:"></select>
                     </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription hide chkMoveSubtitleFilesContainer" style="margin-bottom:2%;">
-                        <label style="width:auto;" class="emby-toggle-label">
-                            <input type="checkbox" is="emby-toggle" id="chkMoveSubtitleFiles" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Move Subtitle files</span>
-                        </label>
-                        <div class="fieldDescription toggleFieldDescription">Move subtitle file with this item.</div>
-                    </div>
                 </div>
                 <div id="divEpisodeChoice">
                     <div class="fldTxtSeason inputContainer">
@@ -53,9 +46,6 @@
                         <input is="emby-input" id="txtEndingEpisode" type="number" pattern="[0-9]*" min="0" label="Ending episode number:" />
                         <div class="fieldDescription">Only required for multi-episode files.</div>
                     </div>
-
-                    
-
                     <div class="fldRemember hide checkboxContainer checkboxContainer-withDescription">
                         <label class="checkboxContainer">
                             <input is="emby-checkbox" id="chkRememberCorrection" type="checkbox" />

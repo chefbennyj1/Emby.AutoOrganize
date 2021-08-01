@@ -141,7 +141,7 @@ namespace Emby.AutoOrganize.Core
             EventHelper.FireEventIfNotNull(ItemRemoved, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
         }
 
-        public AutoOrganizeOptions GetAutoOrganizeOptions()
+        private AutoOrganizeOptions GetAutoOrganizeOptions()
         {
             return _config.GetAutoOrganizeOptions();
         }
@@ -175,7 +175,7 @@ namespace Emby.AutoOrganize.Core
                     var movieOrganizer = new MovieFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
                         _libraryMonitor, _providerManager);
 
-                    organizeResult = await movieOrganizer.OrganizeMovieFile(requestToOverwriteExistsingFile, result.OriginalPath, options.MovieOptions, CancellationToken.None)
+                    organizeResult = await movieOrganizer.OrganizeMovieFile(result.OriginalPath, options.MovieOptions, CancellationToken.None)
                         .ConfigureAwait(false);
                     break;
                 default:

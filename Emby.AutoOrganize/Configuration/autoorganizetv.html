@@ -40,8 +40,9 @@
 
                     </div>
                 </div>
-
-
+                <br />
+                <hr />
+                <h3 class="checkboxListLabel">Source Folder Options</h3>
                 <div class="inputContainer">
                     <div style="display:flex; align-items:center;">
                         <div style="flex-grow:1;">
@@ -69,6 +70,10 @@
                     <input is="emby-input" id="txtMinFileSize" type="number" label="Min file size:" pattern="[0-9]*" min="0" required />
                     <div class="fieldDescription">Files smaller than this will be ignored.</div>
                 </div>
+
+                <hr />
+
+                <h3 class="checkboxListLabel">Destination Folder Options</h3>
 
                 <!--Series-->
                 <div is="emby-collapse" title="Series directory pattern">
@@ -235,9 +240,12 @@
                     </div>
                 </div>
 
-                <br /><br />
+                <br />
+                <br />
+                <hr />
+                <br />
 
-
+                <h3 class="checkboxListLabel">Clean up</h3>
                 <div class="inputContainer">
                     <input is="emby-input" id="txtDeleteLeftOverFiles" type="text" label="Delete left over files" />
                     <div class="fieldDescription">Each value separated by ;</div>

@@ -5,9 +5,6 @@ namespace Emby.AutoOrganize.Model
     {
         public bool IsEnabled { get; set; }
         public int MinFileSizeMb { get; set; }
-
-        public string[] IgnoredFileNameContains {get; set;}
-
         public string[] LeftOverFileExtensionsToDelete { get; set; }
         public string[] WatchLocations { get; set; }
 
@@ -25,7 +22,10 @@ namespace Emby.AutoOrganize.Model
 
         public string DefaultMovieLibraryPath { get; set; }
 
-        public bool MovieFolder { get; set; }
+        public string[] IgnoredFileNameContains {get; set;}
+
+
+        public bool CreateMovieInFolder { get; set; } = true;
 
         public string MovieFolderPattern { get; set; }
 
@@ -33,17 +33,15 @@ namespace Emby.AutoOrganize.Model
         {
             MinFileSizeMb = 50;
 
-            IgnoredFileNameContains = new string[] { };
-
             LeftOverFileExtensionsToDelete = new string[] { };
 
             MoviePattern = "%fn.%ext";
-
+            IgnoredFileNameContains = new string[] { };
             WatchLocations = new string[] { };
 
             CopyOriginalFile = false;
 
-            MovieFolder = false;
+            CreateMovieInFolder = false;
 
             MovieFolderPattern = "%mn (%my)";
 
