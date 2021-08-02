@@ -151,6 +151,20 @@ namespace Emby.AutoOrganize.Api
         public List<NameValuePair> Entries { get; set; }
     }
 
+    //[Route("/Library/FileOrganizations/MovieFileNamePatternMatching", "GET", Summary = "Gets the source file renamed with the file pattern")]
+    //public class MovieSourceFile
+    //{
+    //    [ApiMember(Name = "FileName", Description = "The Source file name", IsRequired = true, DataType = "string", ParameterType = "query", Verb = "GET")]
+    //    public string Name { get; set; }
+    //}
+
+    //[Route("/Library/FileOrganizations/EpisodeFileNamePatternMatching", "GET", Summary = "Gets the source file renamed with the file pattern")]
+    //public class EpisodeSourceFile
+    //{
+    //    [ApiMember(Name = "FileName", Description = "The Source file name", IsRequired = true, DataType = "string", ParameterType = "query", Verb = "GET")]
+    //    public string Name { get; set; }
+    //}
+
     [Authenticated(Roles = "Admin")]
     public class FileOrganizationService : IService, IRequiresRequest
     {
@@ -279,5 +293,7 @@ namespace Emby.AutoOrganize.Api
                 InternalFileOrganizationService.DeleteSmartMatchEntry(entry.Name, entry.Value);
             }
         }
+
+       
     }
 }
