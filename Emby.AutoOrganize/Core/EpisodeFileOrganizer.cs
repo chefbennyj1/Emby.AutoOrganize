@@ -919,8 +919,8 @@ namespace Emby.AutoOrganize.Core
                 seriesFullName = string.Format("{0} ({1})", seriesFullName, seriesYear);
             }
 
-            var seasonFolderName = options.SeriesFolderPattern.
-                Replace("%sn", seriesName)
+            var seasonFolderName = options.SeriesFolderPattern
+                .Replace("%sn", seriesName)
                 .Replace("%s.n", seriesName.Replace(" ", "."))
                 .Replace("%s_n", seriesName.Replace(" ", "_"))
                 .Replace("%fn", seriesFullName);

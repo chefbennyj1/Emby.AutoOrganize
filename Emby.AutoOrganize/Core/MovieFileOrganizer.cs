@@ -16,6 +16,8 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Common.Events;
+using MediaBrowser.Model.Events;
 
 namespace Emby.AutoOrganize.Core
 {
@@ -30,6 +32,7 @@ namespace Emby.AutoOrganize.Core
         private readonly IProviderManager _providerManager;
 
         private readonly CultureInfo _usCulture = new CultureInfo("en-US");
+        public event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
 
         public MovieFileOrganizer(IFileOrganizationService organizationService, IServerConfigurationManager config, IFileSystem fileSystem, ILogger logger, ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager)
         {
@@ -117,6 +120,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Waiting;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
                 }
                 else
                 {
@@ -265,7 +269,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     _logger.Warn(msg);
-                    return;
+                    //return;
                 }
             }
 

@@ -130,7 +130,8 @@ namespace Emby.Naming.Common
                 ".srt",
                 ".ssa",
                 ".ass",
-                ".sub"
+                ".sub",
+                ".idx"
             };
 
             SubtitleFlagDelimiters = new[]

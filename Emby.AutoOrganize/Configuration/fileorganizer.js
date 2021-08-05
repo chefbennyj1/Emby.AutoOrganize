@@ -227,7 +227,7 @@
         populateMedias(context);
     }
 
-    function submitMediaForm(dlg) {
+    function submitMediaForm(dlg, item) {
 
         
         var resultId = dlg.querySelector('#hfResultId').value;
@@ -440,7 +440,7 @@
 
                     dlg.querySelector('form').addEventListener('submit', function (e) {
 
-                        submitMediaForm(dlg);
+                        submitMediaForm(dlg, item);
 
                         e.preventDefault();
                         return false;

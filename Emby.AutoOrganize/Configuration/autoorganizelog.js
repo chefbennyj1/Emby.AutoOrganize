@@ -426,6 +426,7 @@
         }
         return separateWord.join(' ');
     }
+      
 
     function formatItemName(file_name) {
 
@@ -608,11 +609,7 @@
         html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
         html += '<span>' + formatItemName(item.ExtractedName) + '</span>';
         html += '</td>';
-
-        //Production Year
-        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
-        html += '<span>' + item.ExtractedYear ? item.ExtractedYear : "" + '</span>';
-        html += '</td>';
+              
 
          //Resolution
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';

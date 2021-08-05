@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Data;
@@ -21,6 +23,7 @@ namespace Emby.AutoOrganize
         public static PluginEntryPoint Current;
 
         public IFileOrganizationService FileOrganizationService { get; private set; }
+        
         private readonly ISessionManager _sessionManager;
 
         private readonly ITaskManager _taskManager;
@@ -67,10 +70,16 @@ namespace Emby.AutoOrganize
             FileOrganizationService.LogReset += _organizationService_LogReset;
             _taskManager.TaskExecuting += _taskManager_TaskExecuting;
             _taskManager.TaskCompleted += _taskManager_TaskCompleted;
+
+            
+            
             // Convert Config
             _config.Convert(FileOrganizationService);
+
+
         }
 
+        
         private void _taskManager_TaskCompleted(object sender, TaskCompletionEventArgs e)
         {
             _sessionManager.SendMessageToAdminSessions("TaskComplete",  e.Task.Name, CancellationToken.None);
