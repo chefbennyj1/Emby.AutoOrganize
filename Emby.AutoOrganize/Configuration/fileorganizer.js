@@ -158,7 +158,7 @@
 
             existingMediasHtml = result.Items.map(function (s) {
 
-                return '<option value="' + s.Id + '">' + s.Name + ' ( ' + s.ProductionYear + ')</option>';
+                return '<option value="' + s.Id + '"><span style="flex-grow:1">' + s.Name + '</span><span>' + s.ProductionYear + '</span></option>';
 
             }).join('');
 

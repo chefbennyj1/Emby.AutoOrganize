@@ -60,6 +60,19 @@ namespace Emby.AutoOrganize.Core
                 Type                = FileOrganizerType.Unknown,
                 FileSize            = _fileSystem.GetFileInfo(path).Length
             };           
+            
+            //If the User has choosen to monitor movies and episodes in the same folder.
+            //We have to stop the movie sort here if the item has been identified as a TV Episode.
+            //Checking if the Episode organizer found this item before the Movie organizer
+            //If the item was found and the result was not a failure then return that Episode data insteads of attempting movie matches.
+            var dbResult = _organizationService.GetResultBySourcePath(path);
+            if(dbResult != null)
+            {
+                if(dbResult.Type == FileOrganizerType.Episode && dbResult.Status != FileSortingStatus.Failure)
+                {
+                    return dbResult;
+                }
+            }
 
             if (_libraryMonitor.IsPathLocked(path.AsSpan()))
             {
@@ -269,7 +282,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     _logger.Warn(msg);
-                    //return;
+                    
                 }
             }
 

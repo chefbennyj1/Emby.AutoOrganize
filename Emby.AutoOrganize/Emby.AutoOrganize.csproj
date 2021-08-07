@@ -17,6 +17,7 @@
     <None Remove="Configuration\autoorganizetv.js" />
     <None Remove="Configuration\fileorganizer.js" />
     <None Remove="Configuration\fileorganizer.template.html" />
+    <None Remove="Core\MovieFileOrganizer.cs~RF4b6d8e46.TMP" />
     <None Remove="thumb.jpg" />
   </ItemGroup>
 
