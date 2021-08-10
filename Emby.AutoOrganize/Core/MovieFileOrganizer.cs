@@ -3,7 +3,6 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Logging;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -48,8 +47,21 @@ namespace Emby.AutoOrganize.Core
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Movie;
 
         public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
-        {
-            _logger.Info("Sorting file {0}", path);
+        {                
+            
+            //If the User has choosen to monitor movies and episodes in the same folder.
+            //Stop the movie sort here if the item has been identified as a TV Episode.
+            //If the item was found to be an episode and the result was not a failure then return that Episode data insteads of attempting movie matches.
+            var dbResult = _organizationService.GetResultBySourcePath(path);
+            if(dbResult != null)
+            {
+                if(dbResult.Type == FileOrganizerType.Episode && dbResult.Status != FileSortingStatus.Failure)
+                {
+                    return dbResult;
+                }
+            }
+
+             _logger.Info("Sorting file {0}", path);
 
             var result = new FileOrganizationResult
             {
@@ -59,20 +71,7 @@ namespace Emby.AutoOrganize.Core
                 ExtractedResolution = FileOrganizationHelper.GetStreamResolutionFromFileName(Path.GetFileName(path)),
                 Type                = FileOrganizerType.Unknown,
                 FileSize            = _fileSystem.GetFileInfo(path).Length
-            };           
-            
-            //If the User has choosen to monitor movies and episodes in the same folder.
-            //We have to stop the movie sort here if the item has been identified as a TV Episode.
-            //Checking if the Episode organizer found this item before the Movie organizer
-            //If the item was found and the result was not a failure then return that Episode data insteads of attempting movie matches.
-            var dbResult = _organizationService.GetResultBySourcePath(path);
-            if(dbResult != null)
-            {
-                if(dbResult.Type == FileOrganizerType.Episode && dbResult.Status != FileSortingStatus.Failure)
-                {
-                    return dbResult;
-                }
-            }
+            };    
 
             if (_libraryMonitor.IsPathLocked(path.AsSpan()))
             {
@@ -85,7 +84,7 @@ namespace Emby.AutoOrganize.Core
 
             try
             {       
-                result.Status = FileSortingStatus.Processing; 
+                
 
                 var movieInfo = _libraryManager.IsVideoFile(path.AsSpan()) ? _libraryManager.ParseName(Path.GetFileName(path).AsSpan()) : new ItemLookupInfo();
 
@@ -98,6 +97,8 @@ namespace Emby.AutoOrganize.Core
 
                     _logger.Debug("Extracted information from {0}. Movie {1}, Year {2}", path, movieName, movieYear);
 
+                    result.Status = FileSortingStatus.Processing;
+                    
                     await OrganizeMovie(path,
                         movieName,
                         movieYear,
@@ -240,6 +241,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Waiting;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
+                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
                 }
                 else
                 {
@@ -394,6 +396,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Waiting;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
                     return;
                 }
             }
@@ -446,7 +449,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Waiting;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
-                    
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
                     return;
                 }
             }
@@ -677,12 +680,13 @@ namespace Emby.AutoOrganize.Core
         {
             //We may have a library entery for this movie, but this particular copy of it may have a different Resolution.
             try
-            {                
-                if (movie.GetMediaStreams().Any(s => s.DisplayTitle.Contains(extractedResolution)))
-                {
-                    return false;
-                }
-                return true;
+            {   
+                return !movie.GetMediaStreams().Any(s => s.DisplayTitle.Contains(extractedResolution));
+                //if (movie.GetMediaStreams().Any(s => s.DisplayTitle.Contains(extractedResolution)))
+                //{
+                //    return false;
+                //}
+                //return true;
             }
             catch (Exception)
             {

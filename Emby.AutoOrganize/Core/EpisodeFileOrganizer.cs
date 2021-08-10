@@ -21,6 +21,8 @@ using Emby.Naming.TV;
 using MediaBrowser.Model.Providers;
 using EpisodeInfo = MediaBrowser.Controller.Providers.EpisodeInfo;
 using MediaBrowser.Controller.Session;
+using MediaBrowser.Common.Events;
+using MediaBrowser.Model.Events;
 
 namespace Emby.AutoOrganize.Core
 {
@@ -34,7 +36,7 @@ namespace Emby.AutoOrganize.Core
         private readonly IServerConfigurationManager _config;
         private readonly IProviderManager _providerManager;
         private readonly CultureInfo _usCulture = new CultureInfo("en-US");
-
+        public event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
         public EpisodeFileOrganizer(IFileOrganizationService organizationService, IServerConfigurationManager config, IFileSystem fileSystem, ILogger logger, ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager)
         {
             _organizationService = organizationService;
@@ -88,7 +90,7 @@ namespace Emby.AutoOrganize.Core
                     return result;
                 }
 
-                result.Status = FileSortingStatus.Processing;
+               
 
                 var namingOptions = GetNamingOptionsInternal();
                 var resolver = new EpisodeResolver(namingOptions);
@@ -101,6 +103,8 @@ namespace Emby.AutoOrganize.Core
 
                 if (!string.IsNullOrEmpty(seriesName))
                 {
+                     result.Status = FileSortingStatus.Processing;
+
                     var seriesParseResult = _libraryManager.ParseName(seriesName.AsSpan());
 
                     seriesName = seriesParseResult.Name;
@@ -757,6 +761,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Waiting; //We're waiting for the file to become available.
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
+                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
                     return;
                 }
             }

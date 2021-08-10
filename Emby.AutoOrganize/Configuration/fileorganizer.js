@@ -158,14 +158,14 @@
 
             existingMediasHtml = result.Items.map(function (s) {
 
-                return '<option value="' + s.Id + '"><span style="flex-grow:1">' + s.Name + '</span><span>' + s.ProductionYear + '</span></option>';
+                return '<option value="' + s.Id + '">' + s.Name + ' (' + s.ProductionYear + ')</option>';
 
             }).join('');
 
             existingMediasHtml = '<option value=""></option>' + existingMediasHtml;
 
             context.querySelector('#selectMedias').innerHTML = existingMediasHtml;
-
+            
             ApiClient.getVirtualFolders().then(function (result) {
 
                 var mediasLocations = [];
@@ -229,7 +229,7 @@
 
     function submitMediaForm(dlg, item) {
 
-        
+        console.log(item)
         var resultId = dlg.querySelector('#hfResultId').value;
         var mediaId = dlg.querySelector('#selectMedias').value;
 
@@ -276,9 +276,11 @@
         
         var mediaSelect = dlg.querySelector("#selectMedias");
         var selectedOption = mediaSelect.options[mediaSelect.selectedIndex].text;
+        
         //This needs to be reworked. We need the message to confirm the destinion file path.FullName
-        var message = 'The following file will be moved to the ' + chosenType + ':<br/>' + selectedOption + (chosenType === "Series" ? '<br/>Season ' + options.SeasonNumber + '<br/>Episode: ' + options.EpisodeNumber : '');
-              
+        var message = 'The following item will be moved to ';
+        message += item && item.length ? item.TargetFolder : ' the ' + chosenType + ' ' + selectedOption;  
+        
         message += '<br/><br/>' + 'Are you sure you wish to proceed?';
 
         require(['confirm'], function (confirm) {
