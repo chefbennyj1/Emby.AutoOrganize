@@ -1,4 +1,4 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'detailtablecss'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
+﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'detailtablecss', 'emby-collapse'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
     'use strict';
 
     ApiClient.getScheduledTask = function (options) {
@@ -274,11 +274,7 @@
         return items.sort((a, b) => {
             var da = new Date(datetime.parseISO8601Date(a.Date, true)),
                 db = new Date(datetime.parseISO8601Date(b.Date, true))
-            if (sort.ascending) {
-                return da + db;
-            } else {
-                return da - db;
-            }
+            return sort.ascending ? da + db : da - db;            
         })
     }
 
@@ -286,11 +282,7 @@
         return items.sort((a, b) => {
             var fa = a.ExtractedName.toLowerCase(),
                 fb = b.ExtractedName.toLowerCase();
-            if (sort.ascending) {
-                return fa < fb ? -1 : fa > fb ? 1 : 0;
-            } else {
-                return fb < fa ? -1 : fb > fa ? 1 : 0;
-            }
+            return sort.ascending ? fa < fb ? -1 : fa > fb ? 1 : 0 : fb < fa ? -1 : fb > fa ? 1 : 0;
         })
     }
 
@@ -298,11 +290,7 @@
         return items.sort((a, b) => {
             var fa = a.Status,
                 fb = b.Status;
-            if (sort.ascending) {
-                return fa < fb ? -1 : fa > fb ? 1 : 0;
-            } else {
-                return fb < fa ? -1 : fb > fa ? 1 : 0;
-            }
+            return sort.ascending ? fa < fb ? -1 : fa > fb ? 1 : 0 : fb < fa ? -1 : fb > fa ? 1 : 0;            
         })
     }
          
@@ -331,12 +319,13 @@
             var rows = '';
             items.forEach(item => {
                 var html = '';
-
+               
                 html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '">';
-
+               
                 html += renderItemRow(item, page);
+              
+                html += '</tr>';                
 
-                html += '</tr>';
                 rows += html;
             })
 
@@ -392,16 +381,6 @@
                 });
             }
             
-            //var btnTableOptionsDialog = page.querySelector('.btnOpenTableOptionsBtn');
-            ////var btnClearCompleted = page.querySelector('.btnClearCompleted');
-
-            //if (result.TotalRecordCount) {
-            //    btnTableOptionsDialog.classList.remove('hide');
-            //    //btnClearCompleted.classList.remove('hide');
-            //} else {
-            //    btnTableOptionsDialog.classList.add('hide');
-            //    //btnClearCompleted.classList.add('hide');
-            //}
         }
     }
 
@@ -426,7 +405,6 @@
         }
         return separateWord.join(' ');
     }
-      
 
     function formatItemName(file_name) {
 
@@ -585,7 +563,10 @@
                 getStatusRenderData("Processing") :
                 getStatusRenderData(item.Status);
 
-        //Progress Icon
+       
+        
+        
+        //Progress Status Icon
         html += '<td class="detailTableBodyCell">';
         html += '<div class="progressIcon">';
         html += '<svg id="statusIcon" style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -608,12 +589,11 @@
         //Name
         html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
         html += '<span>' + formatItemName(item.ExtractedName) + '</span>';
-        html += '</td>';
-              
+        html += '</td>';             
 
-         //Resolution
+        //Resolution
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += '<span>' + item.ExtractedResolution ? item.ExtractedResolution : ""  + '</span>';
+        html += '<span>' + item.ExtractedResolution !== 'undefined' ? item.ExtractedResolution : ""  + '</span>';  //Why is this sometimes undefined?
         html += '</td>';
 
         //File Size
@@ -621,7 +601,7 @@
         html += '<span>' + formatBytes(item.FileSize) + '</span>';
         html += '</td>';        
 
-        //Type Icon
+        //Media Type Icon (Movie/Episode) / Progress Bar
         var icon = getResultItemTypeIcon((item.Status !== "Failure" ? item.Type : "Unknown"))
         html += '<td class="detailTableBodyCell">';
         html += '<div class="type-icon-container">';
@@ -643,8 +623,8 @@
         html += item.TargetPath || '';
         html += '</td>';
 
-        //Row sorting options (buttons)
-        html += '<td class="detailTableBodyCell organizerButtonCell" style="whitespace:no-wrap;">';
+        //Row sorting options (action buttons)
+        html += '<td class="detailTableBodyCell organizerButtonCell" data-title="Actions" style="whitespace:no-wrap;">';
         if (item.Status == "Waiting") {
             html += '';
         } else {
@@ -676,17 +656,20 @@
                         html += '</button>';
                     }
                 }
-                //Delete Entry Button - This deletes the item from the log window and removes it from watched folder
-                var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-                html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete">';
-                html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
-                html += '</svg>';
-                html += '</button>';
+                
             }
+            
         }
-
+        //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
+        var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
+        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+        html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
+        html += '</svg>';
+        html += '</button>';
         html += '</td>';
+
+       
 
         return html;
     }
@@ -746,11 +729,13 @@
             deleteSmartMatchEntries(entries)
         }
     }
+         
 
     function onServerEvent(e, apiClient, data) {
         if (e.type === "TaskCompleted") {
             if (data && data == 'AutoOrganize') {
                 reloadItems(pageGlobal, false);
+               
             }
         }
         if (e.type === 'ScheduledTaskEnded') {
@@ -764,6 +749,7 @@
             if (data && data.ScheduledTask.Key === 'AutoOrganize') {
                 updateTaskScheduleLastRun(data);
                 reloadItems(pageGlobal, false);
+                //checkUpdatingTableItems(pageGlobal);
             }
 
         } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
@@ -828,21 +814,7 @@
         view.querySelector('.btnOpenTableOptionsBtn').addEventListener('click', (e) => {
              showTableOptionDialog(view);
         });
-        //view.querySelector('.btnClearLog').addEventListener('click', function () {
-
-        //    ApiClient.clearOrganizationLog().then(function () {
-        //        query.StartIndex = 0;
-        //        reloadItems(view, true);
-        //    }, Dashboard.processErrorResponse);
-        //});
-
-        //view.querySelector('.btnClearCompleted').addEventListener('click', function () {
-
-        //    ApiClient.clearOrganizationCompletedLog().then(function () {
-        //        query.StartIndex = 0;
-        //        reloadItems(view, true);
-        //    }, Dashboard.processErrorResponse);
-        //});
+        
         var sortByDateBtn = view.querySelector('.date_sort')
         var sortByNameBtn = view.querySelector('.name_sort')
         var sortByStatusBtn = view.querySelector('.status_sort')
@@ -942,7 +914,7 @@
             events.on(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
             events.on(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
             events.on(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
-            events.on(serverNotifications, "TaskData", onServerEvent)
+            events.on(serverNotifications, 'TaskData', onServerEvent)
             // on here
             taskButton({
                 mode: 'on',
@@ -967,7 +939,7 @@
             events.off(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
             events.off(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
             events.off(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
-            events.off(serverNotifications, "TaskData", onServerEvent)
+            events.off(serverNotifications, 'TaskData', onServerEvent)
 
             // off here
             taskButton({

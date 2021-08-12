@@ -513,7 +513,18 @@ namespace Emby.AutoOrganize.Core
                         return;
                     }
 
-                   
+                    //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "Waiting"
+                    if(FileOrganizationHelper.IsCopying(sourcePath, result, _fileSystem))
+                    {
+                        var msg = string.Format("File '{0}' is currently in use, stopping organization", sourcePath);
+                        _logger.Info(msg);
+                        result.Status = FileSortingStatus.Waiting;
+                        result.StatusMessage = msg;
+                        result.TargetPath = newPath;
+                        return;
+                    }
+
+
                     if (fileExists)
                     {
                         var msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, newPath);
@@ -761,7 +772,7 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Waiting; //We're waiting for the file to become available.
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
-                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
                     return;
                 }
             }

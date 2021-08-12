@@ -1,11 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Querying;
-using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Services;
 using MediaBrowser.Model.Entities;
 
@@ -223,16 +221,16 @@ namespace Emby.AutoOrganize.Api
             // Don't await this
             var task = InternalFileOrganizationService.PerformOrganization(new EpisodeFileOrganizationRequest
             {
-                EndingEpisodeNumber = request.EndingEpisodeNumber,
-                EpisodeNumber = request.EpisodeNumber,
-                RememberCorrection = request.RememberCorrection,
-                ResultId = request.Id,
-                SeasonNumber = request.SeasonNumber,
-                SeriesId = request.SeriesId,
-                NewSeriesName = request.NewSeriesName,
-                NewSeriesYear = request.NewSeriesYear,
-                NewSeriesProviderIds = dicNewProviderIds,
-                TargetFolder = request.TargetFolder,
+                EndingEpisodeNumber             = request.EndingEpisodeNumber,
+                EpisodeNumber                   = request.EpisodeNumber,
+                RememberCorrection              = request.RememberCorrection,
+                ResultId                        = request.Id,
+                SeasonNumber                    = request.SeasonNumber,
+                SeriesId                        = request.SeriesId,
+                NewSeriesName                   = request.NewSeriesName,
+                NewSeriesYear                   = request.NewSeriesYear,
+                NewSeriesProviderIds            = dicNewProviderIds,
+                TargetFolder                    = request.TargetFolder,
                 RequestToOverwriteExistsingFile = request.RequestToOverwriteExistsingFile
             });
 
@@ -253,12 +251,12 @@ namespace Emby.AutoOrganize.Api
             // Don't await this
             InternalFileOrganizationService.PerformOrganization(new MovieFileOrganizationRequest
             {
-                ResultId = request.Id,
-                MovieId = request.MovieId,
-                NewMovieName = request.NewMovieName,
-                NewMovieYear = request.NewMovieYear,
-                NewMovieProviderIds = dicNewProviderIds,
-                TargetFolder = request.TargetFolder,
+                ResultId                        = request.Id,
+                MovieId                         = request.MovieId,
+                NewMovieName                    = request.NewMovieName,
+                NewMovieYear                    = request.NewMovieYear,
+                NewMovieProviderIds             = dicNewProviderIds,
+                TargetFolder                    = request.TargetFolder,
                 RequestToOverwriteExistsingFile = request.RequestToOverwriteExistsingFile
             });
         }

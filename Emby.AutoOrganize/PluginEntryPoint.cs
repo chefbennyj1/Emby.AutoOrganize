@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using System.Threading;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Data;
@@ -39,15 +37,15 @@ namespace Emby.AutoOrganize
 
         public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogger logger, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager config, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer json)
         {
-            _sessionManager = sessionManager;
-            _taskManager = taskManager;
-            _logger = logger;
-            _libraryMonitor = libraryMonitor;
-            _libraryManager = libraryManager;
-            _config = config;
-            _fileSystem = fileSystem;
+            _sessionManager  = sessionManager;
+            _taskManager     = taskManager;
+            _logger          = logger;
+            _libraryMonitor  = libraryMonitor;
+            _libraryManager  = libraryManager;
+            _config          = config;
+            _fileSystem      = fileSystem;
             _providerManager = providerManager;
-            _json = json;
+            _json            = json;
         }
 
         public void Run()
@@ -64,12 +62,12 @@ namespace Emby.AutoOrganize
             Current = this;
             FileOrganizationService = new InternalFileOrganizationService(_taskManager, Repository, _logger, _libraryMonitor, _libraryManager, _config, _fileSystem, _providerManager);
 
-            FileOrganizationService.ItemAdded += _organizationService_ItemAdded;
+            FileOrganizationService.ItemAdded   += _organizationService_ItemAdded;
             FileOrganizationService.ItemRemoved += _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
-            FileOrganizationService.LogReset += _organizationService_LogReset;
-            _taskManager.TaskExecuting += _taskManager_TaskExecuting;
-            _taskManager.TaskCompleted += _taskManager_TaskCompleted;
+            FileOrganizationService.LogReset    += _organizationService_LogReset;
+            _taskManager.TaskExecuting          += _taskManager_TaskExecuting;
+            _taskManager.TaskCompleted          += _taskManager_TaskCompleted;
 
             
             
@@ -122,11 +120,12 @@ namespace Emby.AutoOrganize
 
         public void Dispose()
         {
-            FileOrganizationService.ItemAdded -= _organizationService_ItemAdded;
+            FileOrganizationService.ItemAdded   -= _organizationService_ItemAdded;
             FileOrganizationService.ItemRemoved -= _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated -= _organizationService_ItemUpdated;
-            FileOrganizationService.LogReset -= _organizationService_LogReset;
-            
+            FileOrganizationService.LogReset    -= _organizationService_LogReset;
+            _taskManager.TaskExecuting          -= _taskManager_TaskExecuting;
+            _taskManager.TaskCompleted          -= _taskManager_TaskCompleted;
             var repo = Repository as IDisposable;
             if (repo != null)
             {
