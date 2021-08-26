@@ -58,8 +58,9 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "Id", Description = "Result Id", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "POST")]
         public string Id { get; set; }
 
-        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Optional. Should overwrite the existsing File, if it exists. If empty the file will not overwrite.", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
-        public bool RequestToOverwriteExistsingFile { get; set; }
+        [ApiMember(Name = "RequestToMoveFile", Description = "Optional. Should overwrite the existsing File, if it exists. If empty the file will not overwrite.", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool RequestToMoveFile { get; set; }
+        
     }
 
     [Route("/Library/FileOrganizations/{Id}/Episode/Organize", "POST", Summary = "Performs organization of a tv episode")]
@@ -95,8 +96,8 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
 
-        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
-        public bool RequestToOverwriteExistsingFile { get; set; }
+        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool RequestToMoveFile { get; set; }
     }
 
     [Route("/Library/FileOrganizations/{Id}/Movie/Organize", "POST", Summary = "Performs organization of a movie")]
@@ -120,8 +121,8 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
          
-        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
-        public bool RequestToOverwriteExistsingFile { get; set; }
+        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool RequestToMoveFile { get; set; }
     }
 
     [Route("/Library/FileOrganizations/SmartMatches", "GET", Summary = "Gets smart match entries")]
@@ -202,7 +203,7 @@ namespace Emby.AutoOrganize.Api
         public void Post(PerformOrganization request)
         {
             // Don't await this
-            var task = InternalFileOrganizationService.PerformOrganization(request.Id, request.RequestToOverwriteExistsingFile);
+            var task = InternalFileOrganizationService.PerformOrganization(request.Id, request.RequestToMoveFile);
 
             // Async processing (close dialog early instead of waiting until the file has been copied)
             // Wait 2s for exceptions that may occur to have them forwarded to the client for immediate error display
@@ -231,7 +232,7 @@ namespace Emby.AutoOrganize.Api
                 NewSeriesYear                   = request.NewSeriesYear,
                 NewSeriesProviderIds            = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
-                RequestToOverwriteExistsingFile = request.RequestToOverwriteExistsingFile
+                RequestToOverwriteExistsingFile = request.RequestToMoveFile
             });
 
             // Async processing (close dialog early instead of waiting until the file has been copied)
@@ -257,7 +258,7 @@ namespace Emby.AutoOrganize.Api
                 NewMovieYear                    = request.NewMovieYear,
                 NewMovieProviderIds             = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
-                RequestToOverwriteExistsingFile = request.RequestToOverwriteExistsingFile
+                RequestToOverwriteExistsingFile = request.RequestToMoveFile
             });
         }
 

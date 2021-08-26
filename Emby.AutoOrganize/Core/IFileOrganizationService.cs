@@ -43,7 +43,7 @@ namespace Emby.AutoOrganize.Core
         /// </summary>
         /// <param name="resultId">The result identifier.</param>
         /// <returns>Task.</returns>
-        Task PerformOrganization(string resultId, bool? requestToOverwriteExistsingFile);
+        Task PerformOrganization(string resultId, bool? requestToMoveFile);
 
         /// <summary>
         /// Performs the episode organization.

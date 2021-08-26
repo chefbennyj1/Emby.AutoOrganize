@@ -206,7 +206,7 @@
             confirm(message, 'Organize File').then(function () {
 
                 var options = {
-                    RequestToOverwriteExistsingFile: true
+                    RequestToMoveFile: true                    
                 }
                 ApiClient.performOrganization(id, options).then(function () {
 
@@ -474,6 +474,11 @@
                 color: "var(--theme-accent-text-color)",
                 text: "New Resolution Available"
             }
+            case "NotEnoughDiskSpace": return {
+                path: "",
+                color: "organered",
+                text: "Attention - Not Enough Disk Space!"
+            }
         }
     }
 
@@ -557,9 +562,9 @@
     function renderItemRow(item, page) {
         if(item.Type == "Unknown") return "";
         var html = '';
-        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" ?
+        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" || item.Status !== "NotEnoughDiskSpace" ?
             getStatusRenderData("Waiting") :
-            item.IsInProgress && item.Status === "Failure" ?
+            item.IsInProgress && item.Status === "Failure" || item.Status === "NotEnoughDiskSpace" ?
                 getStatusRenderData("Processing") :
                 getStatusRenderData(item.Status);
 
@@ -625,7 +630,7 @@
 
         //Row sorting options (action buttons)
         html += '<td class="detailTableBodyCell organizerButtonCell" data-title="Actions" style="whitespace:no-wrap;">';
-        if (item.Status == "Waiting") {
+        if (item.Status == "Waiting" || item.Status == "NotEnoughDiskSpace") {
             html += '';
         } else {
             if (item.Status !== 'Success') {

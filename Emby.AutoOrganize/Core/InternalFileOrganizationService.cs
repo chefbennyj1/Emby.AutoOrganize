@@ -146,7 +146,7 @@ namespace Emby.AutoOrganize.Core
             return _config.GetAutoOrganizeOptions();
         }
 
-        public async Task PerformOrganization(string resultId, bool? requestToOverwriteExistsingFile)
+        public async Task PerformOrganization(string resultId, bool? requestToMoveFile)
         {
             var result = _repo.GetResult(resultId);
 
@@ -166,7 +166,7 @@ namespace Emby.AutoOrganize.Core
                         _libraryMonitor, _providerManager);
                                         
 
-                    organizeResult = await episodeOrganizer.OrganizeEpisodeFile(requestToOverwriteExistsingFile, result.OriginalPath, options.TvOptions, CancellationToken.None)
+                    organizeResult = await episodeOrganizer.OrganizeEpisodeFile(requestToMoveFile, result.OriginalPath, options.TvOptions, CancellationToken.None)
                         .ConfigureAwait(false);
 
                     break;

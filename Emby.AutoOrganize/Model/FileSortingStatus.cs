@@ -7,6 +7,7 @@
         SkippedExisting,
         NewResolution,
         Processing,
-        Waiting
+        Waiting,
+        NotEnoughDiskSpace
     }
 }

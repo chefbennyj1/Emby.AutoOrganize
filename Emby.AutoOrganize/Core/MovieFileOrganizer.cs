@@ -48,20 +48,7 @@ namespace Emby.AutoOrganize.Core
 
         public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
         {                
-            
-            //If the User has choosen to monitor movies and episodes in the same folder.
-            //Stop the movie sort here if the item has been identified as a TV Episode.
-            //If the item was found to be an episode and the result was not a failure then return that Episode data insteads of attempting movie matches.
-            var dbResult = _organizationService.GetResultBySourcePath(path);
-            if(dbResult != null)
-            {
-                if(dbResult.Type == FileOrganizerType.Episode && dbResult.Status != FileSortingStatus.Failure)
-                {
-                    return dbResult;
-                }
-            }
-
-             _logger.Info("Sorting file {0}", path);
+            _logger.Info("Sorting file {0}", path);
 
             var result = new FileOrganizationResult
             {
@@ -71,7 +58,25 @@ namespace Emby.AutoOrganize.Core
                 ExtractedResolution = FileOrganizationHelper.GetStreamResolutionFromFileName(Path.GetFileName(path)),
                 Type                = FileOrganizerType.Unknown,
                 FileSize            = _fileSystem.GetFileInfo(path).Length
-            };    
+            };
+            
+           
+            var dbResult = _organizationService.GetResultBySourcePath(path);
+            if(dbResult != null)
+            {
+                //If the User has choosen to monitor movies and episodes in the same folder.
+                //Stop the movie sort here if the item has been identified as a TV Episode.
+                //If the item was found to be an episode and the result was not a failure then return that Episode data insteads of attempting movie matches.
+                if(dbResult.Type == FileOrganizerType.Episode && dbResult.Status != FileSortingStatus.Failure)
+                {
+                    return dbResult;
+                }
+                                
+                result = dbResult;
+            }
+            
+
+           
 
             if (_libraryMonitor.IsPathLocked(path.AsSpan()))
             {
@@ -187,6 +192,7 @@ namespace Emby.AutoOrganize.Core
 
         public FileOrganizationResult OrganizeWithCorrection(MovieFileOrganizationRequest request, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
         {
+            
             var result = _organizationService.GetResult(request.ResultId);
 
             try
@@ -210,7 +216,7 @@ namespace Emby.AutoOrganize.Core
                 {
                     // Existing movie
                     movie = (Movie)_libraryManager.GetItemById(request.MovieId);
-                    var newPath = GetMoviePath(result.OriginalPath, movie, options);
+                    var newPath = GetMovieFolder(result.OriginalPath, movie, options);
                     var targetFolder = _libraryManager
                     .GetVirtualFolders()
                     .Where(i => string.Equals(i.CollectionType, CollectionType.Movies.ToString(), StringComparison.OrdinalIgnoreCase))
@@ -295,7 +301,7 @@ namespace Emby.AutoOrganize.Core
             OrganizeMovie(sourcePath,
                movie,
                options,
-               searchResult,
+               searchResult,               
                result,
                cancellationToken);
         }
@@ -325,7 +331,8 @@ namespace Emby.AutoOrganize.Core
             bool isNew = string.IsNullOrWhiteSpace(result.Id);
 
             if (isNew)
-            {
+            {                
+               
                 _organizationService.SaveResult(result, cancellationToken);
             }
 
@@ -334,13 +341,17 @@ namespace Emby.AutoOrganize.Core
                 throw new OrganizationException("File is currently processed otherwise. Please try again later.");
             }
 
+            if(string.IsNullOrWhiteSpace(result.TargetPath)) result.TargetPath = movie.Path;
+
             try
             {
-                // Proceed to sort the file                
-               _logger.Info("Sorting file {0} into movie {1}", sourcePath, movie.Path);
-                result.TargetPath = movie.Path;
+                // Proceed to sort the file
+               
+               _logger.Info("Sorting file {0} into movie {1}", sourcePath, result.TargetPath);
+                
                 result.ExtractedResolution = FileOrganizationHelper.GetStreamResolutionFromFileName(sourcePath);
-
+                _logger.Info("AUTO ORGANIZE RESULT TARGET PATH: " + result.TargetPath);
+                
                 var fileExists = _fileSystem.FileExists(result.TargetPath);
 
                 if (!options.OverwriteExistingFiles)
@@ -361,19 +372,21 @@ namespace Emby.AutoOrganize.Core
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.Waiting;
                         result.StatusMessage = msg;
-                        result.TargetPath = "";
                         return;
                     }
 
+
                     if (fileExists)
                     {
+                        _logger.Info("AUTO ORGANIZE FILE EXITS");
+
                         var msg = string.Empty;
                         //Just incase we weren't able to extract a resolution from the title.
-                        var extractedResolution = result.ExtractedResolution ?? string.Empty; 
+                        var extractedResolution = result.ExtractedResolution;
                         //The resolution of the current source movie, and the current library item are the same - mark as existing
                         if (!IsNewStreamResolution(movie, extractedResolution))
                         {
-                            msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath,  movie.Path);
+                            msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, movie.Path);
                             _logger.Info(msg);
                             result.Status = FileSortingStatus.SkippedExisting;
                             result.StatusMessage = msg;
@@ -382,13 +395,22 @@ namespace Emby.AutoOrganize.Core
                         }
                         else //The movie exists in the library, but the new source version has a different resolution
                         {
+                            var targetFolder = _libraryManager
+                                .GetVirtualFolders()
+                                .Where(i => string.Equals(i.CollectionType, CollectionType.Movies.ToString(), StringComparison.OrdinalIgnoreCase))
+                                .FirstOrDefault()
+                                .Locations
+                                .Where(i => movie.Path.Contains(i))
+                                .FirstOrDefault();
                             msg = $"The library currently contains the movie {movie.Name}, but it has a different resolution than the current source file.";
                             _logger.Info(msg);
-                            result.Status = FileSortingStatus.NewResolution; 
+                            result.Status = FileSortingStatus.NewResolution;
                             result.StatusMessage = msg;
-                            result.TargetPath = string.Empty;
+                            result.TargetPath = Path.Combine(targetFolder, GetMoviePath(result.OriginalPath, movie, options));
+                            _organizationService.SaveResult(result, cancellationToken);
                             return;
                         }
+
                     }
                 }
 
@@ -397,7 +419,7 @@ namespace Emby.AutoOrganize.Core
             catch (OrganizationException ex)
             {
                 result.Status = FileSortingStatus.Failure;
-                result.StatusMessage = ex.Message;
+                result.StatusMessage = ex.Message;               
             }
             catch (IOException ex)
             {
@@ -426,6 +448,8 @@ namespace Emby.AutoOrganize.Core
 
         private void PerformFileSorting(MovieFileOrganizationOptions options, FileOrganizationResult result)
         {
+            _logger.Info("Processing " + result.TargetPath);
+
             // We should probably handle this earlier so that we never even make it this far
             if (string.Equals(result.OriginalPath, result.TargetPath, StringComparison.OrdinalIgnoreCase))
             {
@@ -434,19 +458,46 @@ namespace Emby.AutoOrganize.Core
 
             _libraryMonitor.ReportFileSystemChangeBeginning(result.TargetPath);
 
-            _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(result.TargetPath));
+
+            if (!_fileSystem.DirectoryExists(_fileSystem.GetDirectoryName(result.TargetPath)))
+            {
+                _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(result.TargetPath));
+            }
+
 
             var targetAlreadyExists = _fileSystem.FileExists(result.TargetPath);
-
+            
             try
             {
                 if (targetAlreadyExists || options.CopyOriginalFile)
                 {
-                    _fileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
+                    try
+                    {
+                         _fileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
+                    }
+                    catch (Exception ex)
+                    {
+                         _logger.Warn(ex.Message);
+                        result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                        result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                        return;
+                    }
+                   
                 }
                 else
                 {
+                    _logger.Info("Auto organize moving file");
+                    try 
+                    {
                     _fileSystem.MoveFile(result.OriginalPath, result.TargetPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex.Message);
+                        result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                        result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                        return;
+                    }
                 }
 
                 result.Status = FileSortingStatus.Success;
