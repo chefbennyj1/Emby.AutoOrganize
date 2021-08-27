@@ -458,7 +458,7 @@ namespace Emby.AutoOrganize.Core
             _logger.Info("Beginning Episode Organization");
             _logger.Info("Sorting file {0} into series {1}", sourcePath, series.Path);
 
-            result.Status = FileSortingStatus.Processing;
+            
            
             var originalExtractedSeriesString = result.ExtractedName;
 
@@ -548,7 +548,7 @@ namespace Emby.AutoOrganize.Core
                     
                 }
 
-                
+                result.Status = FileSortingStatus.Processing;
 
                 PerformFileSorting(options, result);
 
