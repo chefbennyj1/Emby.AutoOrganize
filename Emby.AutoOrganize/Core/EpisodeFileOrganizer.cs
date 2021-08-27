@@ -753,12 +753,33 @@ namespace Emby.AutoOrganize.Core
                 if (targetAlreadyExists || options.CopyOriginalFile)
                 {
                     _logger.Info("Copying File");
-                    _fileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
+                    try
+                    {
+                         _fileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex.Message);
+                        result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                        result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                        return;
+                    }
+                   
                 }
                 else
                 {
                     _logger.Info("Moving File");
-                    _fileSystem.MoveFile(result.OriginalPath, result.TargetPath);
+                    try
+                    {
+                         _fileSystem.MoveFile(result.OriginalPath, result.TargetPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex.Message);
+                        result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                        result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                        return;
+                    }                   
                 }
 
                 result.Status = FileSortingStatus.Success;
