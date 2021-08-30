@@ -102,7 +102,7 @@ namespace Emby.AutoOrganize.Core
 
                     _logger.Debug("Extracted information from {0}. Movie {1}, Year {2}", path, movieName, movieYear);
 
-                    result.Status = FileSortingStatus.Processing;
+                    
                     
                     await OrganizeMovie(path,
                         movieName,
@@ -396,13 +396,12 @@ namespace Emby.AutoOrganize.Core
                         else //The movie exists in the library, but the new source version has a different resolution
                         {
                             var targetFolder = _libraryManager
-                                .GetVirtualFolders()
-                                .Where(i => string.Equals(i.CollectionType, CollectionType.Movies.ToString(), StringComparison.OrdinalIgnoreCase))
+                                .GetVirtualFolders().Where(i => string.Equals(i.CollectionType, CollectionType.Movies.ToString(), StringComparison.OrdinalIgnoreCase))
                                 .FirstOrDefault()
                                 .Locations
                                 .Where(i => movie.Path.Contains(i))
                                 .FirstOrDefault();
-                            msg = $"The library currently contains the movie {movie.Name}, but it has a different resolution than the current source file.";
+                            msg = $"The library currently contains the movie {movie.Name}, but it may have a different resolution than the current source file.";
                             _logger.Info(msg);
                             result.Status = FileSortingStatus.NewResolution;
                             result.StatusMessage = msg;
@@ -449,7 +448,7 @@ namespace Emby.AutoOrganize.Core
         private void PerformFileSorting(MovieFileOrganizationOptions options, FileOrganizationResult result)
         {
             _logger.Info("Processing " + result.TargetPath);
-
+            
             // We should probably handle this earlier so that we never even make it this far
             if (string.Equals(result.OriginalPath, result.TargetPath, StringComparison.OrdinalIgnoreCase))
             {
@@ -469,6 +468,7 @@ namespace Emby.AutoOrganize.Core
             
             try
             {
+                result.Status = FileSortingStatus.Processing;
                 if (targetAlreadyExists || options.CopyOriginalFile)
                 {
                     try
@@ -477,19 +477,18 @@ namespace Emby.AutoOrganize.Core
                     }
                     catch (Exception ex)
                     {
-                         _logger.Warn(ex.Message);
+                        _logger.Warn(ex.Message);
                         result.Status = FileSortingStatus.NotEnoughDiskSpace;
                         result.StatusMessage = "There is not enough disk space on the drive to move this file";
                         return;
-                    }
-                   
+                    }                   
                 }
                 else
                 {
                     _logger.Info("Auto organize moving file");
                     try 
                     {
-                    _fileSystem.MoveFile(result.OriginalPath, result.TargetPath);
+                        _fileSystem.MoveFile(result.OriginalPath, result.TargetPath);
                     }
                     catch (Exception ex)
                     {

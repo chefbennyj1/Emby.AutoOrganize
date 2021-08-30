@@ -103,8 +103,6 @@ namespace Emby.AutoOrganize.Core
 
                 if (!string.IsNullOrEmpty(seriesName))
                 {
-                     result.Status = FileSortingStatus.Processing;
-
                     var seriesParseResult = _libraryManager.ParseName(seriesName.AsSpan());
 
                     seriesName = seriesParseResult.Name;
@@ -548,7 +546,7 @@ namespace Emby.AutoOrganize.Core
                     
                 }
 
-                result.Status = FileSortingStatus.Processing;
+                
 
                 PerformFileSorting(options, result);
 
@@ -733,6 +731,7 @@ namespace Emby.AutoOrganize.Core
         private void PerformFileSorting(EpisodeFileOrganizationOptions options, FileOrganizationResult result)
         {
             _logger.Info("Perform Sorting");
+            result.Status = FileSortingStatus.Processing;
             // We should probably handle this earlier so that we never even make it this far
             //Its the same file trying to copy over itself. Here is fine.
             if (string.Equals(result.OriginalPath, result.TargetPath, StringComparison.OrdinalIgnoreCase))
