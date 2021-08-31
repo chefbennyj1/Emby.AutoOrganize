@@ -97,7 +97,7 @@ namespace Emby.AutoOrganize.Core
 
                     try
                     {
-                        var result = await organizer.OrganizeMovieFile(file.FullName, options, cancellationToken).ConfigureAwait(false);
+                        var result = await organizer.OrganizeMovieFile(false, file.FullName, options, cancellationToken).ConfigureAwait(false);
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                         {

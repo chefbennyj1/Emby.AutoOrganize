@@ -562,9 +562,9 @@
     function renderItemRow(item, page) {
         if(item.Type == "Unknown") return "";
         var html = '';
-        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" || item.Status !== "NotEnoughDiskSpace" ?
+        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" ?
             getStatusRenderData("Waiting") :
-            item.IsInProgress && item.Status === "Failure" || item.Status === "NotEnoughDiskSpace" ?
+            item.IsInProgress && item.Status === "Failure" ?
                 getStatusRenderData("Processing") :
                 getStatusRenderData(item.Status);
 
@@ -630,7 +630,7 @@
 
         //Row sorting options (action buttons)
         html += '<td class="detailTableBodyCell organizerButtonCell" data-title="Actions" style="whitespace:no-wrap;">';
-        if (item.Status == "Waiting" || item.Status == "NotEnoughDiskSpace") {
+        if (item.Status == "Waiting") {
             html += '';
         } else {
             if (item.Status !== 'Success') {
@@ -661,18 +661,20 @@
                         html += '</button>';
                     }
                 }
-                
+
+                //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
+                var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
+                html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete">';
+                html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+                html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
+                html += '</svg>';
+                html += '</button>';
+                html += '</td>';
+
             }
             
         }
-        //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
-        var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete">';
-        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-        html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
-        html += '</svg>';
-        html += '</button>';
-        html += '</td>';
+       
 
        
 

@@ -232,7 +232,7 @@ namespace Emby.AutoOrganize.Api
                 NewSeriesYear                   = request.NewSeriesYear,
                 NewSeriesProviderIds            = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
-                RequestToOverwriteExistsingFile = request.RequestToMoveFile
+                RequestToMoveFile               = request.RequestToMoveFile
             });
 
             // Async processing (close dialog early instead of waiting until the file has been copied)
@@ -258,7 +258,7 @@ namespace Emby.AutoOrganize.Api
                 NewMovieYear                    = request.NewMovieYear,
                 NewMovieProviderIds             = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
-                RequestToOverwriteExistsingFile = request.RequestToMoveFile
+                RequestToMoveFile = request.RequestToMoveFile
             });
         }
 

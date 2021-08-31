@@ -327,7 +327,7 @@ namespace Emby.AutoOrganize.Core
                 // We manually set the media as Series 
                 result.Type = CurrentFileOrganizerType;
 
-                await OrganizeEpisode(request.RequestToOverwriteExistsingFile, result.OriginalPath,
+                await OrganizeEpisode(request.RequestToMoveFile, result.OriginalPath,
                    series,
                    request.SeasonNumber,
                    request.EpisodeNumber,

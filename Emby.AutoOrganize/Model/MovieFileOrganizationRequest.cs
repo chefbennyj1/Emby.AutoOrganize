@@ -17,7 +17,7 @@ namespace Emby.AutoOrganize.Model
 
         public string TargetFolder { get; set; }
 
-        public bool? RequestToOverwriteExistsingFile { get; set; }
+        public bool? RequestToMoveFile { get; set; }
 
         public ProviderIdDictionary NewMovieProviderIds { get; set; }
     }
