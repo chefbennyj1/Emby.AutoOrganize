@@ -163,8 +163,7 @@ namespace Emby.AutoOrganize.Core
             {
                 case FileOrganizerType.Episode:
                     var episodeOrganizer = new EpisodeFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
-                        _libraryMonitor, _providerManager);
-                                        
+                        _libraryMonitor, _providerManager);                                        
 
                     organizeResult = await episodeOrganizer.OrganizeEpisodeFile(requestToMoveFile, result.OriginalPath, options.TvOptions, CancellationToken.None)
                         .ConfigureAwait(false);

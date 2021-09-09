@@ -84,6 +84,7 @@ namespace Emby.AutoOrganize.Core
 
             progress.Report(10);
 
+
             if (eligibleFiles.Count > 0)
             {
                 var numComplete = 0;

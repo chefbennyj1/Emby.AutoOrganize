@@ -82,9 +82,9 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                if (_libraryMonitor.IsPathLocked(path.AsSpan()))
+                if (_libraryMonitor.IsPathLocked(path.AsSpan()) && result.Status != FileSortingStatus.Processing)
                 {
-                    result.Status = FileSortingStatus.Waiting;
+                    result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = "Path is locked by other processes. Please try again later.";
                     _logger.Info("Auto-organize Path is locked by other processes. Please try again later.");
                     return result;
@@ -195,6 +195,7 @@ namespace Emby.AutoOrganize.Core
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
+                _logger.ErrorException("Error organizing file", ex);
             }
             catch (Exception ex)
             {
@@ -349,7 +350,7 @@ namespace Emby.AutoOrganize.Core
             return result;
         }
 
-        private async Task OrganizeEpisode(bool? requestOverwriteExistsingFile, 
+        private async Task OrganizeEpisode(bool? requestToMoveFile, 
             string sourcePath,
             string seriesName,
             int? seriesYear,
@@ -378,7 +379,7 @@ namespace Emby.AutoOrganize.Core
                 }
             }
 
-            await OrganizeEpisode(requestOverwriteExistsingFile, 
+            await OrganizeEpisode(requestToMoveFile, 
                 sourcePath,
                 series,
                 seasonNumber,
@@ -407,7 +408,7 @@ namespace Emby.AutoOrganize.Core
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         private async Task OrganizeEpisode(
-            bool? requestOverwriteExistsingFile,
+            bool? requestToMoveFile,
             string sourcePath,
             Series series,
             int? seasonNumber,
@@ -433,7 +434,7 @@ namespace Emby.AutoOrganize.Core
             }
 
             OrganizeEpisode(
-               requestOverwriteExistsingFile, 
+               requestToMoveFile, 
                sourcePath,
                series,
                episode,
@@ -444,7 +445,7 @@ namespace Emby.AutoOrganize.Core
         }
 
         private void OrganizeEpisode(
-            bool? requestOverwriteExistsingFile, 
+            bool? requestToMoveFile, 
             string sourcePath,
             Series series,
             Episode episode,
@@ -492,11 +493,11 @@ namespace Emby.AutoOrganize.Core
                 if (!options.OverwriteExistingEpisodes)
                 {
                     _logger.Info("Plugin options: no overwrite episode");
-                    if (requestOverwriteExistsingFile != null)
+                    if (requestToMoveFile != null)
                     {                         
-                        if (requestOverwriteExistsingFile == true)
+                        if (requestToMoveFile == true)
                         {
-                            _logger.Info("request to overwrite episode: " + requestOverwriteExistsingFile);
+                            _logger.Info("request to overwrite episode: " + requestToMoveFile);
                             PerformFileSorting(options, result);
                             return;
                         }
@@ -758,9 +759,20 @@ namespace Emby.AutoOrganize.Core
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex.Message);
-                        result.Status = FileSortingStatus.NotEnoughDiskSpace;
-                        result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                        if (ex.Message.Contains("disk space"))
+                        {
+                            _logger.Warn(ex.Message);
+                            result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                            result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                            
+                        } 
+                        else if (ex.Message.Contains("used by another process"))
+                        {
+                            _logger.Warn(ex.Message);
+                            result.Status = FileSortingStatus.InUse;
+                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
+                            
+                        }
                         return;
                     }
                    
@@ -774,9 +786,20 @@ namespace Emby.AutoOrganize.Core
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex.Message);
-                        result.Status = FileSortingStatus.NotEnoughDiskSpace;
-                        result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                       if (ex.Message.Contains("disk space"))
+                        {
+                            _logger.Warn(ex.Message);
+                            result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                            result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                           
+                        } 
+                        else if (ex.Message.Contains("used by another process"))
+                        {
+                            _logger.Warn(ex.Message);
+                            result.Status = FileSortingStatus.InUse;
+                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
+                           
+                        }
                         return;
                     }                   
                 }
@@ -852,7 +875,7 @@ namespace Emby.AutoOrganize.Core
 
             if (episode == null)
             {
-                return await CreateNewEpisode(series, seasonNumber, episodeNumber, endingEpiosdeNumber, premiereDate, cancellationToken).ConfigureAwait(false);
+                return await CreateNewEpisode(series, seasonNumber, episodeNumber, endingEpiosdeNumber, premiereDate, cancellationToken);
             }
 
             return episode;

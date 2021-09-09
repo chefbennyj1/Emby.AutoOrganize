@@ -479,6 +479,11 @@
                 color: "organered",
                 text: "Attention - Not Enough Disk Space!"
             }
+             case "InUse": return {
+                path: "M8,5.14V19.14L19,12.14L8,5.14Z",
+                color: "goldenrod",
+                text: "Target file currently in use"
+            }
         }
     }
 

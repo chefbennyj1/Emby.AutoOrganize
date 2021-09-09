@@ -8,6 +8,7 @@
         NewResolution,
         Processing,
         Waiting,
-        NotEnoughDiskSpace
+        NotEnoughDiskSpace,
+        InUse
     }
 }
