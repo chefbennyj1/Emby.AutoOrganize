@@ -152,6 +152,8 @@
         view.querySelector('#txtEpisodePattern').value = tvOptions.EpisodeNamePattern;
         view.querySelector('#txtMultiEpisodePattern').value = tvOptions.MultiEpisodeNamePattern;
 
+        view.querySelector('#txtIgnoreFileNameContains').value = tvOptions.IgnoredFileNameContains.join(';');
+
         view.querySelector('#chkEnableSeriesAutoDetect').checked = tvOptions.AutoDetectSeries;
 
         view.querySelector('#txtSeriesPattern').value = tvOptions.SeriesFolderPattern;
@@ -186,7 +188,7 @@
             tvOptions.SeriesFolderPattern = view.querySelector('#txtSeriesPattern').value;
 
             tvOptions.LeftOverFileExtensionsToDelete = view.querySelector('#txtDeleteLeftOverFiles').value.split(';');
-
+            tvOptions.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
             tvOptions.ExtendedClean = view.querySelector('#chkExtendedClean').checked;
 
             var watchLocation = view.querySelector('#txtWatchFolder').value;

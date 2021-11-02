@@ -40,7 +40,7 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !FileOrganizationHelper.IgnoredFileName(fileInfo, options.IgnoredFileNameContains);
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !FileOrganizationHelper.IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList());
             }
             catch (Exception ex)
             {
@@ -79,6 +79,8 @@ namespace Emby.AutoOrganize.Core
                 .OrderBy(_fileSystem.GetCreationTimeUtc)
                 .Where(i => EnableOrganization(i, options))
                 .ToList();
+
+            _logger.Info($"Episode eligible file count {eligibleFiles.Count}");
 
             var processedFolders = new HashSet<string>();
 
@@ -171,8 +173,7 @@ namespace Emby.AutoOrganize.Core
         {
             try
             {
-                return _fileSystem.GetFiles(path, true)
-                    .ToList();
+                return _fileSystem.GetFiles(path, true).ToList();
             }
             catch (DirectoryNotFoundException)
             {

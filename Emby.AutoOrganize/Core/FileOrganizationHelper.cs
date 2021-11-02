@@ -39,11 +39,12 @@ namespace Emby.AutoOrganize.Core
             
         }
 
-        public static bool IgnoredFileName(FileSystemMetadata fileInfo, string[] ignoredFileNameContains)
-        {            
+        public static bool IgnoredFileName(FileSystemMetadata fileInfo, List<string> ignoredFileNameContains)
+        {
+            if (ignoredFileNameContains.Count <= 0) return false;
             foreach (var ignoredString in ignoredFileNameContains)
             {
-                if(ignoredString == string.Empty) continue;
+                if(string.IsNullOrEmpty(ignoredString)) continue;
                 if (fileInfo.Name.ToLowerInvariant().Contains(ignoredString.ToLowerInvariant()))
                 {                   
                     return true;

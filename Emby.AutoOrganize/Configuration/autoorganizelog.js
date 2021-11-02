@@ -181,13 +181,12 @@
     function organizeFile(page, id) {
 
         var item = currentResult.Items.filter(function (i) {
-
             return i.Id === id;
         })[0];
 
+        //TODO - make sure item has a target path
         if (!item.TargetPath) {
             organizeFileWithCorrections(page, item);
-
             return;
         }
 
@@ -398,19 +397,25 @@
     }
 
     function capitalizeTheFirstLetterOfEachWord(words) {
-        var separateWord = words.toLowerCase().split(' ');
-        for (var i = 0; i < separateWord.length; i++) {
-            separateWord[i] = separateWord[i].charAt(0).toUpperCase() +
-                separateWord[i].substring(1);
+        try {
+            var separateWord = words.toLowerCase().split(' ');
+            for (var i = 0; i < separateWord.length; i++) {
+                separateWord[i] = separateWord[i].charAt(0).toUpperCase() +
+                    separateWord[i].substring(1);
+            }
+            return separateWord.join(' ');
+        } catch (err) {
+            return words
         }
-        return separateWord.join(' ');
     }
 
     function formatItemName(file_name) {
 
-        try {  //If a subtitle file makes it through during scanning process, we'll throw an error here. Could happen.
+        try { //If a subtitle file makes it through during scanning process, we'll throw an error here. Could happen.
             file_name = file_name.split(".").join(" ");
-        }catch{}
+        } catch (err) {
+
+        }
 
         file_name = capitalizeTheFirstLetterOfEachWord(file_name)
         return file_name;
@@ -429,15 +434,15 @@
         switch (btn_icon) {
             case 'IdentifyBtn': return {
                 path: "M5,3C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19H5V5H12V3H5M17.78,4C17.61,4 17.43,4.07 17.3,4.2L16.08,5.41L18.58,7.91L19.8,6.7C20.06,6.44 20.06,6 19.8,5.75L18.25,4.2C18.12,4.07 17.95,4 17.78,4M15.37,6.12L8,13.5V16H10.5L17.87,8.62L15.37,6.12Z",
-                color: 'black'
+                color: 'var(--theme-text-color)'
             }
             case 'DeleteBtn': return {
                 path: "M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z",
-                color: 'black'
+                color: 'var(--theme-text-color)'
             };
             case 'ProcessBtn': return {
                 path: "M14 2H6C4.9 2 4 2.9 4 4V20C4 20.41 4.12 20.8 4.34 21.12C4.41 21.23 4.5 21.33 4.59 21.41C4.95 21.78 5.45 22 6 22H13.53C13 21.42 12.61 20.75 12.35 20H6V4H13V9H18V12C18.7 12 19.37 12.12 20 12.34V8L14 2M18 23L23 18.5L20 15.8L18 14V17H14V20H18V23Z",
-                color: 'black'
+                color: 'var(--theme-text-color)'
             }
         }
     }
@@ -476,7 +481,7 @@
             }
             case "NotEnoughDiskSpace": return {
                 path: "",
-                color: "organered",
+                color: "organgered",
                 text: "Attention - Not Enough Disk Space!"
             }
              case "InUse": return {
@@ -565,16 +570,13 @@
     }
 
     function renderItemRow(item, page) {
-        if(item.Type == "Unknown") return "";
-        var html = '';
-        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" ?
-            getStatusRenderData("Waiting") :
-            item.IsInProgress && item.Status === "Failure" ?
-                getStatusRenderData("Processing") :
-                getStatusRenderData(item.Status);
-
-       
         
+        var html = '';
+        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" //We're in some kind of progress, but not processing, or failing. We must be 'waiting'
+            ? getStatusRenderData("Waiting") 
+            : item.IsInProgress && item.Status === "Failure" //We failed before, but now we are processing. 
+            ? getStatusRenderData("Processing") 
+            : getStatusRenderData(item.Status); //The actual status icon
         
         //Progress Status Icon
         html += '<td class="detailTableBodyCell">';
@@ -598,12 +600,12 @@
 
         //Name
         html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
-        html += '<span>' + formatItemName(item.ExtractedName) + '</span>';
+        html += '<span>' + formatItemName(item.ExtractedName ?? "") + '</span>';
         html += '</td>';             
 
         //Resolution
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += '<span>' + item.ExtractedResolution !== 'undefined' ? item.ExtractedResolution : ""  + '</span>';  //Why is this sometimes undefined?
+        html += '<span>' + (item.ExtractedResolution ?? "")  + '</span>';  //Why is this sometimes undefined?
         html += '</td>';
 
         //File Size
@@ -641,11 +643,11 @@
             if (item.Status !== 'Success') {
 
                 if (item.Status !== "Processing") {
-                    //Idenify Entry Button - This opens the Identify/Lookup modal for the item.
+                    //Identify Entry Button - This opens the Identify/Lookup modal for the item.
                     //We want to show this option if the item has been skipped because we think it alrerady exists, or the item failed to find a match.
                     //There is a chance that the Lookup was incorrect if there was a match to an existing item.
                     //Allow the user to identify the item.
-                    if (item.Status === "SkippedExisting" || item.Status === "Failure" || item.Status == "NewResolution") {
+                    if (item.Status === "Failure") {
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
                         html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnIdentifyResult organizerButton autoSize" title="Identify">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -657,7 +659,7 @@
                     //Process Entry Button - This will process the item into the library based on the info in the "Destination" column of the table row.
                     //Only show this button option if: it is not a Success, not Processing, and has not failed to find a possible result.
                     //The "Destination" column info will be populated.
-                    if (item.Status !== "Failure") {
+                    if (item.Status !== "Failure" || item.Status == "NewResolution" || item.Status === "SkippedExisting") {
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
                         html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize" title="Organize">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -699,7 +701,6 @@
 
         var identifyOrganize = parentWithClass(e.target, "btnIdentifyResult");
         if (identifyOrganize) {
-
             id = identifyOrganize.getAttribute('data-resultid');
             var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
             showCorrectionPopup(e.view, item);
@@ -707,7 +708,6 @@
 
         var buttonOrganize = parentWithClass(e.target, 'btnProcessResult');
         if (buttonOrganize) {
-
             id = buttonOrganize.getAttribute('data-resultid');
             organizeFile(e.view, id);
         }
@@ -837,7 +837,7 @@
             sort = { type: 'name', ascending: sort.type == "name" ? sort.ascending ? false : true : true };
             var path = sortByNameBtn.querySelector('path')
 
-            //Swap the arrow svg icon to show the arrow pointing up or down beased on ascening or decending
+            //Swap the arrow svg icon to show the arrow pointing up or down based on ascending or descending
             !sort.ascending ? path.setAttribute('d', "M7,15L12,10L17,15H7Z") :
                 path.setAttribute('d', "M7,10L12,15L17,10H7Z")
 
@@ -865,7 +865,7 @@
             sort = { type: 'status', ascending: sort.type == "status" ? sort.ascending ? false : true : true };
             var path = sortByStatusBtn.querySelector('path')
 
-            //Swap the sort arrow svg icon to show the arrow pointing up or down beased on ascening or decending
+            //Swap the sort arrow svg icon to show the arrow pointing up or down based on ascening or decending
             !sort.ascending ? path.setAttribute('d', "M7,15L12,10L17,15H7Z") :
                 path.setAttribute('d', "M7,10L12,15L17,10H7Z")
 

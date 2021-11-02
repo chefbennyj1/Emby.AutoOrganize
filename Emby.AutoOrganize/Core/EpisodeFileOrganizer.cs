@@ -90,6 +90,14 @@ namespace Emby.AutoOrganize.Core
                     return result;
                 }
 
+                if (_libraryMonitor.IsPathLocked(path.AsSpan()) && result.Status == FileSortingStatus.Processing)
+                {
+                    result.Status = FileSortingStatus.Processing;
+                    result.StatusMessage = "Path is processing. Please try again later.";
+                    _logger.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                    return result;
+                }
+
                
 
                 var namingOptions = GetNamingOptionsInternal();
@@ -480,7 +488,7 @@ namespace Emby.AutoOrganize.Core
 
                 if (string.IsNullOrEmpty(newPath))
                 {
-                    var msg = string.Format("Unable to sort {0} because target path could not be determined.", sourcePath);
+                    var msg = $"Unable to sort {sourcePath} because target path could not be determined.";
                     throw new OrganizationException(msg);
                 }
 
@@ -495,38 +503,26 @@ namespace Emby.AutoOrganize.Core
                     _logger.Info("Plugin options: no overwrite episode");
                     if (requestToMoveFile != null)
                     {                         
-                        if (requestToMoveFile == true)
+                        if (requestToMoveFile == true) //User is forcing sorting from the UI
                         {
                             _logger.Info("request to overwrite episode: " + requestToMoveFile);
-                            PerformFileSorting(options, result);
+                            PerformFileSorting(options, result, cancellationToken);
                             return;
                         }
                     }
 
                     if (options.CopyOriginalFile && fileExists && IsSameEpisode(sourcePath, newPath))
                     {
-                        var msg = string.Format("File '{0}' already copied to new path '{1}', stopping organization", sourcePath, newPath);
+                        var msg = $"File '{sourcePath}' already copied to new path '{newPath}', stopping organization";
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
                         return;
                     }
-
-                    //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "Waiting"
-                    if(FileOrganizationHelper.IsCopying(sourcePath, result, _fileSystem))
-                    {
-                        var msg = string.Format("File '{0}' is currently in use, stopping organization", sourcePath);
-                        _logger.Info(msg);
-                        result.Status = FileSortingStatus.Waiting;
-                        result.StatusMessage = msg;
-                        result.TargetPath = newPath;
-                        return;
-                    }
-
-
+                    
                     if (fileExists)
                     {
-                        var msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, newPath);
+                        var msg = $"File '{sourcePath}' already exists as '{newPath}', stopping organization";
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
@@ -537,7 +533,8 @@ namespace Emby.AutoOrganize.Core
                     if (otherDuplicatePaths.Count > 0)
                     {
                         _logger.Info("Existing Error thrown here!");
-                        var msg = string.Format("File '{0}' already exists as these:'{1}'. Stopping organization", sourcePath, string.Join("', '", otherDuplicatePaths));
+                        var msg =
+                            $"File '{sourcePath}' already exists as these:'{string.Join("', '", otherDuplicatePaths)}'. Stopping organization";
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
@@ -546,10 +543,19 @@ namespace Emby.AutoOrganize.Core
                     }                    
                     
                 }
-
                 
-
-                PerformFileSorting(options, result);
+                //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "Waiting"
+                if(FileOrganizationHelper.IsCopying(sourcePath, result, _fileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
+                {
+                    var msg = $"File '{sourcePath}' is currently in use, stopping organization";
+                    _logger.Info(msg);
+                    result.Status = FileSortingStatus.Waiting;
+                    result.StatusMessage = msg;
+                    result.TargetPath = newPath;
+                    return;
+                }
+                
+                PerformFileSorting(options, result, cancellationToken);
 
                 if (options.OverwriteExistingEpisodes)
                 {
@@ -583,6 +589,7 @@ namespace Emby.AutoOrganize.Core
                         }
                     }
                 }
+
             }
             catch (Exception ex)
             {
@@ -729,14 +736,21 @@ namespace Emby.AutoOrganize.Core
                 .ToList();
         }
 
-        private void PerformFileSorting(EpisodeFileOrganizationOptions options, FileOrganizationResult result)
+        private void PerformFileSorting(EpisodeFileOrganizationOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
         {
             _logger.Info("Perform Sorting");
             result.Status = FileSortingStatus.Processing;
+            _logger.Info($"Auto organize adding {result.TargetPath} to inprogress list");
+            _organizationService.AddToInProgressList(result, true);
+            _organizationService.SaveResult(result, cancellationToken);
+
             // We should probably handle this earlier so that we never even make it this far
             //Its the same file trying to copy over itself. Here is fine.
             if (string.Equals(result.OriginalPath, result.TargetPath, StringComparison.OrdinalIgnoreCase))
             {
+                _organizationService.RemoveFromInprogressList(result);
+                _organizationService.SaveResult(result, cancellationToken);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
                 return;
             }
 
@@ -750,29 +764,41 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
+                
+
                 if (targetAlreadyExists || options.CopyOriginalFile)
                 {
                     _logger.Info("Copying File");
                     try
                     {
-                         _fileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
+                        _fileSystem.DeleteFile(result.TargetPath, true);
+                    } catch (Exception ex)
+                    {
+                        _logger.Warn(ex.Message);
+                    }
+                    try
+                    {
+                        _fileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
                     }
                     catch (Exception ex)
                     {
                         if (ex.Message.Contains("disk space"))
                         {
-                            _logger.Warn(ex.Message);
+                            
                             result.Status = FileSortingStatus.NotEnoughDiskSpace;
                             result.StatusMessage = "There is not enough disk space on the drive to move this file";
-                            
                         } 
                         else if (ex.Message.Contains("used by another process"))
                         {
-                            _logger.Warn(ex.Message);
+                             
                             result.Status = FileSortingStatus.InUse;
-                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
-                            
+                            result.StatusMessage = "The file maybe being streaming to a emby device. Please try again later.";
+                           
                         }
+                        _logger.Warn(ex.Message);
+                        _organizationService.RemoveFromInprogressList(result);
+                        _organizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
                         return;
                     }
                    
@@ -787,46 +813,56 @@ namespace Emby.AutoOrganize.Core
                     catch (Exception ex)
                     {
                        if (ex.Message.Contains("disk space"))
-                        {
-                            _logger.Warn(ex.Message);
-                            result.Status = FileSortingStatus.NotEnoughDiskSpace;
-                            result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                       {
+                           result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                           result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                       } 
+                       else if (ex.Message.Contains("used by another process"))
+                       {
                            
-                        } 
-                        else if (ex.Message.Contains("used by another process"))
-                        {
-                            _logger.Warn(ex.Message);
-                            result.Status = FileSortingStatus.InUse;
-                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
-                           
-                        }
-                        return;
-                    }                   
+                           result.Status = FileSortingStatus.InUse;
+                           result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
+                       }
+                       _logger.Warn(ex.Message);
+                       _organizationService.RemoveFromInprogressList(result);
+                       _organizationService.SaveResult(result, cancellationToken);
+                       EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
+                       return;
+                    } 
+                   
                 }
 
                 result.Status = FileSortingStatus.Success;
-                result.StatusMessage = string.Empty;
+                result.StatusMessage = string.Empty;               
+                _organizationService.RemoveFromInprogressList(result);
+                _organizationService.SaveResult(result, cancellationToken);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
             }
             catch (IOException ex)
             {
                 if(ex.Message.Contains("being used by another process"))
                 {                    
-                    var errorMsg = string.Format("Waiting to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
-                    result.Status = FileSortingStatus.Waiting; //We're waiting for the file to become available.
+                    var errorMsg =
+                        $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
+                    result.Status = FileSortingStatus.InUse; //We're waiting for the file to become available.
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
+                    _organizationService.RemoveFromInprogressList(result);
+                    _organizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
                     return;
                 }
             }
             catch (Exception ex)
             {
-                _logger.Warn("We have encoutered an error during Processing. Most likely copying the file!");
-                var errorMsg = string.Format("Failed to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
+                _logger.Warn("We have encountered an error during Processing. Most likely copying the file!");
+                var errorMsg = $"Failed to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = errorMsg;
                 _logger.ErrorException(errorMsg, ex);
-
+                _organizationService.RemoveFromInprogressList(result);
+                _organizationService.SaveResult(result, cancellationToken);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
                 return;
             }
             finally

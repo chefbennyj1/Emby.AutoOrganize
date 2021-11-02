@@ -72,7 +72,7 @@ namespace Emby.AutoOrganize.Core
 
                 //If the User has choosen to monitor movies and episodes in the same folder.
                 //Stop the movie sort here if the item has been identified as a TV Episode.
-                //If the item was found to be an episode and the result was not a failure then return that Episode data insteads of attempting movie matches.
+                //If the item was found to be an episode and the result was not a failure then return that Episode data instead of attempting movie matches.
                 if(dbResult.Type == FileOrganizerType.Episode && dbResult.Status != FileSortingStatus.Failure)
                 {
                     return dbResult;
@@ -92,6 +92,14 @@ namespace Emby.AutoOrganize.Core
                 return result;
             }           
             
+
+            if (_libraryMonitor.IsPathLocked(path.AsSpan()) && result.Status == FileSortingStatus.Processing)
+            {
+                result.Status = FileSortingStatus.Processing;
+                result.StatusMessage = "Path is processing. Please try again later.";
+                _logger.Info("Auto-organize Path is locked. Please try again later.");
+                return result;
+            }
 
             try
             {       
@@ -142,7 +150,7 @@ namespace Emby.AutoOrganize.Core
                 if (ex.Message.Contains("being used by another process"))
                 {
                     var errorMsg = string.Format("Waiting to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
-                    result.Status = FileSortingStatus.Waiting;
+                    result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
                     
@@ -255,7 +263,7 @@ namespace Emby.AutoOrganize.Core
                 if (ex.Message.Contains("being used by another process"))
                 {
                     var errorMsg = string.Format("Waiting to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
-                    result.Status = FileSortingStatus.Waiting;
+                    result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
                     
@@ -530,21 +538,19 @@ namespace Emby.AutoOrganize.Core
                             _logger.Warn(ex.Message);
                             result.Status = FileSortingStatus.NotEnoughDiskSpace;
                             result.StatusMessage = "There is not enough disk space on the drive to move this file";
-                            _organizationService.RemoveFromInprogressList(result);
-                            _organizationService.SaveResult(result, cancellationToken);
-                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
+                          
                         } 
                         else if (ex.Message.Contains("used by another process"))
                         {
                             _logger.Warn(ex.Message);
                             result.Status = FileSortingStatus.InUse;
-                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
-                            _organizationService.RemoveFromInprogressList(result);
-                            _organizationService.SaveResult(result, cancellationToken);
-                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
+                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";                         
                         }
+                        _organizationService.RemoveFromInprogressList(result);
+                        _organizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
                         return;
-                    }                   
+                    }                
                 }
                 else
                 {
@@ -560,20 +566,17 @@ namespace Emby.AutoOrganize.Core
                         {
                             _logger.Warn(ex.Message);
                             result.Status = FileSortingStatus.NotEnoughDiskSpace;
-                            result.StatusMessage = "There is not enough disk space on the drive to move this file";
-                            _organizationService.RemoveFromInprogressList(result);
-                            _organizationService.SaveResult(result, cancellationToken);
-                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
+                            result.StatusMessage = "There is not enough disk space on the drive to move this file";                          
                         } 
                         else if (ex.Message.Contains("used by another process"))
                         {
                             _logger.Warn(ex.Message);
                             result.Status = FileSortingStatus.InUse;
-                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
-                            _organizationService.RemoveFromInprogressList(result);
-                            _organizationService.SaveResult(result, cancellationToken);
-                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
+                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";                           
                         }
+                        _organizationService.RemoveFromInprogressList(result);
+                        _organizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
                         return;
                     }
                 }
@@ -593,6 +596,7 @@ namespace Emby.AutoOrganize.Core
                     _logger.ErrorException(errorMsg, ex);                    
                     _organizationService.RemoveFromInprogressList(result);
                     _organizationService.SaveResult(result, cancellationToken);
+                    _libraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                     return;
                 }
             }
@@ -605,6 +609,7 @@ namespace Emby.AutoOrganize.Core
                 _logger.ErrorException(errorMsg, ex);               
                 _organizationService.RemoveFromInprogressList(result);
                 _organizationService.SaveResult(result, cancellationToken);
+                _libraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                 return;
             }
             finally

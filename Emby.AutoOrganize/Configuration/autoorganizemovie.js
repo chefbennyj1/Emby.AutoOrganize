@@ -138,6 +138,8 @@
         view.querySelector('#chkSubMovieFolders').checked = movieOptions.CreateMovieInFolder;
         view.querySelector('#txtMovieFolderPattern').value = movieOptions.MovieFolderPattern;
 
+        view.querySelector('#txtIgnoreFileNameContains').value = movieOptions.IgnoredFileNameContains.join(';');
+
         view.querySelector('#txtDeleteLeftOverMovieFiles').value = movieOptions.LeftOverFileExtensionsToDelete.join(';');
 
         view.querySelector('#chkExtendedClean').checked = movieOptions.ExtendedClean;
@@ -165,7 +167,7 @@
 
             movieOptions.AutoDetectMovie = view.querySelector('#chkEnableMovieAutoDetect').checked;
             movieOptions.DefaultMovieLibraryPath = view.querySelector('#selectMovieFolder').value;
-
+            movieOptions.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
             movieOptions.CreateMovieInFolder = view.querySelector('#chkSubMovieFolders').checked;
             movieOptions.MovieFolderPattern =  view.querySelector('#txtMovieFolderPattern').value;
 

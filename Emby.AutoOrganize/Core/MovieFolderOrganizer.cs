@@ -40,7 +40,7 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !FileOrganizationHelper.IgnoredFileName(fileInfo, options.IgnoredFileNameContains);
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !FileOrganizationHelper.IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList());
             }
             catch (Exception ex)
             {
