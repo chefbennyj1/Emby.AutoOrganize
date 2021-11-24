@@ -38,7 +38,7 @@ namespace Emby.AutoOrganize.Data
 
                 string[] queries = {
 
-                                "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, DuplicatePaths TEXT int null)",
+                                "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedResolution TEXT null, DuplicatePaths TEXT int null)",
                                 "create index if not exists idx_FileOrganizerResults on FileOrganizerResults(ResultId)",
                                 "create table if not exists SmartMatch (Id GUID PRIMARY KEY, ItemName TEXT, DisplayName TEXT, OrganizerType TEXT, MatchStrings TEXT null)",
                                 "create index if not exists idx_SmartMatch on SmartMatch(Id)",
@@ -65,7 +65,7 @@ namespace Emby.AutoOrganize.Data
                 {
                     connection.RunInTransaction(db =>
                     {
-                        var commandText = "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, DuplicatePaths) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @DuplicatePaths)";
+                        var commandText = "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, DuplicatePaths) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @ExtractedResolution, @DuplicatePaths)";
 
                         using (var statement = db.PrepareStatement(commandText))
                         {
@@ -83,6 +83,7 @@ namespace Emby.AutoOrganize.Data
                             statement.TryBind("@ExtractedSeasonNumber", result.ExtractedSeasonNumber);
                             statement.TryBind("@ExtractedEpisodeNumber", result.ExtractedEpisodeNumber);
                             statement.TryBind("@ExtractedEndingEpisodeNumber", result.ExtractedEndingEpisodeNumber);
+                            statement.TryBind("@ExtractedResolution", result.ExtractedResolution);
                             statement.TryBind("@DuplicatePaths", string.Join("|", result.DuplicatePaths.ToArray()));
 
                             statement.MoveNext();
@@ -160,7 +161,7 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    var commandText = "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, DuplicatePaths from FileOrganizerResults";
+                    var commandText = "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, DuplicatePaths from FileOrganizerResults";
 
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
@@ -210,7 +211,7 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    using (var statement = connection.PrepareStatement("select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, DuplicatePaths from FileOrganizerResults where ResultId=@ResultId"))
+                    using (var statement = connection.PrepareStatement("select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, DuplicatePaths from FileOrganizerResults where ResultId=@ResultId"))
                     {
                         statement.TryBind("@ResultId", id.ToGuidBlob());
 
@@ -267,7 +268,7 @@ namespace Emby.AutoOrganize.Data
 
             result.OriginalFileName = Path.GetFileName(result.OriginalPath);
 
-            result.ExtractedResolution = FileOrganizationHelper.GetStreamResolutionFromFileName(result.OriginalFileName);
+           
 
             index++;
             if (!reader.IsDBNull(index))
@@ -299,6 +300,11 @@ namespace Emby.AutoOrganize.Data
                 result.ExtractedEndingEpisodeNumber = reader.GetInt(index);
             }
 
+            index++;
+            if (!reader.IsDBNull(index))
+            {
+                result.ExtractedResolution = reader.GetString(index);
+            }
             index++;
             if (!reader.IsDBNull(index))
             {

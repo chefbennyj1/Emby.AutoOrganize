@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Core.WatchedFolderOrganization;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
@@ -54,6 +55,14 @@ namespace Emby.AutoOrganize.Core
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
             var options = GetAutoOrganizeOptions();
+            //var queueMovie = false;
+            if (options.MovieOptions.IsEnabled)
+            {
+                var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
+
+                await new MovieFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
+                    .Organize(options.MovieOptions, cancellationToken, progress).ConfigureAwait(false);
+            }
 
             if (options.TvOptions.IsEnabled)
             {
@@ -63,14 +72,7 @@ namespace Emby.AutoOrganize.Core
                     .Organize(options.TvOptions, cancellationToken, progress).ConfigureAwait(false);
             }
 
-            //var queueMovie = false;
-            if (options.MovieOptions.IsEnabled)
-            {
-                var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
-
-                await new MovieFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
-                    .Organize(options.MovieOptions, cancellationToken, progress).ConfigureAwait(false);
-            }
+            
         }
 
         /// <summary>

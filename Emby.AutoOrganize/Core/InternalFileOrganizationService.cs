@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Data;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Common.Events;
@@ -162,16 +163,14 @@ namespace Emby.AutoOrganize.Core
             switch (result.Type)
             {
                 case FileOrganizerType.Episode:
-                    var episodeOrganizer = new EpisodeFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
-                        _libraryMonitor, _providerManager);                                        
+                    var episodeOrganizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);                                        
 
                     organizeResult = await episodeOrganizer.OrganizeEpisodeFile(requestToMoveFile, result.OriginalPath, options.TvOptions, CancellationToken.None)
                         .ConfigureAwait(false);
 
                     break;
                 case FileOrganizerType.Movie:
-                    var movieOrganizer = new MovieFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
-                        _libraryMonitor, _providerManager);
+                    var movieOrganizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
                     organizeResult = await movieOrganizer.OrganizeMovieFile(requestToMoveFile, result.OriginalPath, options.MovieOptions, CancellationToken.None)
                         .ConfigureAwait(false);
@@ -200,8 +199,7 @@ namespace Emby.AutoOrganize.Core
 
         public async Task PerformOrganization(EpisodeFileOrganizationRequest request)
         {
-            var organizer = new EpisodeFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
-                _libraryMonitor, _providerManager);
+            var organizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();
 
@@ -216,8 +214,7 @@ namespace Emby.AutoOrganize.Core
 
         public void PerformOrganization(MovieFileOrganizationRequest request)
         {
-            var organizer = new MovieFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
-                _libraryMonitor, _providerManager);
+            var organizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();
             var result = organizer.OrganizeWithCorrection(request.RequestToMoveFile, request, options.MovieOptions, CancellationToken.None);

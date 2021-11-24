@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
@@ -11,7 +12,7 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 
-namespace Emby.AutoOrganize.Core
+namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 {
     public class MovieFolderOrganizer
     {
@@ -40,7 +41,7 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !FileOrganizationHelper.IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList());
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList());
             }
             catch (Exception ex)
             {
@@ -89,8 +90,7 @@ namespace Emby.AutoOrganize.Core
             {
                 var numComplete = 0;
 
-                var organizer = new MovieFileOrganizer(_organizationService, _config, _fileSystem, _logger, _libraryManager,
-                    _libraryMonitor, _providerManager);
+                var organizer = new MovieOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
                 foreach (var file in eligibleFiles)
                 {
@@ -249,6 +249,19 @@ namespace Emby.AutoOrganize.Core
         private bool IsWatchFolder(string path, IEnumerable<string> watchLocations)
         {
             return watchLocations.Contains(path, StringComparer.OrdinalIgnoreCase);
+        }
+        public static bool IgnoredFileName(FileSystemMetadata fileInfo, List<string> ignoredFileNameContains)
+        {
+            if (ignoredFileNameContains.Count <= 0) return false;
+            foreach (var ignoredString in ignoredFileNameContains)
+            {
+                if(string.IsNullOrEmpty(ignoredString)) continue;
+                if (fileInfo.Name.ToLowerInvariant().Contains(ignoredString.ToLowerInvariant()))
+                {                   
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

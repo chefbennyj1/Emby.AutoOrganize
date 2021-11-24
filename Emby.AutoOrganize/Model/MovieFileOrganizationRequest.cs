@@ -13,8 +13,6 @@ namespace Emby.AutoOrganize.Model
 
         public int? NewMovieYear { get; set; }
 
-        public string NewMovieResolution { get; set; }
-
         public string TargetFolder { get; set; }
 
         public bool? RequestToMoveFile { get; set; }

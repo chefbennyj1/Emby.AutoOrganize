@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Querying;
@@ -158,10 +159,11 @@ namespace Emby.AutoOrganize.Api
         private readonly IHttpResultFactory _resultFactory;
 
         public IRequest Request { get; set; }
-
-        public FileOrganizationService(IHttpResultFactory resultFactory)
+        private ILibraryManager _libraryManager { get; set; }
+        public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager)
         {
             _resultFactory = resultFactory;
+            _libraryManager = libraryManager;
         }
 
         private IFileOrganizationService InternalFileOrganizationService
@@ -247,6 +249,11 @@ namespace Emby.AutoOrganize.Api
             if (request.NewMovieProviderIds != null)
             {
                 dicNewProviderIds = request.NewMovieProviderIds;
+
+            } else
+            {
+                var baseItem = _libraryManager.GetItemById(request.MovieId);
+                request.TargetFolder = baseItem.Path;
             }
 
             // Don't await this
@@ -258,7 +265,7 @@ namespace Emby.AutoOrganize.Api
                 NewMovieYear                    = request.NewMovieYear,
                 NewMovieProviderIds             = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
-                RequestToMoveFile = request.RequestToMoveFile
+                RequestToMoveFile               = request.RequestToMoveFile
             });
         }
 

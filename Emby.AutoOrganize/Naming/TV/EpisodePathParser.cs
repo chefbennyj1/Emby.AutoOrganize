@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Emby.AutoOrganize.Naming.Common;
 
 namespace Emby.Naming.TV
 {
