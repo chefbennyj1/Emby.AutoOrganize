@@ -107,11 +107,12 @@ namespace Emby.AutoOrganize.Model
         /// <remarks>Runtime property not persisted to the store.</remarks>
         public bool IsInProgress { get; set; }
           
-       
+        public List<string> ExternalSubtitlePaths { get; set; }
 
         public FileOrganizationResult()
         {
             DuplicatePaths = new List<string>();
+            ExternalSubtitlePaths = new List<string>();
         }
     }
 }

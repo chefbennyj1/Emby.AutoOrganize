@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Emby.AutoOrganize.Core;
+using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Data;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Configuration;
@@ -63,6 +64,8 @@ namespace Emby.AutoOrganize
             FileOrganizationService = new InternalFileOrganizationService(_taskManager, Repository, _logger, _libraryMonitor, _libraryManager, _config, _fileSystem, _providerManager);
 
             FileOrganizationService.ItemAdded   += _organizationService_ItemAdded;
+            MovieOrganizer.ItemUpdated += _organizationService_ItemUpdated;
+            EpisodeOrganizer.ItemUpdated += _organizationService_ItemUpdated;
             FileOrganizationService.ItemRemoved += _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
             FileOrganizationService.LogReset    += _organizationService_LogReset;

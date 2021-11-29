@@ -33,7 +33,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private readonly IFileOrganizationService _organizationService;
         private readonly IProviderManager _providerManager;
         private readonly CultureInfo _usCulture = new CultureInfo("en-US");
-        public event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
+        public static event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
         public EpisodeOrganizer(IFileOrganizationService organizationService, IFileSystem fileSystem, ILogger logger, ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager)
         {
             _organizationService = organizationService;
@@ -508,7 +508,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 {
                     var msg = $"File '{sourcePath}' is currently in use, stopping organization";
                     _logger.Info(msg);
-                    result.Status = FileSortingStatus.Waiting;
+                    result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = msg;
                     result.TargetPath = resultTargetPath;
                     return;
@@ -741,11 +741,13 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             _logger.Info($"Auto organize adding {result.TargetPath} to inprogress list");
             _organizationService.AddToInProgressList(result, true);
             _organizationService.SaveResult(result, cancellationToken);
-
+            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
+            
             // We should probably handle this earlier so that we never even make it this far
             //Yup, because if OverwriteExisting files is turned on, and these to paths are the same, it will have deleted the source file.
             if (string.Equals(result.OriginalPath, result.TargetPath, StringComparison.OrdinalIgnoreCase))
             {
+                result.Status = FileSortingStatus.Failure;
                 _organizationService.RemoveFromInprogressList(result);
                 _organizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);

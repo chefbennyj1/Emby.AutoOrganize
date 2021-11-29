@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Api;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Naming.Common;
 using MediaBrowser.Common.Events;
@@ -31,7 +32,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private readonly IProviderManager _providerManager;
 
         //private readonly CultureInfo _usCulture = new CultureInfo("en-US");
-        public event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
+        public static event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
 
         public MovieOrganizer(IFileOrganizationService organizationService, IFileSystem fileSystem, ILogger logger, ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager)
         {
@@ -51,12 +52,12 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             var result = new FileOrganizationResult
             {
-                Date                = DateTime.UtcNow,
-                OriginalPath        = path,
-                OriginalFileName    = Path.GetFileName(path),
+                Date = DateTime.UtcNow,
+                OriginalPath = path,
+                OriginalFileName = Path.GetFileName(path),
                 ExtractedResolution = GetStreamResolutionFromFileName(Path.GetFileName(path)),
-                Type                = FileOrganizerType.Unknown,
-                FileSize            = _fileSystem.GetFileInfo(path).Length
+                Type = FileOrganizerType.Unknown,
+                FileSize = _fileSystem.GetFileInfo(path).Length
             };
             
            
@@ -333,7 +334,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     _logger.Info($"Auto organize adding {result.TargetPath} to inprogress list");
                     _organizationService.AddToInProgressList(result, true);
                     _organizationService.SaveResult(result, cancellationToken);
-                    PerformFileSorting(options, result, cancellationToken);
+                    PerformFileSorting(requestToMoveFile, options, result, cancellationToken);
                     _logger.Info($"Auto organize {result.TargetPath} success.");
                     _logger.Info($"Auto organize removing {result.TargetPath} from inprogress list");
                     
@@ -377,11 +378,13 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                var fileExists = _fileSystem.FileExists(result.TargetPath); //|| _fileSystem.DirectoryExists(_fileSystem.GetDirectoryName(result.TargetPath));
 
-                if (!options.OverwriteExistingFiles)
+                //if (!options.OverwriteExistingFiles)
+                if (!options.AutoDetectMovie)
                 {
                     if (options.CopyOriginalFile && fileExists && IsSameMovie(sourcePath,  movie.Path))
                     {
-                        var msg = string.Format("File '{0}' already exists in target path '{1}', stopping organization", sourcePath,  movie.Path);
+                        var msg =
+                            $"File '{sourcePath}' already exists in target path '{movie.Path}', stopping organization";
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
@@ -428,7 +431,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     }
                 }
 
-                PerformFileSorting(options, result, cancellationToken);
+                PerformFileSorting(requestToMoveFile, options, result, cancellationToken);
             }
             catch (OrganizationException ex)
             {
@@ -437,10 +440,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
             catch (IOException ex)
             {
-                if(ex.Message.Contains("being used by another process"))
+                if(ex.Message.Contains("being used by another process") && !result.IsInProgress)
                 {                    
                     var errorMsg = $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
-                    result.Status = FileSortingStatus.Waiting;
+                    result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger); //Update the UI
@@ -460,7 +463,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
         }
 
-        private void PerformFileSorting(MovieFileOrganizationOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
+        private void PerformFileSorting(bool? requestToMoveFile, MovieFileOrganizationOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
         {
 
             // We should probably handle this earlier so that we never even make it this far
@@ -471,17 +474,23 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                        
 
             _libraryMonitor.ReportFileSystemChangeBeginning(result.TargetPath);
-             
             
+            //Check to see if the library already has this entry
+            var targetAlreadyExists = _fileSystem.FileExists(result.TargetPath) || _fileSystem.DirectoryExists(Path.GetDirectoryName(result.TargetPath));
+
+            if (requestToMoveFile.HasValue)
+            {
+                if (targetAlreadyExists && options.OverwriteExistingFiles && requestToMoveFile.Value)
+                {
+                    RemoveExistingLibraryItem(result);
+                }
+            }
 
             if (!_fileSystem.DirectoryExists(_fileSystem.GetDirectoryName(result.TargetPath)))
             {
                 _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(result.TargetPath));
             }
 
-
-            var targetAlreadyExists = _fileSystem.FileExists(result.TargetPath);
-           
             try
             {
                 
@@ -549,7 +558,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
             catch (IOException ex)
             {
-                if(ex.Message.Contains("being used by another process"))
+                if(ex.Message.Contains("being used by another process") && !result.IsInProgress)
                 {                    
                     var errorMsg = $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
                     result.Status = FileSortingStatus.Waiting;
@@ -589,6 +598,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     _logger.ErrorException("Error deleting {0}", ex, result.OriginalPath);
                 }
             }
+
+            
         }
 
         private async Task<Tuple<Movie, RemoteSearchResult>> AutoDetectMovie(string movieName, int? movieYear, FileOrganizationResult result, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
@@ -662,6 +673,35 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return null;
         }
         
+        private void RemoveExistingLibraryItem(FileOrganizationResult result)
+        {
+            var existingItems = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] {nameof(Movie)},
+                Recursive = true,
+                DtoOptions = new DtoOptions(true),
+                SearchTerm = result.ExtractedName,
+                Years = result.ExtractedYear.HasValue ? new[] {result.ExtractedYear.Value} : Array.Empty<int>()
+            });
+
+            var itemToRemove = string.Empty;
+            foreach(var item in existingItems)
+            {
+                if(_fileSystem.GetFileNameWithoutExtension(item.Path) == _fileSystem.GetFileNameWithoutExtension(result.TargetPath))
+                {
+                    itemToRemove = item.Path;
+                }
+            }
+            
+            try
+            {
+                _fileSystem.DeleteFile(itemToRemove);
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorException("Error deleting {0}", ex, itemToRemove);
+            }
+        }
         private Movie GetMatchingMovie(string movieName, int? movieYear, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
         {
             var parsedName = _libraryManager.ParseName(movieName.AsSpan());
@@ -832,5 +872,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return string.Empty;
             
         }
+
     }
 }

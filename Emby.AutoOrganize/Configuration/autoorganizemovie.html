@@ -19,7 +19,7 @@
                         <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
                             <label style="width:auto;" class="emby-toggle-label">
                                 <input type="checkbox" is="emby-toggle" id="chkEnableMovieAutoDetect" class="emby-toggle emby-toggle-focusring">
-                                <span class="toggleLabel">Enable new movie library creation</span>
+                                <span class="toggleLabel">Enable auto-sorting and new movie library creation</span>
                             </label>
                             <div class="fieldDescription toggleFieldDescription">Smart organization automatically creates movies in the library. <br />Warning Beta feature, Use with caution, this may cause significantly longer scans and false identification</div>
                             <!--<div class="fieldDescription toggleFieldDescription"></div>-->
@@ -28,15 +28,14 @@
                             <select id="selectMovieFolder" is="emby-select" label="Default Movie library:"></select>
                             <div class="fieldDescription">New movie folders will be created here.</div>
                         </div>
-
-
-                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:0;">
+                        <div class="checkboxContainer checkboxContainer-withDescription fldOverwriteExistingMovies hide" style="margin-bottom:0;">
                             <label style="width:auto;" class="emby-toggle-label">
                                 <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingMovies" class="emby-toggle emby-toggle-focusring">
                                 <span class="toggleLabel">Overwrite existing movie files</span>
                             </label>
-                            <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library folders with new versions in the watched folder.</div>
+                            <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library folders with new versions when auto-sorting and library creation is enabled.</div>
                         </div>
+
                     </div>
                 </div>
                 <br />

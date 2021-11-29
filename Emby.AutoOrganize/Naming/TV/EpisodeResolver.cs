@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Emby.AutoOrganize.Naming.Common;
+using Emby.AutoOrganize.Naming.TV;
 
 namespace Emby.Naming.TV
 {

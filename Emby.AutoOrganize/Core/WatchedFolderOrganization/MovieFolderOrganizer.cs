@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Configuration;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
@@ -37,11 +39,16 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
         private bool EnableOrganization(FileSystemMetadata fileInfo, MovieFileOrganizationOptions options)
         {
+
+            //TODO separate video file and subtitles here somewhere. 
             var minFileBytes = options.MinFileSizeMb * 1024 * 1024;
 
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList());
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) 
+                    && fileInfo.Length >= minFileBytes 
+                    && !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList()) 
+                    || _libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan());
             }
             catch (Exception ex)
             {
@@ -98,11 +105,28 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
                     try
                     {
-                        var result = await organizer.OrganizeMovieFile(false, file.FullName, options, cancellationToken).ConfigureAwait(false);
+                        ////We have a subtitle file, and we have already processed the video file it belongs to.
+                        //if (_libraryManager.IsSubtitleFile(file.FullName.AsSpan()) && processedFolders.Contains(file.DirectoryName))
+                        //{
+                        //    var libraryItemDirectoryPath = Path.GetDirectoryName(_libraryManager.GetItemsResult(new InternalItemsQuery()
+                        //    {
+                        //        IncludeItemTypes = new []{nameof(Movie)},
+                        //        NameStartsWith = _libraryManager.ParseName(Path.GetFileName(file.FullName).AsSpan()).Name
 
-                        if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
+                        //    }).Items.FirstOrDefault()?.Path);
+
+                        //    var ext = Path.GetExtension(file.FullName);
+                        //    //_fileSystem.CopyFile(file.FullName, Path.Combine(libraryItemDirectoryPath, ));
+                        //}
+
+                        if (_libraryManager.IsVideoFile(file.FullName.AsSpan()))
                         {
-                            processedFolders.Add(file.DirectoryName);
+                            var result = await organizer.OrganizeMovieFile(false, file.FullName, options, cancellationToken).ConfigureAwait(false);
+
+                            if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
+                            {
+                                processedFolders.Add(file.DirectoryName);
+                            }
                         }
                     }
                     catch (OperationCanceledException)
@@ -171,8 +195,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
         {
             try
             {
-                return _fileSystem.GetFiles(path, true)
-                    .ToList();
+                return _fileSystem.GetFiles(path, true).ToList();
             }
             catch (DirectoryNotFoundException)
             {

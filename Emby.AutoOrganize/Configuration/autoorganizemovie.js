@@ -241,8 +241,10 @@
         function toggleMovieFolderPattern() {
             if (view.querySelector('#chkSubMovieFolders').checked) {
                 view.querySelector('.fldSelectMovieFolderPattern').classList.remove('hide');
+                view.querySelector('.fldOverwriteExistingMovies').classList.remove('hide');
             } else {
                 view.querySelector('.fldSelectMovieFolderPattern').classList.add('hide');
+                view.querySelector('.fldOverwriteExistingMovies').classList.add('hide');
             }
         }
 
