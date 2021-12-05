@@ -95,7 +95,7 @@
     function getMovieFileName(value) {
         var movieName = "Movie Name";
         var movieYear = "2017";
-        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.DTS.x264-UTT';
+        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
 
         var result = value.replace('%mn', movieName)
             .replace('%m.n', movieName.replace(' ', '.'))
@@ -103,6 +103,7 @@
             .replace('%my', movieYear)
             .replace('%ext', 'mkv')             
             .replace('%res', '1080p')
+            .replace('%e', "Directors Cut")
             .replace('%fn', fileNameWithoutExt);
 
         return result;
@@ -111,7 +112,7 @@
     function getMovieFolderFileName(value) {
         var movieName = "Movie Name";
         var movieYear = "2017";
-        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.DTS.x264-UTT';
+        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
 
         var result = value.replace('%mn', movieName)
             .replace('%m.n', movieName.replace(' ', '.'))

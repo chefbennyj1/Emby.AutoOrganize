@@ -35,7 +35,7 @@ namespace Emby.AutoOrganize.Data
 
                 string[] queries = {
 
-                                "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedResolution TEXT null, ExternalSubtitlePaths TEXT null, DuplicatePaths TEXT int null)",
+                                "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedResolution TEXT null, ExtractedEdition TEXT null, ExternalSubtitlePaths TEXT null, DuplicatePaths TEXT int null)",
                                 "create index if not exists idx_FileOrganizerResults on FileOrganizerResults(ResultId)",
                                 "create table if not exists SmartMatch (Id GUID PRIMARY KEY, ItemName TEXT, DisplayName TEXT, OrganizerType TEXT, MatchStrings TEXT null)",
                                 "create index if not exists idx_SmartMatch on SmartMatch(Id)",
@@ -62,7 +62,7 @@ namespace Emby.AutoOrganize.Data
                 {
                     connection.RunInTransaction(db =>
                     {
-                        var commandText = "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, ExternalSubtitlePaths, DuplicatePaths) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @ExtractedResolution, @ExternalSubtitlePaths, @DuplicatePaths)";
+                        var commandText = "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @ExtractedResolution, @ExtractedEdition, @ExternalSubtitlePaths, @DuplicatePaths)";
 
                         using (var statement = db.PrepareStatement(commandText))
                         {
@@ -81,6 +81,7 @@ namespace Emby.AutoOrganize.Data
                             statement.TryBind("@ExtractedEpisodeNumber", result.ExtractedEpisodeNumber);
                             statement.TryBind("@ExtractedEndingEpisodeNumber", result.ExtractedEndingEpisodeNumber);
                             statement.TryBind("@ExtractedResolution", result.ExtractedResolution);
+                            statement.TryBind("@ExtractedEdition", result.ExtractedEdition);
                             statement.TryBind("@ExternalSubtitlePaths", string.Join("|", result.DuplicatePaths.ToArray()));
                             statement.TryBind("@DuplicatePaths", string.Join("|", result.DuplicatePaths.ToArray()));
 
@@ -159,7 +160,7 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    var commandText = "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, ExternalSubtitlePaths, DuplicatePaths from FileOrganizerResults";
+                    var commandText = "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths from FileOrganizerResults";
 
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
@@ -209,7 +210,7 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    using (var statement = connection.PrepareStatement("select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, ExternalSubtitlePaths, DuplicatePaths from FileOrganizerResults where ResultId=@ResultId"))
+                    using (var statement = connection.PrepareStatement("select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths from FileOrganizerResults where ResultId=@ResultId"))
                     {
                         statement.TryBind("@ResultId", id.ToGuidBlob());
 
@@ -303,6 +304,13 @@ namespace Emby.AutoOrganize.Data
             {
                 result.ExtractedResolution = reader.GetString(index);
             }
+
+            index++;
+            if (!reader.IsDBNull(index))
+            {
+                result.ExtractedEdition = reader.GetString(index);
+            }
+
             index++;
             if (!reader.IsDBNull(index))
             {

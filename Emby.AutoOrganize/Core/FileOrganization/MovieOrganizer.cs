@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Globalization;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Emby.AutoOrganize.Api;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Naming.Common;
 using MediaBrowser.Common.Events;
-using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -56,6 +54,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
                 ExtractedResolution = GetStreamResolutionFromFileName(Path.GetFileName(path)),
+                ExtractedEdition = GetReleaseEditionFromFileName(Path.GetFileName(path)),
                 Type = FileOrganizerType.Unknown,
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };
@@ -363,7 +362,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             
             result.ExtractedResolution = GetStreamResolutionFromFileName(sourcePath);
-
+            result.ExtractedEdition = GetReleaseEditionFromFileName(sourcePath);
             if (string.IsNullOrWhiteSpace(result.TargetPath))
             {
                 result.TargetPath = Path.Combine(_fileSystem.GetDirectoryName(movie.Path), GetMovieFileName(sourcePath, movie, options));
@@ -794,6 +793,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 .Replace("%my", productionYear.ToString())
                 .Replace("%res", GetStreamResolutionFromFileName(Path.GetFileName(sourcePath)))
                 .Replace("%ext", sourceExtension)
+                .Replace("%e", GetReleaseEditionFromFileName(Path.GetFileName(sourcePath)))
                 .Replace("%fn", Path.GetFileNameWithoutExtension(sourcePath));
 
             // Finally, call GetValidFilename again in case user customized the movie expression with any invalid filename characters
@@ -857,13 +857,28 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return true;
         }
 
-        private static string GetStreamResolutionFromFileName(string movieName)
+        private string GetReleaseEditionFromFileName(string sourceFileName)
+        {
+            var namingOptions = new NamingOptions();
+            foreach (var releaseVersion in namingOptions.VideoReleaseEditionFlags)
+            {
+                sourceFileName = sourceFileName.Replace(".", string.Empty).Replace("_", string.Empty);
+                if (sourceFileName.ToLowerInvariant().Contains(releaseVersion.ToLowerInvariant()))
+                {
+                    return releaseVersion;
+                }
+            }
+
+            return "Theatrical Version";
+        }
+
+        private static string GetStreamResolutionFromFileName(string sourceFileName)
         {
             var namingOptions = new NamingOptions();
             
             foreach(var resolution in namingOptions.VideoResolutionFlags)
             {
-                if(movieName.Contains(resolution))
+                if(sourceFileName.Contains(resolution))
                 {
                     return resolution;
 

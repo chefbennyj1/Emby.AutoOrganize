@@ -617,6 +617,11 @@
         html += '<span>' + formatItemName(item.ExtractedName ?? "") + '</span>';
         html += '</td>';             
 
+        //Release Edition
+        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+        html += '<span>' + (item.ExtractedEdition ?? "")  + '</span>';  
+        html += '</td>';
+
         //Resolution
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
         html += '<span>' + (item.ExtractedResolution ?? "")  + '</span>';  

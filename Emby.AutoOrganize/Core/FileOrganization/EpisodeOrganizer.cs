@@ -73,6 +73,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
                 ExtractedResolution = GetStreamResolutionFromFileName(Path.GetFileName(path)),
+                ExtractedEdition = string.Empty,
                 Type = FileOrganizerType.Unknown,
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };

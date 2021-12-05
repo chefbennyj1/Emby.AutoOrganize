@@ -27,6 +27,8 @@ namespace Emby.AutoOrganize.Naming.Common
 
         public string[] VideoResolutionFlags { get; set; }
 
+        public string[] VideoReleaseEditionFlags { get; set ;}
+        
         public string[] VideoFileStackingExpressions { get; set; }
         public string[] CleanDateTimes { get; set; }
         public string[] CleanStrings { get; set; }
@@ -36,6 +38,16 @@ namespace Emby.AutoOrganize.Naming.Common
 
         public NamingOptions()
         {
+            VideoReleaseEditionFlags = new string[]
+            {
+                "Theatrical Version",
+                "Extended Edition",
+                "Special Edition",
+                "Directors Cut",
+                "Final Cut",
+                "Uncut",
+            };
+
             VideoFileExtensions = new string[]
             {
                 ".m4v",

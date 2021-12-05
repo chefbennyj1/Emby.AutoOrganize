@@ -40,7 +40,10 @@ namespace Emby.AutoOrganize.Model
         /// </summary>
         /// <value>The extracted Resolution.</value>
         public string ExtractedResolution { get; set; }
-
+        /// <summary>
+        /// Gets or sets the extracted Edition.
+        /// </summary>
+        public string ExtractedEdition { get; set; } = string.Empty;
         /// <summary>
         /// Gets or sets the extracted season number.
         /// </summary>
