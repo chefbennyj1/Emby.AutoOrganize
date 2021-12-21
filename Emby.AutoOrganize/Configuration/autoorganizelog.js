@@ -619,7 +619,7 @@
 
         //Release Edition
         html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
-        html += '<span>' + (item.ExtractedEdition ?? "")  + '</span>';  
+        html += '<span>' + (item.Type === "Episode" ? item.ExtractedEdition ?? "" : "")  + '</span>';  
         html += '</td>';
 
         //Resolution

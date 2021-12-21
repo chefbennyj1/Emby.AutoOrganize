@@ -40,14 +40,19 @@ namespace Emby.AutoOrganize.Naming.Common
         {
             VideoReleaseEditionFlags = new string[]
             {
-                "Theatrical Version",
-                "Extended Edition",
-                "Special Edition",
-                "Directors Cut",
-                "Final Cut",
+                "Theatrical",
+                "Version",
+                "Extended",
+                "Special",
+                "Edition",
+                "Directors",
+                "Final" ,
+                "Cut",
                 "Uncut",
+                "Unrated",
+                "Ultimate"
             };
-
+            
             VideoFileExtensions = new string[]
             {
                 ".m4v",

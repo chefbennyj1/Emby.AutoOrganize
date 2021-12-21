@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Model;
@@ -860,16 +861,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private string GetReleaseEditionFromFileName(string sourceFileName)
         {
             var namingOptions = new NamingOptions();
-            foreach (var releaseVersion in namingOptions.VideoReleaseEditionFlags)
-            {
-                sourceFileName = sourceFileName.Replace(".", string.Empty).Replace("_", string.Empty);
-                if (sourceFileName.ToLowerInvariant().Contains(releaseVersion.ToLowerInvariant()))
-                {
-                    return releaseVersion;
-                }
-            }
-
-            return "Theatrical Version";
+            var pattern = $"{string.Join("|", namingOptions.VideoReleaseEditionFlags)}";
+            var input = sourceFileName.Replace(".", " ").Replace("_", " ");
+            var result = Regex.Matches(input, pattern, RegexOptions.IgnoreCase);
+            return result.Count > 0 ? string.Join(" ", result) : "Theatrical Version";
         }
 
         private static string GetStreamResolutionFromFileName(string sourceFileName)
