@@ -863,8 +863,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var namingOptions = new NamingOptions();
             var pattern = $"{string.Join("|", namingOptions.VideoReleaseEditionFlags)}";
             var input = sourceFileName.Replace(".", " ").Replace("_", " ");
-            var result = Regex.Matches(input, pattern, RegexOptions.IgnoreCase);
-            return result.Count > 0 ? string.Join(" ", result) : "Theatrical Version";
+            var results = Regex.Matches(input, pattern, RegexOptions.IgnoreCase);
+            return results.Count > 0 ? string.Join(" ", from Match match in results select match.Value) : "Theatrical Version";
         }
 
         private static string GetStreamResolutionFromFileName(string sourceFileName)
