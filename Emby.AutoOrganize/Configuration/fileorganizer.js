@@ -92,6 +92,87 @@
         });
     };
 
+
+    function getMovieFileName(value) {
+        var movieName = "Movie Name";
+        var movieYear = "2017";
+        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
+
+        var result = value.replace('%mn', movieName)
+            .replace('%m.n', movieName.replace(' ', '.'))
+            .replace('%m_n', movieName.replace(' ', '_'))
+            .replace('%my', movieYear)
+            .replace('%ext', 'mkv')             
+            .replace('%res', '1080p')
+            .replace('%e', "Directors Cut")
+            .replace('%fn', fileNameWithoutExt);
+
+        return result;
+    }
+
+    function getMovieFolderFileName(value) {
+        var movieName = "Movie Name";
+        var movieYear = "2017";
+        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
+
+        var result = value.replace('%mn', movieName)
+            .replace('%m.n', movieName.replace(' ', '.'))
+            .replace('%m_n', movieName.replace(' ', '_'))
+            .replace('%my', movieYear)
+            .replace('%ext', 'mkv')
+            .replace('%fn', fileNameWithoutExt);
+
+        return result;
+    }
+
+    
+
+    function getEpisodeFileName(value, enableMultiEpisode) {
+
+        var seriesName = "Series Name";
+        var episodeTitle = "Episode Four";
+        var fileName = seriesName + ' ' + episodeTitle;
+
+        var result = value.replace('%sn', seriesName)
+            .replace('%s.n', seriesName.replace(' ', '.'))
+            .replace('%s_n', seriesName.replace(' ', '_'))
+            .replace('%s', '1')
+            .replace('%0s', '01')
+            .replace('%00s', '001')
+            .replace('%ext', 'mkv')
+            .replace('%en', episodeTitle)
+            .replace('%e.n', episodeTitle.replace(' ', '.'))
+            .replace('%e_n', episodeTitle.replace(' ', '_'))
+            .replace('%fn', fileName);
+
+        if (enableMultiEpisode) {
+            result = result
+                .replace('%ed', '5')
+                .replace('%0ed', '05')
+                .replace('%00ed', '005');
+        }
+
+        return result
+            .replace('%e', '4')
+            .replace('%0e', '04')
+            .replace('%00e', '004');
+    }
+
+    function getSeriesDirectoryName(value) {
+
+        var seriesName = "Series Name";
+        var seriesYear = "2017";
+        var fullName = seriesName + ' (' + seriesYear + ')';
+
+        return value.replace('%sn', seriesName)
+            .replace('%s.n', seriesName.replace(' ', '.'))
+            .replace('%s_n', seriesName.replace(' ', '_'))
+            .replace('%sy', seriesYear)
+            .replace('%fn', fullName);
+    }
+
+
+
     var chosenType;
     var extractedName;
     var extractedYear;
@@ -233,7 +314,7 @@
         var resultId = dlg.querySelector('#hfResultId').value;
         var mediaId = dlg.querySelector('#selectMedias').value;
 
-        var targetFolder = null;
+        var targetFolder = dlg.querySelector('#selectMediaFolder').value;
         var newProviderIds = null;
         var newMediaName = null;
         var newMediaYear = null;
@@ -259,7 +340,7 @@
                     NewSeriesName: newMediaName,
                     NewSeriesYear: newMediaYear,
                     TargetFolder: targetFolder,
-                    RequestToOverwriteExistsingFile: true
+                    RequestToOverwriteExistingFile: true
                 };
                 break;
             case "Movie":                 
@@ -269,18 +350,13 @@
                     NewMovieName: newMediaName,
                     NewMovieYear: newMediaYear,
                     TargetFolder: targetFolder,
-                    RequestToOverwriteExistsingFile: true
+                    RequestToOverwriteExistingFile: true
                 };
                 break;
         }
         
-        var mediaSelect = dlg.querySelector("#selectMedias");
-        var selectedOption = mediaSelect.options[mediaSelect.selectedIndex].text;
         
-        //This needs to be reworked. We need the message to confirm the destinion file path.FullName
-        var message = 'The following item will be moved to ';
-        message += item && item.length ? item.TargetFolder : ' the ' + chosenType + ' ' + selectedOption;  
-        
+        var message = 'The following ' + item.Type + ' will be moved to: ' + targetFolder;
         message += '<br/><br/>' + 'Are you sure you wish to proceed?';
 
         require(['confirm'], function (confirm) {
@@ -463,7 +539,7 @@
                         selectedMediaTypeChanged(dlg, item);
                     });
 
-                    dlg.querySelector('#selectMediaType').value = item.Type;
+                    dlg.querySelector('#selectMediaType').value = item.Type !== "Unknown" ? item.Type : "";
 
                     // Init media type
                     selectedMediaTypeChanged(dlg, item);

@@ -5,9 +5,9 @@
 
     <TargetFrameworks>netstandard2.0;</TargetFrameworks>
 
-    <AssemblyVersion>1.6.0.5</AssemblyVersion>
+    <AssemblyVersion>1.6.1.3</AssemblyVersion>
 
-    <FileVersion>1.6.0.5</FileVersion>
+    <FileVersion>1.6.1.3</FileVersion>
 
   </PropertyGroup>
 
@@ -24,13 +24,9 @@
 
     <EmbeddedResource Include="Configuration\autoorganizesmart.js" />
 
-    <EmbeddedResource Include="Configuration\autoorganizemovie.html" />
+    <EmbeddedResource Include="Configuration\autoorganizesettings.html" />
 
-    <EmbeddedResource Include="Configuration\autoorganizemovie.js" />
-
-    <EmbeddedResource Include="Configuration\autoorganizetv.html" />
-
-    <EmbeddedResource Include="Configuration\autoorganizetv.js" />
+    <EmbeddedResource Include="Configuration\autoorganizesettings.js" />
  
    <EmbeddedResource Include="Configuration\fileorganizer.js" />
 

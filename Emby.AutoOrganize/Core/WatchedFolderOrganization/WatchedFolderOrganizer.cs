@@ -14,7 +14,7 @@ using MediaBrowser.Model.Logging;
 
 namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 {
-    public class EpisodeFolderOrganizer
+    public class WatchedFolderOrganizer
     {
         private readonly ILibraryMonitor _libraryMonitor;
         private readonly ILibraryManager _libraryManager;
@@ -24,7 +24,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
         private readonly IServerConfigurationManager _config;
         private readonly IProviderManager _providerManager;
 
-        public EpisodeFolderOrganizer(ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IFileOrganizationService organizationService, IServerConfigurationManager config, IProviderManager providerManager)
+        public WatchedFolderOrganizer(ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IFileOrganizationService organizationService, IServerConfigurationManager config, IProviderManager providerManager)
         {
             _libraryManager = libraryManager;
             _logger = logger;
@@ -35,7 +35,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             _providerManager = providerManager;
         }
 
-        private bool EnableOrganization(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
+        private bool EnableOrganization(FileSystemMetadata fileInfo, AutoOrganizeOptions options)
         {
             var minFileBytes = options.MinFileSizeMb * 1024 * 1024;
 
@@ -67,18 +67,17 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             return libraryFolderPaths.Any(i => string.Equals(i, path, StringComparison.Ordinal) || _fileSystem.ContainsSubPath(i.AsSpan(), path.AsSpan()));
         }
 
-        public async Task Organize(EpisodeFileOrganizationOptions options, CancellationToken cancellationToken, IProgress<double> progress)
+        public async Task Organize(AutoOrganizeOptions options, CancellationToken cancellationToken, IProgress<double> progress)
         {
             var libraryFolderPaths = _libraryManager.GetVirtualFolders().SelectMany(i => i.Locations).ToList();
 
-            var watchLocations = options.WatchLocations
-                .Where(i => IsValidWatchLocation(i, libraryFolderPaths))
-                .ToList();
+            var watchLocations = options.WatchLocations.Where(i => IsValidWatchLocation(i, libraryFolderPaths)).ToList();
 
-            var eligibleFiles = watchLocations.SelectMany(GetFilesToOrganize)
-                .OrderBy(_fileSystem.GetCreationTimeUtc)
-                .Where(i => EnableOrganization(i, options))
-                .ToList();
+            _logger.Info($"Auto Organize Watched Locations: {watchLocations.Count} folder(s)");
+           
+            //For each watch location
+            var eligibleFiles = watchLocations.SelectMany(GetFilesToOrganize).OrderBy(_fileSystem.GetCreationTimeUtc).Where(i => EnableOrganization(i, options)).ToList();
+            
 
             _logger.Info($"Eligible file count {eligibleFiles.Count}");
 
@@ -86,64 +85,99 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
             progress.Report(10);
 
-            if (eligibleFiles.Count > 0)
+            if (!eligibleFiles.Any())
             {
-                var numComplete = 0;
+                cancellationToken.ThrowIfCancellationRequested();
+                progress.Report(99);
 
-                var organizer = new EpisodeOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
+                var deleteExtensions = options.LeftOverFileExtensionsToDelete.Select(i => i.Trim().TrimStart('.')).Where(i => !string.IsNullOrEmpty(i)).Select(i => "." + i).ToList();
 
-                foreach (var file in eligibleFiles)
+                // Normal Clean
+                Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+
+                // Extended Clean
+                if (options.ExtendedClean)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    Clean(watchLocations, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+                }
 
+                progress.Report(100);
+                return;
+            }
+
+            var numComplete = 0;
+
+            foreach (var file in eligibleFiles)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var fileOrganizerType = _organizationService.GetFileOrganizerType(file.Name);
+
+                if (fileOrganizerType == FileOrganizerType.Episode)
+                {
+                    var organizer = new EpisodeOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
                     try
                     {
-                        
-                        //bool? requestToOverwriteExistingFile is null here.
-                        //requestToOverwriteExistingFile bool? param is from the UI, it shouldn't be used here.
-                        var result = await organizer.OrganizeEpisodeFile(null, file.FullName, options, cancellationToken).ConfigureAwait(false);
+                        var result = await organizer.OrganizeFile(null, file.FullName, options, cancellationToken).ConfigureAwait(false);
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                         {
                             processedFolders.Add(file.DirectoryName);
                         }
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException ex)
                     {
-                        break;
+                        _logger.ErrorException("Error organizing episode {0}", ex, file.FullName);
+                        continue;
                     }
                     catch (Exception ex)
                     {
                         _logger.ErrorException("Error organizing episode {0}", ex, file.FullName);
+                        continue;
                     }
-
-                    numComplete++;
-                    double percent = numComplete;
-                    percent /= eligibleFiles.Count;
-
-                    progress.Report(10 + 89 * percent);
                 }
+
+                if (fileOrganizerType == FileOrganizerType.Movie)
+                {
+                    var organizer = new MovieOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
+                    try
+                    {
+                        if (_libraryManager.IsVideoFile(file.FullName.AsSpan()))
+                        {
+                            var result = await organizer.OrganizeFile(false, file.FullName, options, cancellationToken).ConfigureAwait(false);
+
+                            if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
+                            {
+                                processedFolders.Add(file.DirectoryName);
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException ex)
+                    {
+                        _logger.ErrorException("Error organizing movie {0}", ex, file.FullName);
+                        continue;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.ErrorException("Error organizing movie {0}", ex, file.FullName);
+                        continue;
+                    }
+                }
+
+                if (fileOrganizerType == FileOrganizerType.Unknown)
+                {
+                    _logger.Warn($"Sorting media type for {file.Name} is unknown. New episodes must contain the season index number, and episode index number in the file name.");
+                    continue;
+                }
+
+                numComplete++;
+                double percent = numComplete;
+                percent /= eligibleFiles.Count;
+
+                progress.Report(10 + 89 * percent);
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            progress.Report(99);
 
-            var deleteExtensions = options.LeftOverFileExtensionsToDelete
-                .Select(i => i.Trim().TrimStart('.'))
-                .Where(i => !string.IsNullOrEmpty(i))
-                .Select(i => "." + i)
-                .ToList();
-
-            // Normal Clean
-            Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
-
-            // Extended Clean
-            if (options.ExtendedClean)
-            {
-                Clean(watchLocations, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
-            }
-
-            progress.Report(100);
         }
 
         private void Clean(IEnumerable<string> paths, List<string> watchLocations, bool deleteEmptyFolders, List<string> deleteExtensions)
@@ -251,14 +285,14 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             return watchLocations.Contains(path, StringComparer.OrdinalIgnoreCase);
         }
 
-        public static bool IgnoredFileName(FileSystemMetadata fileInfo, List<string> ignoredFileNameContains)
+        private static bool IgnoredFileName(FileSystemMetadata fileInfo, List<string> ignoredFileNameContains)
         {
             if (ignoredFileNameContains.Count <= 0) return false;
             foreach (var ignoredString in ignoredFileNameContains)
             {
-                if(string.IsNullOrEmpty(ignoredString)) continue;
+                if (string.IsNullOrEmpty(ignoredString)) continue;
                 if (fileInfo.Name.ToLowerInvariant().Contains(ignoredString.ToLowerInvariant()))
-                {                   
+                {
                     return true;
                 }
             }

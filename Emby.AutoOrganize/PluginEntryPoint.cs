@@ -19,34 +19,33 @@ namespace Emby.AutoOrganize
 {
     public class PluginEntryPoint : IServerEntryPoint
     {
-        public static PluginEntryPoint Current;
+        public static PluginEntryPoint Instance;
 
-        public IFileOrganizationService FileOrganizationService { get; private set; }
-        
-        private readonly ISessionManager _sessionManager;
-
-        private readonly ITaskManager _taskManager;
-        private readonly ILogger _logger;
-        private readonly ILibraryMonitor _libraryMonitor;
-        private readonly ILibraryManager _libraryManager;
-        private readonly IServerConfigurationManager _config;
-        private readonly IFileSystem _fileSystem;
-        private readonly IProviderManager _providerManager;
-        private readonly IJsonSerializer _json;
+        public IFileOrganizationService FileOrganizationService  { get; private set; }
+        private ISessionManager SessionManager                   { get; set; }
+        private ITaskManager TaskManager                         { get; set; }
+        private ILogger Logger                                   { get; set; }
+        private ILibraryMonitor LibraryMonitor                   { get; set; }
+        private ILibraryManager LibraryManager                   { get; set; }
+        private IServerConfigurationManager ConfigurationManager { get; set; }
+        private IFileSystem FileSystem                           { get; set; }
+        private IProviderManager ProviderManager                 { get; set; }
+        private IJsonSerializer JsonSerializer                   { get; set; } 
 
         public IFileOrganizationRepository Repository;
 
-        public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogger logger, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager config, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer json)
+        public PluginEntryPoint(ISessionManager sessionManager, ITaskManager taskManager, ILogger logger, ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, IServerConfigurationManager configurationManager, IFileSystem fileSystem, IProviderManager providerManager, IJsonSerializer jsonSerializer)
         {
-            _sessionManager  = sessionManager;
-            _taskManager     = taskManager;
-            _logger          = logger;
-            _libraryMonitor  = libraryMonitor;
-            _libraryManager  = libraryManager;
-            _config          = config;
-            _fileSystem      = fileSystem;
-            _providerManager = providerManager;
-            _json            = json;
+            SessionManager  = sessionManager;
+            TaskManager     = taskManager;
+            Logger          = logger;
+            LibraryMonitor  = libraryMonitor;
+            LibraryManager  = libraryManager;
+            ConfigurationManager = configurationManager;
+            FileSystem      = fileSystem;
+            ProviderManager = providerManager;
+            JsonSerializer = jsonSerializer;
+            
         }
 
         public void Run()
@@ -57,25 +56,25 @@ namespace Emby.AutoOrganize
             }
             catch (Exception ex)
             {
-                _logger.ErrorException("Error initializing auto-organize database", ex);
+                Logger.ErrorException("Error initializing auto-organize database", ex);
             }
 
-            Current = this;
-            FileOrganizationService = new InternalFileOrganizationService(_taskManager, Repository, _logger, _libraryMonitor, _libraryManager, _config, _fileSystem, _providerManager);
+            Instance = this;
+            FileOrganizationService = new InternalFileOrganizationService(TaskManager, Repository, Logger, LibraryMonitor, LibraryManager, ConfigurationManager, FileSystem, ProviderManager);
 
-            FileOrganizationService.ItemAdded   += _organizationService_ItemAdded;
-            MovieOrganizer.ItemUpdated += _organizationService_ItemUpdated;
+            FileOrganizationService.ItemAdded     += _organizationService_ItemAdded;
+            MovieOrganizer.ItemUpdated   += _organizationService_ItemUpdated;
             EpisodeOrganizer.ItemUpdated += _organizationService_ItemUpdated;
-            FileOrganizationService.ItemRemoved += _organizationService_ItemRemoved;
-            FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
-            FileOrganizationService.LogReset    += _organizationService_LogReset;
-            _taskManager.TaskExecuting          += _taskManager_TaskExecuting;
-            _taskManager.TaskCompleted          += _taskManager_TaskCompleted;
+            FileOrganizationService.ItemRemoved   += _organizationService_ItemRemoved;
+            FileOrganizationService.ItemUpdated   += _organizationService_ItemUpdated;
+            FileOrganizationService.LogReset      += _organizationService_LogReset;
+            TaskManager.TaskExecuting             += _taskManager_TaskExecuting;
+            TaskManager.TaskCompleted             += _taskManager_TaskCompleted;
 
             
             
             // Convert Config
-            _config.Convert(FileOrganizationService);
+            ConfigurationManager.Convert(FileOrganizationService);
 
 
         }
@@ -83,18 +82,18 @@ namespace Emby.AutoOrganize
         
         private void _taskManager_TaskCompleted(object sender, TaskCompletionEventArgs e)
         {
-            _sessionManager.SendMessageToAdminSessions("TaskComplete",  e.Task.Name, CancellationToken.None);
+            SessionManager.SendMessageToAdminSessions("TaskComplete",  e.Task.Name, CancellationToken.None);
            
         }
 
         private void _taskManager_TaskExecuting(object sender, GenericEventArgs<IScheduledTaskWorker> e)
         {
-            _sessionManager.SendMessageToAdminSessions("TaskData", e.Argument, CancellationToken.None);
+            SessionManager.SendMessageToAdminSessions("TaskData", e.Argument, CancellationToken.None);
         }
 
         private IFileOrganizationRepository GetRepository()
         {
-            var repo = new SqliteFileOrganizationRepository(_logger, _config.ApplicationPaths, _json);
+            var repo = new SqliteFileOrganizationRepository(Logger, ConfigurationManager.ApplicationPaths, JsonSerializer);
 
             repo.Initialize();
 
@@ -103,22 +102,22 @@ namespace Emby.AutoOrganize
 
         private void _organizationService_LogReset(object sender, EventArgs e)
         {
-            _sessionManager.SendMessageToAdminSessions("AutoOrganize_LogReset", (FileOrganizationResult)null, CancellationToken.None);
+            SessionManager.SendMessageToAdminSessions("AutoOrganize_LogReset", (FileOrganizationResult)null, CancellationToken.None);
         }
 
         private void _organizationService_ItemUpdated(object sender, GenericEventArgs<FileOrganizationResult> e)
         {
-            _sessionManager.SendMessageToAdminSessions("AutoOrganize_ItemUpdated", e.Argument, CancellationToken.None);
+            SessionManager.SendMessageToAdminSessions("AutoOrganize_ItemUpdated", e.Argument, CancellationToken.None);
         }
 
         private void _organizationService_ItemRemoved(object sender, GenericEventArgs<FileOrganizationResult> e)
         {
-            _sessionManager.SendMessageToAdminSessions("AutoOrganize_ItemRemoved", e.Argument, CancellationToken.None);
+            SessionManager.SendMessageToAdminSessions("AutoOrganize_ItemRemoved", e.Argument, CancellationToken.None);
         }
 
         private void _organizationService_ItemAdded(object sender, GenericEventArgs<FileOrganizationResult> e)
         {
-            _sessionManager.SendMessageToAdminSessions("AutoOrganize_ItemAdded", e.Argument, CancellationToken.None);
+            SessionManager.SendMessageToAdminSessions("AutoOrganize_ItemAdded", e.Argument, CancellationToken.None);
         }
 
         public void Dispose()
@@ -127,8 +126,8 @@ namespace Emby.AutoOrganize
             FileOrganizationService.ItemRemoved -= _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated -= _organizationService_ItemUpdated;
             FileOrganizationService.LogReset    -= _organizationService_LogReset;
-            _taskManager.TaskExecuting          -= _taskManager_TaskExecuting;
-            _taskManager.TaskCompleted          -= _taskManager_TaskCompleted;
+            TaskManager.TaskExecuting          -= _taskManager_TaskExecuting;
+            TaskManager.TaskCompleted          -= _taskManager_TaskCompleted;
             var repo = Repository as IDisposable;
             if (repo != null)
             {

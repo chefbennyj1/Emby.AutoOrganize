@@ -1,5 +1,5 @@
 ﻿
-namespace Emby.Naming.TV
+namespace Emby.AutoOrganize.Naming.TV
 {
     public class EpisodeInfo
     {

@@ -232,13 +232,13 @@
                 name: 'Activity Log'
             },
             {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeTv'),
-                name: 'TV'
+                href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
+                name: 'Settings'
             },
-            {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
-                name: 'Movie'
-            },
+            //{
+            //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
+            //    name: 'Movie'
+            //},
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
                 name: 'Smart Matches'
@@ -277,7 +277,7 @@
 
         view.addEventListener('viewshow', function (e) {
 
-            mainTabsManager.setTabs(this, 3, getTabs);
+            mainTabsManager.setTabs(this, 2, getTabs);
             loading.show();
 
             reloadList(view);

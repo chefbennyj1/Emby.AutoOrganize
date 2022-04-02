@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Core.FileOrganization;
@@ -10,8 +10,8 @@ using MediaBrowser.Common.Events;
 using MediaBrowser.Common.Extensions;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Events;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -160,19 +160,21 @@ namespace Emby.AutoOrganize.Core
             }
 
             FileOrganizationResult organizeResult;
+            IFileOrganizer organizer;
+
             switch (result.Type)
             {
                 case FileOrganizerType.Episode:
-                    var episodeOrganizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);                                        
+                     organizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);                                        
 
-                    organizeResult = await episodeOrganizer.OrganizeEpisodeFile(requestToMoveFile, result.OriginalPath, options.TvOptions, CancellationToken.None)
+                    organizeResult = await organizer.OrganizeFile(requestToMoveFile, result.OriginalPath, options, CancellationToken.None)
                         .ConfigureAwait(false);
 
                     break;
                 case FileOrganizerType.Movie:
-                    var movieOrganizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
+                    organizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
-                    organizeResult = await movieOrganizer.OrganizeMovieFile(requestToMoveFile, result.OriginalPath, options.MovieOptions, CancellationToken.None)
+                    organizeResult = await organizer.OrganizeFile(requestToMoveFile, result.OriginalPath, options, CancellationToken.None)
                         .ConfigureAwait(false);
                     break;
                 default:
@@ -203,8 +205,7 @@ namespace Emby.AutoOrganize.Core
 
             var options = GetAutoOrganizeOptions();
 
-            
-            var result = await organizer.OrganizeWithCorrection(request, options.TvOptions, CancellationToken.None).ConfigureAwait(false);
+            var result = await organizer.OrganizeWithCorrection(request, options, CancellationToken.None).ConfigureAwait(false);
 
             if (result.Status != FileSortingStatus.Success)
             {
@@ -217,7 +218,7 @@ namespace Emby.AutoOrganize.Core
             var organizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();
-            var result = organizer.OrganizeWithCorrection(request.RequestToMoveFile, request, options.MovieOptions, CancellationToken.None);
+            var result = organizer.OrganizeWithCorrection(request, options, CancellationToken.None);
 
             if (result.Status != FileSortingStatus.Success)
             {
@@ -230,6 +231,38 @@ namespace Emby.AutoOrganize.Core
             return _repo.GetSmartMatch(query);
         }
 
+        public ServerConfiguration GetServerConfiguration()
+        {
+            return _config.Configuration;
+        }
+
+        public string GetVideoEncodingType(string fileName)
+        {
+            var streamEncodingRegex = new Regex(@"(x264|h264|H264|X264|xvid|xvidvd)([ _\,\.\(\)\[\]\-]|$)", RegexOptions.IgnoreCase);
+            var encodingMatch = streamEncodingRegex.Match(fileName);
+            return encodingMatch.Success ? encodingMatch.Groups[1].Value : string.Empty;
+        }
+        public FileOrganizerType GetFileOrganizerType(string fileName)
+        {
+            var regexDate = new Regex(@"\b(19|20|21)\d{2}\b");
+            var testTvShow = new Regex(@"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:([Ss](\d{1,2})))", RegexOptions.IgnoreCase);
+
+            var dateMatch = regexDate.Match(fileName);
+            //The file name has a date in it
+            if (dateMatch.Success)
+            {
+                //Some tv episodes have a date in it, test the file name for known tv episode naming.
+                return testTvShow.Matches(fileName).Count < 1 ? FileOrganizerType.Movie : FileOrganizerType.Episode;
+            }
+
+            //The file name didn't have a date in it. It also doesn't have any episode indicators. Treat it as a movie.
+            if (testTvShow.Matches(fileName).Count < 1)
+            {
+                return FileOrganizerType.Movie;
+            }
+
+            return testTvShow.Matches(fileName).Count >= 1 ? FileOrganizerType.Episode : FileOrganizerType.Unknown;
+        } 
 
         public QueryResult<SmartMatchResult> GetSmartMatchInfos()
         {
@@ -290,14 +323,21 @@ namespace Emby.AutoOrganize.Core
         /// <returns>True if the item was removed, False if the item was not contained in the list.</returns>
         public bool RemoveFromInprogressList(FileOrganizationResult result)
         {
-            bool itemValue;
-            var retval = _inProgressItemIds.TryRemove(result.Id, out itemValue);
+            try
+            {
+                bool itemValue;
+                var retval = _inProgressItemIds.TryRemove(result.Id, out itemValue);
 
-            result.IsInProgress = false;
+                result.IsInProgress = false;
 
-            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
 
-            return retval;
+                return retval;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
     }

@@ -44,6 +44,9 @@ namespace Emby.AutoOrganize.Model
         /// Gets or sets the extracted Edition.
         /// </summary>
         public string ExtractedEdition { get; set; } = string.Empty;
+
+        public string ExtractedSeriesName { get; set; }
+
         /// <summary>
         /// Gets or sets the extracted season number.
         /// </summary>
@@ -111,6 +114,8 @@ namespace Emby.AutoOrganize.Model
         public bool IsInProgress { get; set; }
           
         public List<string> ExternalSubtitlePaths { get; set; }
+
+        public string VideoStreamEncoding { get; set; }
 
         public FileOrganizationResult()
         {

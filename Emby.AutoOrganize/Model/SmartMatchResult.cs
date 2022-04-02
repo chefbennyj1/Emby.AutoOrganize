@@ -11,10 +11,12 @@ namespace Emby.AutoOrganize.Model
         public string DisplayName { get; set; }
         public FileOrganizerType OrganizerType { get; set; }
         public List<string> MatchStrings { get; set; }
+        public List<string> Paths { get; set; }
 
         public SmartMatchResult()
         {
             Id = Guid.NewGuid();
+            Paths = new List<string>();
             MatchStrings = new List<string>();
         }
     }

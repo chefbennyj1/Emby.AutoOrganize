@@ -168,7 +168,7 @@ namespace Emby.AutoOrganize.Api
 
         private IFileOrganizationService InternalFileOrganizationService
         {
-            get { return PluginEntryPoint.Current.FileOrganizationService; }
+            get { return PluginEntryPoint.Instance.FileOrganizationService; }
         }
 
         public object Get(GetFileOrganizationActivity request)

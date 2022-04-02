@@ -3,7 +3,7 @@ using MediaBrowser.Model.Entities;
 
 namespace Emby.AutoOrganize.Model
 {
-    public class EpisodeFileOrganizationRequest
+    public class EpisodeFileOrganizationRequest : IFileOrganizationRequest
     {
         public string ResultId { get; set; }
         

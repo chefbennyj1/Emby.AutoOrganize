@@ -4,6 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Model;
+using MediaBrowser.Model.Configuration;
 
 namespace Emby.AutoOrganize.Core
 {
@@ -102,6 +103,12 @@ namespace Emby.AutoOrganize.Core
         /// <param name="query">The query.</param>
         /// <returns>IEnumerable{SmartMatchInfo}.</returns>
         QueryResult<SmartMatchResult> GetSmartMatchInfos(FileOrganizationResultQuery query);
+
+        FileOrganizerType GetFileOrganizerType(string fileName);
+
+        string GetVideoEncodingType(string fileName);
+
+        ServerConfiguration GetServerConfiguration();
 
         /// <summary>
         /// Returns a list of smart match entries

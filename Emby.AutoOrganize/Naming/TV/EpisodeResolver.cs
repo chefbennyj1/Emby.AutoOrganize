@@ -1,5 +1,4 @@
-﻿using Emby.Naming.Common;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using Emby.AutoOrganize.Naming.Common;
@@ -18,8 +17,7 @@ namespace Emby.Naming.TV
 
         public EpisodeInfo Resolve(string path, bool IsDirectory, bool? isNamed = null, bool? isOptimistic = null, bool? supportsAbsoluteNumbers = null, bool fillExtendedInfo = true)
         {
-            var parsingResult = new EpisodePathParser(_options)
-                .Parse(path, IsDirectory, isNamed, isOptimistic, supportsAbsoluteNumbers, fillExtendedInfo);
+            var parsingResult = new EpisodePathParser(_options).Parse(path, IsDirectory, isNamed, isOptimistic, supportsAbsoluteNumbers, fillExtendedInfo);
             
             return new EpisodeInfo
             {

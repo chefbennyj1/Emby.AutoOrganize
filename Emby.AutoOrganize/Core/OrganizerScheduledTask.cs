@@ -55,23 +55,20 @@ namespace Emby.AutoOrganize.Core
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
             var options = GetAutoOrganizeOptions();
-            //var queueMovie = false;
-            if (options.MovieOptions.IsEnabled)
+            var fileOrganizationService = PluginEntryPoint.Instance.FileOrganizationService;
+           
+            if (options.EnableScheduledTask)
             {
-                var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
-
-                await new MovieFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
-                    .Organize(options.MovieOptions, cancellationToken, progress).ConfigureAwait(false);
+                try
+                {
+                    await new WatchedFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor,
+                            fileOrganizationService, _config, _providerManager).Organize(options, cancellationToken, progress).ConfigureAwait(false);
+                }
+                catch
+                {
+                    
+                }
             }
-
-            if (options.TvOptions.IsEnabled)
-            {
-                var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
-
-                await new EpisodeFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
-                    .Organize(options.TvOptions, cancellationToken, progress).ConfigureAwait(false);
-            }
-
             
         }
 
@@ -88,24 +85,12 @@ namespace Emby.AutoOrganize.Core
             };
         }
 
-        public bool IsHidden
-        {
-            get { return !GetAutoOrganizeOptions().TvOptions.IsEnabled && !GetAutoOrganizeOptions().MovieOptions.IsEnabled; }
-        }
+        public bool IsHidden => !GetAutoOrganizeOptions().EnableScheduledTask;
 
-        public bool IsEnabled
-        {
-            get { return GetAutoOrganizeOptions().TvOptions.IsEnabled || GetAutoOrganizeOptions().MovieOptions.IsEnabled; }
-        }
+        public bool IsEnabled => GetAutoOrganizeOptions().EnableScheduledTask;
 
-        public bool IsLogged
-        {
-            get { return false; }
-        }
+        public bool IsLogged => false;
 
-        public string Key
-        {
-            get { return "AutoOrganize"; }
-        }
+        public string Key => "AutoOrganize";
     }
 }

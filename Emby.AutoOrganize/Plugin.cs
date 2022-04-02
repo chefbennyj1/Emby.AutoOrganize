@@ -54,14 +54,14 @@ namespace Emby.AutoOrganize
                 },
                 new PluginPageInfo
                 {
-                    Name = "AutoOrganizeTv",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizetv.html"
+                    Name = "AutoOrganizeSettings",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizesettings.html"
                 },
-                new PluginPageInfo
-                {
-                    Name = "AutoOrganizeMovie",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizemovie.html"
-                },
+                //new PluginPageInfo
+                //{
+                //    Name = "AutoOrganizeMovie",
+                //    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizemovie.html"
+                //},
                 new PluginPageInfo
                 {
                     Name = "AutoOrganizeLogJs",
@@ -74,14 +74,14 @@ namespace Emby.AutoOrganize
                 },
                 new PluginPageInfo
                 {
-                    Name = "AutoOrganizeTvJs",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizetv.js"
+                    Name = "AutoOrganizeSettingsJs",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizesettings.js"
                 },
-                new PluginPageInfo
-                {
-                    Name = "AutoOrganizeMovieJs",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizemovie.js"
-                },
+                //new PluginPageInfo
+                //{
+                //    Name = "AutoOrganizeMovieJs",
+                //    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizemovie.js"
+                //},
                 new PluginPageInfo
                 {
                     Name = "FileOrganizerJs",

@@ -8,9 +8,13 @@
 
     ApiClient.getFileOrganizationResults = function (options) {
 
-        var url = this.getUrl("Library/FileOrganization", options || {});
+        try {
+            var url = this.getUrl("Library/FileOrganization", options || {});
 
-        return this.getJSON(url);
+            return this.getJSON(url);
+        } catch (err) {
+            return "";
+        }
     };
 
     ApiClient.deleteOriginalFileFromOrganizationResult = function (id) {
@@ -138,10 +142,7 @@
 
     function deleteOriginalFile(page, id) {
 
-        var item = currentResult.Items.filter(function (i) {
-
-            return i.Id === id;
-        })[0];
+        var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
 
         var message = 'The following file will be deleted:' + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + 'Are you sure you wish to proceed?';
 
@@ -180,14 +181,13 @@
 
     function organizeFile(page, id) {
 
-        var item = currentResult.Items.filter(function (i) {
-            return i.Id === id;
-        })[0];
+        var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
 
         //TODO - make sure item has a target path
         if (!item.TargetPath) {
-            organizeFileWithCorrections(page, item);
+
             return;
+
         }
 
         var message = 'The following file will be moved from:' + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + 'To:' + '<br/><br/>' + item.TargetPath;
@@ -205,7 +205,8 @@
             confirm(message, 'Organize File').then(function () {
 
                 var options = {
-                    RequestToMoveFile: true                    
+                    RequestToMoveFile: true, 
+                    Id: id
                 }
                 ApiClient.performOrganization(id, options).then(function () {
 
@@ -225,14 +226,13 @@
         if (showSpinner) {
             loading.show();
         }
-
         ApiClient.getFileOrganizationResults(query).then(function (result) {
 
             currentResult = result;
             renderResults(page, result);
-
             loading.hide();
         });
+
     }
 
     function getQueryPagingHtml(options) {
@@ -469,10 +469,10 @@
                 color: "var(--theme-accent-text-color)",
                 text: "Processing..."
             };
-            case "Waiting": return {
+            case "Checking": return {
                 path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
                 color: "goldenrod",
-                text: "Waiting..."
+                text: "Checking..."
             };
             case "NewResolution": return {
                 path: "M12 5.5L10 8H14L12 5.5M18 10V14L20.5 12L18 10M6 10L3.5 12L6 14V10M14 16H10L12 18.5L14 16M21 3H3C1.9 3 1 3.9 1 5V19C1 20.1 1.9 21 3 21H21C22.1 21 23 20.1 23 19V5C23 3.9 22.1 3 21 3M21 19H3V5H21V19Z",
@@ -481,7 +481,7 @@
             }
             case "NotEnoughDiskSpace": return {
                 path: "",
-                color: "organgered",
+                color: "orangered",
                 text: "Attention - Not Enough Disk Space!"
             }
              case "InUse": return {
@@ -586,8 +586,8 @@
     function renderItemRow(item, page) {
         
         var html = '';
-        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" //We're in some kind of progress, but not processing, or failing. We must be 'waiting'
-            ? getStatusRenderData("Waiting") 
+        var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" //We're in some kind of progress, but not processing, or failing. We must be 'checking'
+            ? getStatusRenderData("Checking") 
             : item.IsInProgress && item.Status === "Failure" //We failed before, but now we are processing. 
             ? getStatusRenderData("Processing") 
             : getStatusRenderData(item.Status); //The actual status icon
@@ -619,7 +619,7 @@
 
         //Release Edition
         html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
-        html += '<span>' + (item.Type === "Episode" ? item.ExtractedEdition ?? "" : "")  + '</span>';  
+        html += '<span>' + (item.Type === "Episode" ? item.ExtractedSeasonNumber + "x" + (item.ExtractedEpisodeNumber <= 9 ? `0${item.ExtractedEpisodeNumber}` : item.ExtractedEpisodeNumber) : item.ExtractedEdition ?? "")  + '</span>';  
         html += '</td>';
 
         //Resolution
@@ -633,7 +633,7 @@
         html += '</td>';        
 
         //Media Type Icon (Movie/Episode) / Progress Bar
-        var icon = getResultItemTypeIcon((item.Status !== "Failure" ? item.Type : "Unknown"))
+        var icon = getResultItemTypeIcon(item.Type)
         html += '<td class="detailTableBodyCell">';
         html += '<div class="type-icon-container">';
         html += '<svg id="typeIcon" style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -656,7 +656,7 @@
 
         //Row sorting options (action buttons)
         html += '<td class="detailTableBodyCell organizerButtonCell" data-title="Actions" style="whitespace:no-wrap;">';
-        if (item.Status == "Waiting") {
+        if (item.Status == "Checking" || item.Status == "InUse") {
             html += '';
         } else {
             if (item.Status !== 'Success') {
@@ -668,7 +668,7 @@
                     //Allow the user to identify the item.
                     if (item.Status === "Failure") {
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
-                        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnIdentifyResult organizerButton autoSize" title="Identify">';
+                        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize" title="Identify">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                         html += '<path fill="' + identifyBtn.color + '" d="' + identifyBtn.path + '"/>';
                         html += '</svg>';
@@ -678,7 +678,7 @@
                     //Process Entry Button - This will process the item into the library based on the info in the "Destination" column of the table row.
                     //Only show this button option if: it is not a Success, not Processing, and has not failed to find a possible result.
                     //The "Destination" column info will be populated.
-                    if (item.Status !== "Failure" || item.Status == "NewResolution" || item.Status === "SkippedExisting") {
+                    if (item.Status !== "Failure" || item.Status == "NewResolution" || item.Status === "SkippedExisting" && item.TargetPath) {
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
                         html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize" title="Organize">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -823,13 +823,13 @@
                 name: 'Activity Log'
             },
             {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeTv'),
-                name: 'TV'
+                href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
+                name: 'Settings'
             },
-            {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
-                name: 'Movie'
-            },
+            //{
+            //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
+            //    name: 'Movie'
+            //},
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
                 name: 'Smart Matches'

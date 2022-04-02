@@ -1,5 +1,5 @@
 ﻿
-namespace Emby.Naming.Common
+namespace Emby.AutoOrganize.Naming.Common
 {
     public enum MediaType
     {

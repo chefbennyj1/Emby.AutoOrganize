@@ -1,9 +1,8 @@
-﻿using System.Collections.Generic;
-using MediaBrowser.Model.Entities;
+﻿using MediaBrowser.Model.Entities;
 
 namespace Emby.AutoOrganize.Model
 {
-    public class MovieFileOrganizationRequest
+    public class MovieFileOrganizationRequest : IFileOrganizationRequest
     {
         public string ResultId { get; set; }
         
