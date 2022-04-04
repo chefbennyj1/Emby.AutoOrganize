@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Model;
@@ -363,7 +364,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (series == null)
             {
-                series = await AutoDetectSeries(seriesName, seriesYear, options, cancellationToken); //.ConfigureAwait(false);
+                series = await AutoDetectSeries(seriesName, seriesYear, options, cancellationToken);//.ConfigureAwait(false);
 
                 if (series == null)
                 {
@@ -724,7 +725,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             Log.Info("Perform Sorting");
             result.Status = FileSortingStatus.Processing;
-            Log.Info($"Auto organize adding {result.TargetPath} to inprogress list");
+            var msg = ($"Auto organize added {result.TargetPath} to inprogress list");
+            result.StatusMessage = msg;
+            Log.Info(msg);
             OrganizationService.AddToInProgressList(result, true);
             OrganizationService.SaveResult(result, cancellationToken);
             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
@@ -938,6 +941,12 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return season;
         }
 
+        private string NormalizeString(string value)
+        {
+           return Regex.Replace(value, @"(\s+|@|&|'|:|\(|\)|<|>|#|\.| )", string.Empty, RegexOptions.IgnoreCase);
+        }
+           
+
         private Series GetMatchingSeries(string seriesName, int? seriesYear, BaseItem targetFolder, FileOrganizationResult result)
         {
             if (result != null)
@@ -947,16 +956,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
 
             var series = LibraryManager.GetItemList(new InternalItemsQuery
-                {
-                    IncludeItemTypes = new[] { typeof(Series).Name },
-                    Recursive = true,
-                    DtoOptions = new DtoOptions(true),
-                    AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
-                    SearchTerm = seriesName.Replace(".", " "),
-                    Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
-                })
-                .Cast<Series>()
-                .FirstOrDefault();
+            {
+                IncludeItemTypes = new[] { nameof(Series) },
+                Recursive = true,
+                DtoOptions = new DtoOptions(true),
+                //AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
+                //SearchTerm = seriesName.Replace(".", " "),
+                Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
+            }).Cast<Series>().FirstOrDefault(s => NormalizeString(s.Name).ContainsIgnoreCase(NormalizeString(seriesName)));
 
             if (series == null)
             {
