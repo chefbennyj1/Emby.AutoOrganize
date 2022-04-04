@@ -204,7 +204,7 @@ namespace Emby.AutoOrganize.Core
             var organizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();
-
+            _logger.Info($"Beginning file organization with corrections: {request.NewSeriesName} to {request.TargetFolder}");
             var result = await organizer.OrganizeWithCorrection(request, options, CancellationToken.None).ConfigureAwait(false);
 
             if (result.Status != FileSortingStatus.Success)

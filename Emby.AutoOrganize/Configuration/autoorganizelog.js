@@ -221,13 +221,16 @@
         });
     }
 
-    function reloadItems(page, showSpinner) {
+    function reloadItems(page, showSpinner, searchTerm = "") {
 
         if (showSpinner) {
             loading.show();
         }
-        ApiClient.getFileOrganizationResults(query).then(function (result) {
 
+        //Search Term from Search Box.
+        query.NameStartsWith = encodeURI(searchTerm);
+
+        ApiClient.getFileOrganizationResults(query).then(function (result) {
             currentResult = result;
             renderResults(page, result);
             loading.hide();
@@ -568,6 +571,7 @@
             message: msg
         });
     }
+    
     function animateElement(ele, animation) {
         switch (animation) {
         case "rotate":
@@ -583,6 +587,7 @@
         }
         
     }
+    
     function renderItemRow(item, page) {
         
         var html = '';
@@ -619,7 +624,17 @@
 
         //Release Edition
         html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
-        html += '<span>' + (item.Type === "Episode" ? item.ExtractedSeasonNumber + "x" + (item.ExtractedEpisodeNumber <= 9 ? `0${item.ExtractedEpisodeNumber}` : item.ExtractedEpisodeNumber) : item.ExtractedEdition ?? "")  + '</span>';  
+        switch(item.Type) {
+            case "Episode":
+                if (item.ExtractedSeasonNumber && item.ExtractedEpisodeNumber) {
+                    html += '<span>' + item.ExtractedSeasonNumber + 'x' + (item.ExtractedEpisodeNumber <= 9 ? `0${item.ExtractedEpisodeNumber}` : item.ExtractedEpisodeNumber) + '</span>';
+                } else {
+                    html += '';
+                }
+            case "Movie":
+                html += '<span>' + (item.ExtractedEdition ?? "") + '</span>';  
+        }
+       
         html += '</td>';
 
         //Resolution
@@ -836,6 +851,21 @@
             }];
     }
 
+    const debounceSearchTerm = debounce((text) => {
+        reloadItems(pageGlobal, false, text);
+    })
+
+    function debounce(callback, delay = 1000) {
+        let timeout
+
+        return (...args) => {
+            clearTimeout(timeout)
+            timeout = setTimeout(() => {
+                callback(...args)
+            }, delay)
+        }
+    }
+
     return function (view, params) {
 
         pageGlobal = view;
@@ -846,7 +876,11 @@
         var sortByDateBtn = view.querySelector('.date_sort')
         var sortByNameBtn = view.querySelector('.name_sort')
         var sortByStatusBtn = view.querySelector('.status_sort')
-        
+        var txtSearch = view.querySelector('#txtSearch');
+
+        txtSearch.addEventListener('input', (e) => {
+            debounceSearchTerm(e.target.value);
+        });
         //Sort by name column header, and directional arrow
         sortByNameBtn.addEventListener('click', function (e) {
             e.preventDefault();

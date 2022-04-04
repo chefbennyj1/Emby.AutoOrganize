@@ -76,7 +76,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 ExtractedEdition = string.Empty,
                 Type = FileOrganizerType.Episode,
                 FileSize = FileSystem.GetFileInfo(path).Length,
-                VideoStreamEncoding = OrganizationService.GetVideoEncodingType(Path.GetFileName(path))
+                
             };
 
             //If a result already exists in the db from the last scan, and it is not a failure return it.
@@ -209,12 +209,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
             }
-            catch (OrganizationException ex)
-            {
-                result.Status = FileSortingStatus.Failure;
-                result.StatusMessage = ex.Message;
-                Log.ErrorException("Error organizing file", ex);
-            }
+            
             catch (Exception ex)
             {
                 result.Status = FileSortingStatus.Failure;
@@ -379,9 +374,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     return;
                 }
             }
-
-           
-
+            
 
             await OrganizeEpisode(requestToMoveFile, 
                 sourcePath,
@@ -433,6 +426,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             //{
                 episode.Path = SetEpisodeFileName(sourcePath, series.Name, season, episode, options);
             //}
+            result.TargetPath = episode.Path;
 
             OrganizeEpisode(requestToMoveFile, sourcePath, series, episode, options, rememberCorrection, result, cancellationToken);
 
@@ -953,14 +947,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
 
             var series = LibraryManager.GetItemList(new InternalItemsQuery
-            {
-                IncludeItemTypes = new[] { typeof(Series).Name },
-                Recursive = true,
-                DtoOptions = new DtoOptions(true),
-                AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
-                SearchTerm = seriesName,
-                Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
-            })
+                {
+                    IncludeItemTypes = new[] { typeof(Series).Name },
+                    Recursive = true,
+                    DtoOptions = new DtoOptions(true),
+                    AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
+                    SearchTerm = seriesName.Replace(".", " "),
+                    Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
+                })
                 .Cast<Series>()
                 .FirstOrDefault();
 

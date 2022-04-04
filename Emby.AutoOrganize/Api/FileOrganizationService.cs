@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Library;
@@ -26,6 +28,10 @@ namespace Emby.AutoOrganize.Api
         /// <value>The limit.</value>
         [ApiMember(Name = "Limit", Description = "Optional. The maximum number of records to return", IsRequired = false, DataType = "int", ParameterType = "query", Verb = "GET")]
         public int? Limit { get; set; }
+
+        
+        [ApiMember(Name = "Limit", Description = "Optional. Name Starts With", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        public string NameStartsWith { get; set; }
     }
 
     [Route("/Library/FileOrganizations", "DELETE", Summary = "Clears the activity log")]
@@ -166,10 +172,7 @@ namespace Emby.AutoOrganize.Api
             _libraryManager = libraryManager;
         }
 
-        private IFileOrganizationService InternalFileOrganizationService
-        {
-            get { return PluginEntryPoint.Instance.FileOrganizationService; }
-        }
+        private IFileOrganizationService InternalFileOrganizationService => PluginEntryPoint.Instance.FileOrganizationService;
 
         public object Get(GetFileOrganizationActivity request)
         {
@@ -178,6 +181,15 @@ namespace Emby.AutoOrganize.Api
                 Limit = request.Limit,
                 StartIndex = request.StartIndex
             });
+
+            
+            if (!string.IsNullOrEmpty(request.NameStartsWith))
+            {
+                
+                var normalizedSearchTerm = request.NameStartsWith.Replace("%20", " ");
+
+                result.Items = result.Items.Where(item => item.OriginalFileName.ToUpperInvariant().Replace(".", " ").Contains(normalizedSearchTerm.ToUpperInvariant())).ToArray();
+            }
 
             return _resultFactory.GetResult(Request, result);
         }

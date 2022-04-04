@@ -207,7 +207,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     throw new OrganizationException(msg);
                 }
 
-                movie.Path = Path.Combine(request.TargetFolder, newPath);
+                movie.Path = Path.Combine(request.TargetFolder ?? targetFolder.Path, newPath);
             }
 
             return movie;
@@ -740,7 +740,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             var movie = LibraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] {nameof(Movie)},
+                IncludeItemTypes = new[] { nameof(Movie) },
                 Recursive = true,
                 DtoOptions = new DtoOptions(true),
                 AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
@@ -763,22 +763,23 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         /// <returns>System.String.</returns>
         private string GetMoviePath(string sourcePath, Movie movie, AutoOrganizeOptions options)
         {
-            var movieFileName = "";
+            var movieFolderPath = "";
 
             if (options.CreateMovieInFolder)
             {
-                movieFileName = Path.Combine(movieFileName, GetMovieFolder(sourcePath, movie, options));
+                movieFolderPath = Path.Combine(movieFolderPath, GetMovieFolder(sourcePath, movie, options));
             }
 
-            movieFileName = Path.Combine(movieFileName, GetMovieFileName(sourcePath, movie, options));
+            movieFolderPath = Path.Combine(movieFolderPath, GetMovieFileName(sourcePath, movie, options));
 
-            if (string.IsNullOrEmpty(movieFileName))
+            if (string.IsNullOrEmpty(movieFolderPath))
             {
                 // cause failure
+                Log.Warn("Unable to produce movie folder path.");
                 return string.Empty;
             }
 
-            return movieFileName;
+            return movieFolderPath;
         }
 
         private string GetMovieFileName(string sourcePath, BaseItem movie, AutoOrganizeOptions options)
@@ -794,7 +795,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private string GetMovieNameInternal(string sourcePath, BaseItem movie, string pattern)
         {
             var movieName = FileSystem.GetValidFilename(movie.Name).Trim();
-            var productionYear = movie.ProductionYear;
+            var productionYear = movie.ProductionYear.ToString() ?? "";
 
             var sourceExtension = (Path.GetExtension(sourcePath) ?? string.Empty).TrimStart('.');
 
@@ -806,7 +807,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var result = pattern.Replace("%mn", movieName)
                 .Replace("%m.n", movieName.Replace(" ", "."))
                 .Replace("%m_n", movieName.Replace(" ", "_"))
-                .Replace("%my", productionYear.ToString())
+                .Replace("%my", productionYear)
                 .Replace("%res", GetStreamResolutionFromFileName(Path.GetFileName(sourcePath)))
                 .Replace("%ext", sourceExtension)
                 .Replace("%e", GetReleaseEditionFromFileName(Path.GetFileName(sourcePath)))

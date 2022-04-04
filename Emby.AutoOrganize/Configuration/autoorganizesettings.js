@@ -225,7 +225,9 @@
 
         view.querySelector('#txtMoviePattern').value = config.MoviePattern;
 
-        
+        view.querySelector('#selectMovieFolder').value = config.DefaultMovieLibraryPath;
+
+
     }
 
     function onSubmit(view) {
@@ -258,6 +260,8 @@
 
             config.SeriesFolderPattern = view.querySelector('#txtSeriesPattern').value;
 
+            config.DefaultMovieLibraryPath = view.querySelector('#selectMovieFolder').value;
+
             config.LeftOverFileExtensionsToDelete = view.querySelector('#txtDeleteLeftOverFiles').value.split(';');
 
             config.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
@@ -266,9 +270,15 @@
 
             config.ExtendedClean = view.querySelector('#chkExtendedClean').checked;
 
-            var watchLocation = view.querySelector('#txtWatchFolder').value;
+           
+            var watchedLocationList = view.querySelector('.watchFolderListContainer');
 
-            config.WatchLocations = watchLocation ? [watchLocation] : [];
+            var listItems = watchedLocationList.querySelectorAll('.listItem');
+
+            listItems.forEach(item => {
+                if(!config.WatchLocations.filter(i => i == item.dataset.folder)) config.WatchLocations.push(item.dataset.folder) 
+            })
+            
 
             config.CopyOriginalFile = view.querySelector('#copyOrMoveFile').value;
 
@@ -301,7 +311,7 @@
     function getWatchedLocationListItemHtml(watchedLocations) {
         var html = '';
         watchedLocations.forEach(watchedLocation => {
-            html += '<div class="listItem listItem-border focusable listItem-hoverable listItem-withContentWrapper" data-action="none">';
+            html += '<div class="listItem listItem-border focusable listItem-hoverable listItem-withContentWrapper" data-action="none" data-folder="' + watchedLocation + '">';
             html += '<div class="listItem-content listItemContent-touchzoom">';
             html += '<div data-action="none" class="listItemImageContainer itemAction listItemImageContainer-square defaultCardBackground defaultCardBackground0" style="aspect-ratio:1">';
             html += '<i class="listItemIcon md-icon">folder</i>';
@@ -595,13 +605,13 @@
         view.querySelector('#chkEnableMoviesAutoDetect').addEventListener('change', () => {
             toggleMovieLocation();
             onSubmit(view);
-            return false;
+            
         });
 
         view.querySelector('#chkSubMovieFolders').addEventListener('click', () => {
             toggleMovieFolderPattern();
             onSubmit(view);
-            return false;
+            
         });
         view.querySelector('#txtMovieFolderPattern').addEventListener('change', updateMovieFolderPatternHelp);
         view.querySelector('#txtMovieFolderPattern').addEventListener('keyup', updateMovieFolderPatternHelp);
@@ -610,7 +620,7 @@
         view.querySelector('.libraryFileOrganizerForm').addEventListener('submit', function (e) {
             e.preventDefault();
             onSubmit(view);
-            return false;
+            
         });
 
         view.addEventListener('viewshow', async function (e) {

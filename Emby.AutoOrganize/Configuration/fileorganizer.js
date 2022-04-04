@@ -239,7 +239,7 @@
 
             existingMediasHtml = result.Items.map(function (s) {
 
-                return '<option value="' + s.Id + '">' + s.Name + ' (' + s.ProductionYear + ')</option>';
+                return '<option value="' + s.Id + '">' + s.Name + (s.ProductionYear ? ` (${s.ProductionYear})` : "") + '</option>';
 
             }).join('');
 
@@ -309,12 +309,13 @@
     }
 
     function submitMediaForm(dlg, item) {
-
+         
+        
         console.log(item)
         var resultId = dlg.querySelector('#hfResultId').value;
         var mediaId = dlg.querySelector('#selectMedias').value;
 
-        var targetFolder = dlg.querySelector('#selectMediaFolder').value;
+        var targetFolder = null;
         var newProviderIds = null;
         var newMediaName = null;
         var newMediaYear = null;

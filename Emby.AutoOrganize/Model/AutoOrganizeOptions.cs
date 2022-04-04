@@ -20,7 +20,6 @@ namespace Emby.AutoOrganize.Model
         public bool ExtendedClean                      { get; set; }
         public bool CopyOriginalFile                   { get; set; }
         public bool AutoDetectSeries                   { get; set; }
-        public bool AutoDetectSeasons                  { get; set;}
         public string DefaultSeriesLibraryPath         { get; set; }
         public string SeriesFolderPattern              { get; set; }
         public string MoviePattern                     { get; set; }
