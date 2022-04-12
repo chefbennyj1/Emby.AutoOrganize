@@ -56,20 +56,19 @@ namespace Emby.AutoOrganize.Core
         {
             var options = GetAutoOrganizeOptions();
             var fileOrganizationService = PluginEntryPoint.Instance.FileOrganizationService;
-           
-            if (options.EnableScheduledTask)
+
+
+            try
             {
-                try
-                {
-                    await new WatchedFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor,
-                            fileOrganizationService, _config, _providerManager).Organize(options, cancellationToken, progress).ConfigureAwait(false);
-                }
-                catch
-                {
-                    
-                }
+                await new WatchedFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor,
+                        fileOrganizationService, _config, _providerManager).Organize(options, cancellationToken, progress).ConfigureAwait(false);
             }
-            
+            catch
+            {
+
+            }
+
+
         }
 
         /// <summary>
@@ -85,9 +84,9 @@ namespace Emby.AutoOrganize.Core
             };
         }
 
-        public bool IsHidden => !GetAutoOrganizeOptions().EnableScheduledTask;
+        public bool IsHidden => false;
 
-        public bool IsEnabled => GetAutoOrganizeOptions().EnableScheduledTask;
+        public bool IsEnabled => true;
 
         public bool IsLogged => false;
 

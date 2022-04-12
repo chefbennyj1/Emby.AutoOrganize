@@ -26,5 +26,7 @@ namespace Emby.AutoOrganize.Model
         public ProviderIdDictionary NewSeriesProviderIds { get; set; }
 
         public bool? RequestToMoveFile {get; set;}
+
+        public bool CreateNewDestination { get; set; }
     }
 }

@@ -87,7 +87,7 @@ namespace Emby.AutoOrganize.Model
         /// Gets or sets the status.
         /// </summary>
         /// <value>The status.</value>
-        public FileSortingStatus Status { get; set; } = FileSortingStatus.Waiting;
+        public FileSortingStatus Status { get; set; } 
 
         /// <summary>
         /// Gets or sets the type.

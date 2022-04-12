@@ -1,4 +1,4 @@
-﻿define(['loading', 'mainTabsManager', 'listViewStyle'], function (loading, mainTabsManager) {
+﻿define(['loading', 'mainTabsManager', 'globalize','listViewStyle'], function (loading, mainTabsManager, globalize) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -229,11 +229,11 @@
         return [
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
-                name: 'Activity Log'
+                name: globalize.translate("HeaderActivity")
             },
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                name: 'Settings'
+                name: globalize.translate("HeaderSettings")
             },
             //{
             //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),

@@ -1,4 +1,4 @@
-﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager) {
+﻿define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -172,11 +172,11 @@
 
     function loadPage(view, config) {
 
-        view.querySelector('#chkEnableScheduledTask').checked = config.EnableScheduledTask;
+        //view.querySelector('#chkEnableScheduledTask').checked = config.EnableScheduledTask;
 
         view.querySelector('#chkEnableTvSorting').checked = config.IsEpisodeSortingEnabled;
 
-        view.querySelector('#chkOverwriteExistingItems').checked = config.OverwriteExistingEpisodes;
+        view.querySelector('#chkOverwriteExistingItems').checked = config.OverwriteExistingFiles;
 
         view.querySelector('#chkDeleteEmptyFolders').checked = config.DeleteEmptyFolders;
 
@@ -209,7 +209,7 @@
 
         view.querySelector('#txtDeleteLeftOverFiles').value = config.LeftOverFileExtensionsToDelete.join(';');
 
-        view.querySelector('#txtOverWriteExistingFilesKeyWords').value = config.OverwriteExistingFilesKeyWords ?? config.OverwriteExistingFilesKeyWords.join(';');
+        view.querySelector('#txtOverWriteExistingFilesKeyWords').value = config.OverwriteExistingFilesKeyWords ? config.OverwriteExistingFilesKeyWords.join(';') : "";
 
         view.querySelector('#chkExtendedClean').checked = config.ExtendedClean;
 
@@ -234,13 +234,13 @@
 
         ApiClient.getNamedConfiguration('autoorganize').then(function (config) {
 
-            config.EnableScheduledTask = view.querySelector('#chkEnableScheduledTask').checked;
+            //config.EnableScheduledTask = view.querySelector('#chkEnableScheduledTask').checked;
 
             config.IsEpisodeSortingEnabled = view.querySelector('#chkEnableTvSorting').checked;
 
             config.IsMovieSortingEnabled = view.querySelector('#chkEnableMovieSorting').checked;
 
-            config.OverwriteExistingEpisodes = view.querySelector('#chkOverwriteExistingItems').checked;
+            config.OverwriteExistingFiles = view.querySelector('#chkOverwriteExistingItems').checked;
 
             config.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyFolders').checked;
 
@@ -266,7 +266,7 @@
 
             config.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
 
-            config.OverwriteExistingItemsKeywords = view.querySelector('#txtOverWriteExistingFilesKeyWords').value.split(';');
+            config.OverwriteExistingFilesKeyWords = view.querySelector('#txtOverWriteExistingFilesKeyWords').value.split(';');
 
             config.ExtendedClean = view.querySelector('#chkExtendedClean').checked;
 
@@ -351,11 +351,11 @@
         return [
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
-                name: 'Activity Log'
+                name: globalize.translate("HeaderActivity")
             },
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                name: 'Settings'
+                name: globalize.translate("HeaderSettings")
             },
             //{
             //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),

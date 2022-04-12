@@ -370,7 +370,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (!OrganizationService.AddToInProgressList(result, isNew))
             {
-                //result.Status = FileSortingStatus.Waiting;
+                
                 //_organizationService.SaveResult(result, cancellationToken);
                 throw new OrganizationException("File is currently processed otherwise. Please try again later.");
             }
@@ -576,11 +576,12 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if(ex.Message.Contains("being used by another process") && !result.IsInProgress)
                 {                    
                     var errorMsg = $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
-                    result.Status = FileSortingStatus.Waiting;
+                    result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
                     Log.ErrorException(errorMsg, ex);                    
                     OrganizationService.RemoveFromInprogressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                     return;
                 }

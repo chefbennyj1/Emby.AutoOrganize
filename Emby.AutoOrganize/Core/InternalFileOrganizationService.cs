@@ -245,7 +245,7 @@ namespace Emby.AutoOrganize.Core
         public FileOrganizerType GetFileOrganizerType(string fileName)
         {
             var regexDate = new Regex(@"\b(19|20|21)\d{2}\b");
-            var testTvShow = new Regex(@"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:([Ss](\d{1,2})))", RegexOptions.IgnoreCase);
+            var testTvShow = new Regex(@"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:([Ss](\d{1,2})))", RegexOptions.IgnoreCase);
 
             var dateMatch = regexDate.Match(fileName);
             //The file name has a date in it

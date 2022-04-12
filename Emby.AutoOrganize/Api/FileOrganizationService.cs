@@ -105,6 +105,11 @@ namespace Emby.AutoOrganize.Api
 
         [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToMoveFile { get; set; }
+
+        [ApiMember(Name = "CreateNewDestination", Description = "Create New Destination Folder", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool CreateNewDestination { get; set; }
+
+
     }
 
     [Route("/Library/FileOrganizations/{Id}/Movie/Organize", "POST", Summary = "Performs organization of a movie")]
@@ -246,7 +251,8 @@ namespace Emby.AutoOrganize.Api
                 NewSeriesYear                   = request.NewSeriesYear,
                 NewSeriesProviderIds            = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
-                RequestToMoveFile               = request.RequestToMoveFile
+                RequestToMoveFile               = request.RequestToMoveFile,
+                CreateNewDestination            = request.CreateNewDestination
             });
 
             // Async processing (close dialog early instead of waiting until the file has been copied)

@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'loading', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller'], function (dialogHelper, loading) {
+﻿define(['dialogHelper', 'loading', 'globalize', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller'], function (dialogHelper, loading, globalize) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -91,87 +91,7 @@
             contentType: "application/json"
         });
     };
-
-
-    function getMovieFileName(value) {
-        var movieName = "Movie Name";
-        var movieYear = "2017";
-        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
-
-        var result = value.replace('%mn', movieName)
-            .replace('%m.n', movieName.replace(' ', '.'))
-            .replace('%m_n', movieName.replace(' ', '_'))
-            .replace('%my', movieYear)
-            .replace('%ext', 'mkv')             
-            .replace('%res', '1080p')
-            .replace('%e', "Directors Cut")
-            .replace('%fn', fileNameWithoutExt);
-
-        return result;
-    }
-
-    function getMovieFolderFileName(value) {
-        var movieName = "Movie Name";
-        var movieYear = "2017";
-        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
-
-        var result = value.replace('%mn', movieName)
-            .replace('%m.n', movieName.replace(' ', '.'))
-            .replace('%m_n', movieName.replace(' ', '_'))
-            .replace('%my', movieYear)
-            .replace('%ext', 'mkv')
-            .replace('%fn', fileNameWithoutExt);
-
-        return result;
-    }
-
-    
-
-    function getEpisodeFileName(value, enableMultiEpisode) {
-
-        var seriesName = "Series Name";
-        var episodeTitle = "Episode Four";
-        var fileName = seriesName + ' ' + episodeTitle;
-
-        var result = value.replace('%sn', seriesName)
-            .replace('%s.n', seriesName.replace(' ', '.'))
-            .replace('%s_n', seriesName.replace(' ', '_'))
-            .replace('%s', '1')
-            .replace('%0s', '01')
-            .replace('%00s', '001')
-            .replace('%ext', 'mkv')
-            .replace('%en', episodeTitle)
-            .replace('%e.n', episodeTitle.replace(' ', '.'))
-            .replace('%e_n', episodeTitle.replace(' ', '_'))
-            .replace('%fn', fileName);
-
-        if (enableMultiEpisode) {
-            result = result
-                .replace('%ed', '5')
-                .replace('%0ed', '05')
-                .replace('%00ed', '005');
-        }
-
-        return result
-            .replace('%e', '4')
-            .replace('%0e', '04')
-            .replace('%00e', '004');
-    }
-
-    function getSeriesDirectoryName(value) {
-
-        var seriesName = "Series Name";
-        var seriesYear = "2017";
-        var fullName = seriesName + ' (' + seriesYear + ')';
-
-        return value.replace('%sn', seriesName)
-            .replace('%s.n', seriesName.replace(' ', '.'))
-            .replace('%s_n', seriesName.replace(' ', '_'))
-            .replace('%sy', seriesYear)
-            .replace('%fn', fullName);
-    }
-
-
+     
 
     var chosenType;
     var extractedName;
@@ -180,17 +100,23 @@
     var existingMediasHtml;
     var mediasLocationsCount = 0;
 
-    function onApiFailure(e) {
-
-        loading.hide();
-
-        require(['alert'], function (alert) {
-            alert({
-                title: 'Error',
-                text: 'Error: ' + e.headers.get("X-Application-Error-Code")
-            });
-        });
+    function normalizeString(input) {
+        const pattern = /(\s|@|&|'|:|\(|\)|<|>|#|\.)/g;
+        const normalized =  input.replace(pattern, "").toLocaleLowerCase();
+        return normalized;
     }
+
+    //function onApiFailure(e) {
+
+    //    loading.hide();
+
+    //    require(['alert'], function (alert) {
+    //        alert({
+    //            title: 'Error',
+    //            text: 'Error: ' + e.headers.get("X-Application-Error-Code")
+    //        });
+    //    });
+    //}
 
     function getIconSvg(icon) {
         switch (icon) {
@@ -215,78 +141,96 @@
         extractedYear = item.ExtractedYear;
     }
 
-    function initMovieForm(context, item) {
+   
+
+    async function populateMedias(context, item = "") {
+
+        loading.show();
+        const library = await ApiClient.getItems(null,
+            {
+                recursive: true,
+                includeItemTypes: chosenType,
+                sortBy: 'SortName',
+                Fields: ['ProductionYear']
+
+            });
+
+        const libraryItems = library.Items;
+        //Create the selected item here!
+        var optionsHtml = libraryItems.map(function (s) {
+
+            //Don't add the production year if the name contains it already. 
+            if (s.Name.includes(s.ProductionYear)) {
+                return '<option value="' + s.Id + '">' + s.Name + '</option>';
+            }
+            return '<option value="' + s.Id + '">' + s.Name + (s.ProductionYear ? ` (${s.ProductionYear})` : "") + '</option>';
+
+        }).join('');
+
+        context.querySelector('#selectMedias').innerHTML = '<option value=""></option>' + optionsHtml;
+
+        
+
+        const virtualFolderResult = await ApiClient.getVirtualFolders();
+
+        var mediasLocations = [];
+        var virtualFolders = virtualFolderResult.Items; //|| result;
+        for (var n = 0; n < virtualFolders.length; n++) {
+
+            var virtualFolder = virtualFolders[n];
+
+            for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
+                var location = {
+                    value: virtualFolder.Locations[i],
+                    display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
+                };
+
+                if ((chosenType == 'Movie' && virtualFolder.CollectionType == 'movies') ||
+                    (chosenType == 'Series' && virtualFolder.CollectionType == 'tvshows')) {
+                    mediasLocations.push(location);
+                }
+            }
+        }
+
+        mediasLocationsCount = mediasLocations.length;
+
+        var mediasFolderHtml = mediasLocations.map(function (s) {
+            return '<option value="' + s.value + '">' + s.display + '</option>';
+        }).join('');
+
+        if (mediasLocations.length > 1) {
+            // If the user has multiple folders, add an empty item to enforce a manual selection
+            mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
+        }
+
+        context.querySelector('#selectMediaFolder').innerHTML = mediasFolderHtml;
+        
+
+        if (item.Status == 'SkippedExisting') {
+            const selectedItem = libraryItems.filter(libraryItem => normalizeString(libraryItem.Name) == (normalizeString(item.ExtractedName)));
+            if (selectedItem.length) {
+                const selectedItemId = selectedItem[0].Id;
+                context.querySelector('#selectMedias').value = selectedItemId || "";
+                context.querySelector('#btnNewMedia').classList.add('hide');
+                context.querySelector('#fldSelectMediaFolder').classList.remove('hide');
+                context.querySelector('#selectMediaFolder').setAttribute('required', 'required');
+            }
+        }
+
+
+        loading.hide();
+    }
+
+    async function initMovieForm(context, item) {
 
         initBaseForm(context, item);
 
         chosenType = 'Movie';
 
-        populateMedias(context);
+        await populateMedias(context, item);
     }
 
-    function populateMedias(context) {
-
-        loading.show();
-        ApiClient.getItems(null, {
-            recursive: true,
-            includeItemTypes: chosenType,
-            sortBy: 'SortName',
-            Fields: ['ProductionYear']
-
-        }).then(function (result) {
-
-            loading.hide();
-
-            existingMediasHtml = result.Items.map(function (s) {
-
-                return '<option value="' + s.Id + '">' + s.Name + (s.ProductionYear ? ` (${s.ProductionYear})` : "") + '</option>';
-
-            }).join('');
-
-            existingMediasHtml = '<option value=""></option>' + existingMediasHtml;
-
-            context.querySelector('#selectMedias').innerHTML = existingMediasHtml;
-            
-            ApiClient.getVirtualFolders().then(function (result) {
-
-                var mediasLocations = [];
-                result = result.Items || result;
-                for (var n = 0; n < result.length; n++) {
-
-                    var virtualFolder = result[n];
-
-                    for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
-                        var location = {
-                            value: virtualFolder.Locations[i],
-                            display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
-                        };
-
-                        if ((chosenType == 'Movie' && virtualFolder.CollectionType == 'movies') || 
-                            (chosenType == 'Series' && virtualFolder.CollectionType == 'tvshows')) {
-                            mediasLocations.push(location);
-                        } 
-                    }
-                }
-
-                mediasLocationsCount = mediasLocations.length;
-
-                var mediasFolderHtml = mediasLocations.map(function (s) {
-                    return '<option value="' + s.value + '">' + s.display + '</option>';
-                }).join('');
-
-                if (mediasLocations.length > 1) {
-                    // If the user has multiple folders, add an empty item to enforce a manual selection
-                    mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
-                }
-
-                context.querySelector('#selectMediaFolder').innerHTML = mediasFolderHtml;
-
-            }, onApiFailure);
-
-        }, onApiFailure);
-    }
-
-    function initEpisodeForm(context, item) {
+    async function initEpisodeForm(context, item) {
 
         initBaseForm(context, item);
 
@@ -298,22 +242,25 @@
         else {
             context.querySelector('.fldRemember').classList.remove('hide');
         }
-
+        
         context.querySelector('#txtSeason').value = item.ExtractedSeasonNumber;
         context.querySelector('#txtEpisode').value = item.ExtractedEpisodeNumber;
         context.querySelector('#txtEndingEpisode').value = item.ExtractedEndingEpisodeNumber;
 
         context.querySelector('#chkRememberCorrection').checked = false;
 
-        populateMedias(context);
+        await populateMedias(context, item);
+        
     }
 
     function submitMediaForm(dlg, item) {
-         
-        
-        console.log(item)
+
+
+        console.log(item);
         var resultId = dlg.querySelector('#hfResultId').value;
         var mediaId = dlg.querySelector('#selectMedias').value;
+
+        var mediaFolderSelect = dlg.querySelector('#selectMediaFolder');
 
         var targetFolder = null;
         var newProviderIds = null;
@@ -328,7 +275,10 @@
             targetFolder = dlg.querySelector('#selectMediaFolder').value;
         }
 
-        var options;
+        var options = {
+            CreateNewDestination: false
+        }
+
         switch (chosenType) {
             case "Series":
                 options = {
@@ -340,7 +290,7 @@
                     NewSeriesProviderIds: newProviderIds,
                     NewSeriesName: newMediaName,
                     NewSeriesYear: newMediaYear,
-                    TargetFolder: targetFolder,
+                    TargetFolder: mediaFolderSelect.selectedIndex > 0 ?  mediaFolderSelect.value : targetFolder,
                     RequestToOverwriteExistingFile: true
                 };
                 break;
@@ -350,14 +300,34 @@
                     NewMovieProviderIds: newProviderIds,
                     NewMovieName: newMediaName,
                     NewMovieYear: newMediaYear,
-                    TargetFolder: targetFolder,
+                    TargetFolder:  mediaFolderSelect.selectedIndex > 0 ?  mediaFolderSelect.value : targetFolder,
                     RequestToOverwriteExistingFile: true
                 };
                 break;
         }
-        
-        
-        var message = 'The following ' + item.Type + ' will be moved to: ' + targetFolder;
+
+        var message = "";
+       
+        //Has the user has changed the target folder path
+        if (item.TargetPath && options.TargetFolder) {
+            if (item.TargetPath.substring(0, options.TargetFolder.length) !== options.TargetFolder) {
+                //The user has changed the target folder
+                options.CreateNewDestination = true;
+
+            }
+        } 
+       
+        if (options.CreateNewDestination) {
+            message = "The " + chosenType + " " + item.ExtractedName.replaceAll(".", " ") +
+                " current library folder exists in <br/> " + item.TargetPath.substring(0, options.TargetFolder.length) +
+                "<br/> but a new folder for the " + chosenType + " will be created in <br/>" + options.TargetFolder + ".";
+        } 
+
+        //This is a new item without a target path figured out yet.
+        if (!item.TargetPath && options.TargetFolder) {
+            message = 'The following ' + item.Type + ' will be moved to: ' + options.TargetFolder;
+        }
+
         message += '<br/><br/>' + 'Are you sure you wish to proceed?';
 
         require(['confirm'], function (confirm) {
@@ -374,7 +344,9 @@
 
                         }, dialogHelper.close(dlg));
                         break;
+
                     case "Series":
+                        
                         ApiClient.performEpisodeOrganization(resultId, options).then(function () {
 
                             dlg.submitted = true;
@@ -417,19 +389,22 @@
     }
 
     function selectedMediasChanged(dlg) {
-        var mediasId = dlg.querySelector('#selectMedias').value;
+        var mediasId = dlg.querySelector('#selectMedias');
+       
+        var mediaFolderSelect = dlg.querySelector('#fldSelectMediaFolder');
 
-        if (mediasId == "##NEW##") {
-            dlg.querySelector('.fldSelectMediaFolder').classList.remove('hide');
+        
+        if (mediasId.value == "##NEW##" || mediasId.selectedIndex > 0) {
+            dlg.querySelector('#fldSelectMediaFolder').classList.remove('hide');
             dlg.querySelector('#selectMediaFolder').setAttribute('required', 'required');
         }
         else {
-            dlg.querySelector('.fldSelectMediaFolder').classList.add('hide');
+            mediaFolderSelect.classList.add('hide');
             dlg.querySelector('#selectMediaFolder').removeAttribute('required');
         }
     }
 
-    function selectedMediaTypeChanged(dlg, item) {
+    async function selectedMediaTypeChanged(dlg, item) {
         var mediaType = dlg.querySelector('#selectMediaType').value;
 
         switch (mediaType) {
@@ -449,7 +424,7 @@
                 dlg.querySelector('#txtSeason').removeAttribute('required');
                 dlg.querySelector('#txtEpisode').removeAttribute('required');
 
-                initMovieForm(dlg, item);
+                await initMovieForm(dlg, item);
 
                 break;
             case "Episode":
@@ -463,7 +438,7 @@
                 dlg.querySelector('#txtSeason').setAttribute('required', 'required');
                 dlg.querySelector('#txtEpisode').setAttribute('required', 'required');
 
-                initEpisodeForm(dlg, item);
+                await initEpisodeForm(dlg, item);
                 break;
         }
     }
@@ -480,7 +455,7 @@
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', Dashboard.getConfigurationResourceUrl('FileOrganizerHtml'), true);
 
-                xhr.onload = function (e) {
+                xhr.onload = async function (e) {
 
                     var template = this.response;
                     var dlg = dialogHelper.createDialog({
@@ -535,15 +510,16 @@
                         selectedMediasChanged(dlg);
                     });
 
-                    dlg.querySelector('#selectMediaType').addEventListener('change', function (e) {
+                    dlg.querySelector('#selectMediaType').addEventListener('change', async  () => {
 
-                        selectedMediaTypeChanged(dlg, item);
+                        await selectedMediaTypeChanged(dlg, item);
+
                     });
 
                     dlg.querySelector('#selectMediaType').value = item.Type !== "Unknown" ? item.Type : "";
 
                     // Init media type
-                    selectedMediaTypeChanged(dlg, item);
+                    await selectedMediaTypeChanged(dlg, item);
                 }
 
                 xhr.send();

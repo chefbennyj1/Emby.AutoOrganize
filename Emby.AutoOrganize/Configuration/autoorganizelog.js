@@ -190,35 +190,89 @@
 
         }
 
-        var message = 'The following file will be moved from:' + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + 'To:' + '<br/><br/>' + item.TargetPath;
+        openConfirmDialog(page, item);
+       
+    }
 
+    function openConfirmDialog(view, item) {
+        var dlg = dialogHelper.createDialog({
+            size: "small",
+            removeOnClose: !1,
+            scrollY: !0
+        });
+
+        dlg.classList.add("formDialog");
+        dlg.classList.add("ui-body-a");
+        dlg.classList.add("background-theme-a");
+        dlg.style.maxHeight = "55%";
+        dlg.style.maxWidth = "40%";
+
+
+        var html = '';
+        html += '<div class="formDialogHeader" style="display:flex">';
+        html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light" tabindex="-1"><i class="md-icon"></i></button><h3 class="formDialogHeaderTitle">Organize File</h3>';
+        html += '</div>';
+
+        html += '<div class="formDialogContent" style="text-align:center; display:flex; justify-content:center;align-items:center">';
+        html += '<svg style="width: 55px;height: 55px;top: 19%;position: absolute;" viewBox="0 0 24 24"><path fill="var(--theme-primary-color)" d="M21 11.1V8C21 6.9 20.1 6 19 6H11L9 4H3C1.9 4 1 4.9 1 6V18C1 19.1 1.9 20 3 20H10.2C11.4 21.8 13.6 23 16 23C19.9 23 23 19.9 23 16C23 14.1 22.2 12.4 21 11.1M9.3 18H3V8H19V9.7C18.1 9.2 17.1 9 16 9C12.1 9 9 12.1 9 16C9 16.7 9.1 17.4 9.3 18M16 21C13.2 21 11 18.8 11 16S13.2 11 16 11 21 13.2 21 16 18.8 21 16 21M17 14H15V12H17V14M17 20H15V15H17V20Z"></path></svg>';
+        var message = globalize.translate("MessageFollowingFileWillBeMovedFrom") + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + globalize.translate("MessageDestinationTo") + '<br/><br/>' + item.TargetPath;
         if (item.DuplicatePaths.length) {
             message += '<br/><br/>' + 'The following duplicates will be deleted:';
 
             message += '<br/><br/>' + item.DuplicatePaths.join('<br/>');
         }
 
-        message += '<br/><br/>' + 'Are you sure you wish to proceed?';
+        message += '<br/><br/>' + globalize.translate("MessageSureYouWishToProceed");
 
-        require(['confirm'], function (confirm) {
+       
+        html += message;
 
-            confirm(message, 'Organize File').then(function () {
+        html += '<div class="formDialogFooter" >';
+        html += '<div style="display:flex;align-items:center;justify-content:center">'
+        html += '<button id="okButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Ok</button>';
+        html += '<button id="cancelButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Cancel</button>';
+        html += '<button id="editButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24"> ';
+        html += '<path fill="white" d="M10 20H6V4H13V9H18V12.1L20 10.1V8L14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H10V20M20.2 13C20.3 13 20.5 13.1 20.6 13.2L21.9 14.5C22.1 14.7 22.1 15.1 21.9 15.3L20.9 16.3L18.8 14.2L19.8 13.2C19.9 13.1 20 13 20.2 13M20.2 16.9L14.1 23H12V20.9L18.1 14.8L20.2 16.9Z" />';
+        html += '</svg> ';
+        html += '</button>';
+        html += '</div>';
+        html += '</div>';
 
-                var options = {
-                    RequestToMoveFile: true, 
-                    Id: id
-                }
-                ApiClient.performOrganization(id, options).then(function () {
 
-                    loading.hide();
+        html += '</div>';
 
-                    reloadItems(page, false);
+        dlg.innerHTML = html;
 
-                }, reloadItems(page, false));
+        dlg.querySelector('.btnCloseDialog').addEventListener('click',
+            () => {
+                dialogHelper.close(dlg);
             });
 
-            reloadItems(page, false);
-        });
+        dlg.querySelector('#cancelButton').addEventListener('click', 
+            () => {
+                dialogHelper.close(dlg);
+            })
+
+        dlg.querySelector('#okButton').addEventListener('click', 
+            () => {
+                var options = {
+                    RequestToMoveFile: true,
+                    Id: item.Id
+                }
+                ApiClient.performOrganization(item.Id, options).then(function () {
+                    reloadItems(view, false);
+                }, reloadItems(view, false));
+
+                dialogHelper.close(dlg);
+            });
+       
+        dlg.querySelector('#editButton').addEventListener('click', () => {
+            showCorrectionPopup(view, item)
+            dialogHelper.close(dlg);
+        })
+
+        dialogHelper.open(dlg);
     }
 
     function reloadItems(page, showSpinner, searchTerm = "") {
@@ -436,15 +490,15 @@
     function getButtonSvgIconRenderData(btn_icon) {
         switch (btn_icon) {
             case 'IdentifyBtn': return {
-                path: "M5,3C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19H5V5H12V3H5M17.78,4C17.61,4 17.43,4.07 17.3,4.2L16.08,5.41L18.58,7.91L19.8,6.7C20.06,6.44 20.06,6 19.8,5.75L18.25,4.2C18.12,4.07 17.95,4 17.78,4M15.37,6.12L8,13.5V16H10.5L17.87,8.62L15.37,6.12Z",
+                path: "M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H13C12.59,21.75 12.2,21.44 11.86,21.1C11.53,20.77 11.25,20.4 11,20H6V4H13V9H18V10.18C18.71,10.34 19.39,10.61 20,11V8L14,2M20.31,18.9C21.64,16.79 21,14 18.91,12.68C16.8,11.35 14,12 12.69,14.08C11.35,16.19 12,18.97 14.09,20.3C15.55,21.23 17.41,21.23 18.88,20.32L22,23.39L23.39,22L20.31,18.9M16.5,19A2.5,2.5 0 0,1 14,16.5A2.5,2.5 0 0,1 16.5,14A2.5,2.5 0 0,1 19,16.5A2.5,2.5 0 0,1 16.5,19Z",
                 color: 'var(--theme-text-color)'
             }
             case 'DeleteBtn': return {
-                path: "M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z",
+                path: "M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z",
                 color: 'var(--theme-text-color)'
             };
             case 'ProcessBtn': return {
-                path: "M14 2H6C4.9 2 4 2.9 4 4V20C4 20.41 4.12 20.8 4.34 21.12C4.41 21.23 4.5 21.33 4.59 21.41C4.95 21.78 5.45 22 6 22H13.53C13 21.42 12.61 20.75 12.35 20H6V4H13V9H18V12C18.7 12 19.37 12.12 20 12.34V8L14 2M18 23L23 18.5L20 15.8L18 14V17H14V20H18V23Z",
+                path: "M4 7C4 4.79 7.58 3 12 3S20 4.79 20 7 16.42 11 12 11 4 9.21 4 7M19.72 13.05C19.9 12.71 20 12.36 20 12V9C20 11.21 16.42 13 12 13S4 11.21 4 9V12C4 14.21 7.58 16 12 16C12.65 16 13.28 15.96 13.88 15.89C14.93 14.16 16.83 13 19 13C19.24 13 19.5 13 19.72 13.05M13.1 17.96C12.74 18 12.37 18 12 18C7.58 18 4 16.21 4 14V17C4 19.21 7.58 21 12 21C12.46 21 12.9 21 13.33 20.94C13.12 20.33 13 19.68 13 19C13 18.64 13.04 18.3 13.1 17.96M23 19L20 16V18H16V20H20V22L23 19Z",
                 color: 'var(--theme-text-color)'
             }
         }
@@ -492,74 +546,79 @@
                 color: "goldenrod",
                 text: "Target file currently in use"
             }
+            case 'Waiting': return {
+                path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
+                color: "goldenrod",
+                text: "Awaiting user input..."
+            };
         }
     }
 
-    function showTableOptionDialog(view) {
-        var dlg = dialogHelper.createDialog({
-            removeOnClose: true,
-            size: 'small'
-        });
+    //function showTableOptionDialog(view) {
+    //    var dlg = dialogHelper.createDialog({
+    //        removeOnClose: true,
+    //        size: 'small'
+    //    });
 
-        dlg.classList.add('ui-body-a');
-        dlg.classList.add('background-theme-a');
+    //    dlg.classList.add('ui-body-a');
+    //    dlg.classList.add('background-theme-a');
 
-        dlg.classList.add('formDialog');
-        dlg.style.maxWidth = '18%'
-        dlg.style.maxHeight = '20%'
-        var html = '';
+    //    dlg.classList.add('formDialog');
+    //    dlg.style.maxWidth = '18%'
+    //    dlg.style.maxHeight = '20%'
+    //    var html = '';
 
-        html += '<div class="formDialogHeader">'
-        html += '<button is="paper-icon-button-light" class="btnCancel autoSize" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>'
-        html += '<h3 class="formDialogHeaderTitle">Table Options</h3>'
-        html += '</div>'
+    //    html += '<div class="formDialogHeader">'
+    //    html += '<button is="paper-icon-button-light" class="btnCancel autoSize" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>'
+    //    html += '<h3 class="formDialogHeaderTitle">Table Options</h3>'
+    //    html += '</div>'
 
-        html += '<div class="formDialogContent" style="margin:2em">'
-        html += '<div class="dialogContentInner" style="max-width: 100%; max-height:100%; display: flex;align-items: center;justify-content: center;">'
+    //    html += '<div class="formDialogContent" style="margin:2em">'
+    //    html += '<div class="dialogContentInner" style="max-width: 100%; max-height:100%; display: flex;align-items: center;justify-content: center;">'
 
-        html += '<button is="emby-button" type="button" class="btnClearCompleted raised button-cancel">'
-        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">'
-        html += '<path fill="currentColor" d="M18 14.5C19.11 14.5 20.11 14.95 20.83 15.67L22 14.5V18.5H18L19.77 16.73C19.32 16.28 18.69 16 18 16C16.62 16 15.5 17.12 15.5 18.5C15.5 19.88 16.62 21 18 21C18.82 21 19.55 20.61 20 20H21.71C21.12 21.47 19.68 22.5 18 22.5C15.79 22.5 14 20.71 14 18.5C14 16.29 15.79 14.5 18 14.5M4 3H18C19.11 3 20 3.9 20 5V12.17C19.5 12.06 19 12 18.5 12C17.23 12 16.04 12.37 15.04 13H12V17H12.18C12.06 17.5 12 18 12 18.5L12 19H4C2.9 19 2 18.11 2 17V5C2 3.9 2.9 3 4 3M4 7V11H10V7H4M12 7V11H18V7H12M4 13V17H10V13H4Z" />'
-        html += '</svg>'
-        html += '<span>Clear Completed</span>'
-        html += '</button>'
+    //    html += '<button is="emby-button" type="button" class="btnClearCompleted raised button-cancel">'
+    //    html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">'
+    //    html += '<path fill="currentColor" d="M18 14.5C19.11 14.5 20.11 14.95 20.83 15.67L22 14.5V18.5H18L19.77 16.73C19.32 16.28 18.69 16 18 16C16.62 16 15.5 17.12 15.5 18.5C15.5 19.88 16.62 21 18 21C18.82 21 19.55 20.61 20 20H21.71C21.12 21.47 19.68 22.5 18 22.5C15.79 22.5 14 20.71 14 18.5C14 16.29 15.79 14.5 18 14.5M4 3H18C19.11 3 20 3.9 20 5V12.17C19.5 12.06 19 12 18.5 12C17.23 12 16.04 12.37 15.04 13H12V17H12.18C12.06 17.5 12 18 12 18.5L12 19H4C2.9 19 2 18.11 2 17V5C2 3.9 2.9 3 4 3M4 7V11H10V7H4M12 7V11H18V7H12M4 13V17H10V13H4Z" />'
+    //    html += '</svg>'
+    //    html += '<span>Clear Completed</span>'
+    //    html += '</button>'
 
-        html += '<button is="emby-button" type="button" class="btnClearLog raised button-cancel">'
-        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">'
-        html += '<path fill="currentColor" d="M15.46,15.88L16.88,14.46L19,16.59L21.12,14.46L22.54,15.88L20.41,18L22.54,20.12L21.12,21.54L19,19.41L16.88,21.54L15.46,20.12L17.59,18L15.46,15.88M4,3H18A2,2 0 0,1 20,5V12.08C18.45,11.82 16.92,12.18 15.68,13H12V17H13.08C12.97,17.68 12.97,18.35 13.08,19H4A2,2 0 0,1 2,17V5A2,2 0 0,1 4,3M4,7V11H10V7H4M12,7V11H18V7H12M4,13V17H10V13H4Z" />'
-        html += '</svg>'
-        html += '<span>Clear All</span>'
-        html += '</button>'
-        html += '</div>'
-        html += '</div>'
+    //    html += '<button is="emby-button" type="button" class="btnClearLog raised button-cancel">'
+    //    html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">'
+    //    html += '<path fill="currentColor" d="M15.46,15.88L16.88,14.46L19,16.59L21.12,14.46L22.54,15.88L20.41,18L22.54,20.12L21.12,21.54L19,19.41L16.88,21.54L15.46,20.12L17.59,18L15.46,15.88M4,3H18A2,2 0 0,1 20,5V12.08C18.45,11.82 16.92,12.18 15.68,13H12V17H13.08C12.97,17.68 12.97,18.35 13.08,19H4A2,2 0 0,1 2,17V5A2,2 0 0,1 4,3M4,7V11H10V7H4M12,7V11H18V7H12M4,13V17H10V13H4Z" />'
+    //    html += '</svg>'
+    //    html += '<span>Clear All</span>'
+    //    html += '</button>'
+    //    html += '</div>'
+    //    html += '</div>'
 
-        dlg.innerHTML = html
+    //    dlg.innerHTML = html
         
 
-        dlg.querySelector('.btnCancel').addEventListener('click', (e) => {
-            dialogHelper.close(dlg);
-        })
+    //    dlg.querySelector('.btnCancel').addEventListener('click', (e) => {
+    //        dialogHelper.close(dlg);
+    //    })
 
-        dlg.querySelector('.btnClearLog').addEventListener('click', function () {
+    //    dlg.querySelector('.btnClearLog').addEventListener('click', function () {
 
-            ApiClient.clearOrganizationLog().then(function () {
-                query.StartIndex = 0;
-                reloadItems(view, true);
-                dialogHelper.close(dlg);
-            }, Dashboard.processErrorResponse);
-        });
+    //        ApiClient.clearOrganizationLog().then(function () {
+    //            query.StartIndex = 0;
+    //            reloadItems(view, true);
+    //            dialogHelper.close(dlg);
+    //        }, Dashboard.processErrorResponse);
+    //    });
 
-        dlg.querySelector('.btnClearCompleted').addEventListener('click', function () {
+    //    dlg.querySelector('.btnClearCompleted').addEventListener('click', function () {
 
-            ApiClient.clearOrganizationCompletedLog().then(function () {
-                query.StartIndex = 0;
-                reloadItems(view, true);
-                dialogHelper.close(dlg);
-            }, Dashboard.processErrorResponse);
-        });
+    //        ApiClient.clearOrganizationCompletedLog().then(function () {
+    //            query.StartIndex = 0;
+    //            reloadItems(view, true);
+    //            dialogHelper.close(dlg);
+    //        }, Dashboard.processErrorResponse);
+    //    });
 
-        dialogHelper.open(dlg);
-    }
+    //    dialogHelper.open(dlg);
+    //}
 
     function showStatusMessage(id) {
         var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
@@ -772,7 +831,6 @@
             deleteSmartMatchEntries(entries)
         }
     }
-         
 
     function onServerEvent(e, apiClient, data) {
         if (e.type === "TaskCompleted") {
@@ -835,12 +893,12 @@
         return [
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
-                name: 'Activity Log'
+                name: globalize.translate("HeaderActivity")
             },
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                name: 'Settings'
-            },
+                name: globalize.translate("HeaderSettings")
+    },
             //{
             //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
             //    name: 'Movie'
@@ -869,14 +927,31 @@
     return function (view, params) {
 
         pageGlobal = view;
-        view.querySelector('.btnOpenTableOptionsBtn').addEventListener('click', (e) => {
-             showTableOptionDialog(view);
-        });
+        //view.querySelector('.btnOpenTableOptionsBtn').addEventListener('click', (e) => {
+        //     showTableOptionDialog(view);
+        //});
         
         var sortByDateBtn = view.querySelector('.date_sort')
         var sortByNameBtn = view.querySelector('.name_sort')
         var sortByStatusBtn = view.querySelector('.status_sort')
         var txtSearch = view.querySelector('#txtSearch');
+
+        view.querySelector('.btnClearLog').addEventListener('click', function () {
+
+            ApiClient.clearOrganizationLog().then(function () {
+                query.StartIndex = 0;
+                reloadItems(view, true);
+            }, Dashboard.processErrorResponse);
+        });
+
+        view.querySelector('.btnClearCompleted').addEventListener('click', function () {
+
+            ApiClient.clearOrganizationCompletedLog().then(function () {
+                query.StartIndex = 0;
+                reloadItems(view, true);
+            }, Dashboard.processErrorResponse);
+        });
+
 
         txtSearch.addEventListener('input', (e) => {
             debounceSearchTerm(e.target.value);
@@ -970,9 +1045,7 @@
             mainTabsManager.setTabs(this, 0, getTabs);
 
             reloadItems(view, true);
-
-            
-
+                 
             events.on(serverNotifications, 'AutoOrganize_LogReset', onServerEvent);
             events.on(serverNotifications, 'AutoOrganize_ItemUpdated', onServerEvent);
             events.on(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
