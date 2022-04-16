@@ -91,6 +91,11 @@ namespace Emby.AutoOrganize
                 {
                     Name = "FileOrganizerHtml",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.fileorganizer.template.html"
+                },
+                new PluginPageInfo
+                {
+                Name = "Chart.js",
+                EmbeddedResourcePath = GetType().Namespace + ".Configuration.Chart.js"
                 }
             };
         }

@@ -266,7 +266,13 @@
 
             config.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
 
-            config.OverwriteExistingFilesKeyWords = view.querySelector('#txtOverWriteExistingFilesKeyWords').value.split(';');
+            var keywordsInput = view.querySelector('#txtOverWriteExistingFilesKeyWords');
+            if (keywordsInput.value == "") {
+                config.OverwriteExistingFilesKeyWords = [];
+            } else {
+                config.OverwriteExistingFilesKeyWords = keywordsInput.value.split(';');
+            }
+            
 
             config.ExtendedClean = view.querySelector('#chkExtendedClean').checked;
 
@@ -276,8 +282,9 @@
             var listItems = watchedLocationList.querySelectorAll('.listItem');
 
             listItems.forEach(item => {
-                if(!config.WatchLocations.filter(i => i == item.dataset.folder)) config.WatchLocations.push(item.dataset.folder) 
-            })
+                if (!config.WatchLocations.filter(i => i == item.dataset.folder))
+                    config.WatchLocations.push(item.dataset.folder);
+            });
             
 
             config.CopyOriginalFile = view.querySelector('#copyOrMoveFile').value;

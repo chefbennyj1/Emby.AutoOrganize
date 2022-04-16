@@ -275,6 +275,77 @@
         dialogHelper.open(dlg);
     }
 
+    function openOverviewDialog() {
+        var result = currentResult;
+        var dlg = dialogHelper.createDialog({
+            size: "small",
+            removeOnClose: !1,
+            scrollY: !0
+        });
+
+        dlg.classList.add("formDialog");
+        dlg.classList.add("ui-body-a");
+        dlg.classList.add("background-theme-a");
+       
+
+
+        var html = '';
+        html += '<div class="formDialogHeader" style="display:flex">';
+        html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light" tabindex="-1"><i class="md-icon"></i></button><h3 class="formDialogHeaderTitle"></h3>';
+        html += '</div>';
+
+        html += '<div class="formDialogContent" style="position: relative;display: flex;justify-content: center;">';
+
+        html += '<div style="height:50%; width:50%">'
+        html += '<canvas id="sortingStats" width="100" height="100"></canvas>';
+        html += '</div>';
+
+        html += '</div>';
+
+        dlg.innerHTML = html;
+
+        dlg.querySelector('.btnCloseDialog').addEventListener('click',
+            () => {
+                dialogHelper.close(dlg);
+            });
+
+        var style = getComputedStyle(document.body);
+        var successCount    = Math.floor(result.Items.filter(i => i.Status == "Success").length / result.Items.length * 100);
+        var failureCount    = Math.floor(result.Items.filter(i => i.Status == "Failure").length  / result.Items.length * 100);
+        var skippedCount    = Math.floor(result.Items.filter(i => i.Status == "SkippedExisting").length  / result.Items.length * 100);
+        var processingCount = Math.floor(result.Items.filter(i => i.Status == "Processing").length  / result.Items.length * 100);
+        var inUse           = Math.floor(result.Items.filter(i => i.Status == "InUse").length  / result.Items.length * 100);
+
+        require([Dashboard.getConfigurationResourceUrl('Chart.js')], (Chart) => {
+
+            var progressCtx = dlg.querySelector('#sortingStats').getContext("2d");
+            new Chart(progressCtx,
+                {
+                    type: 'doughnut',
+                    label: "Status",
+                    data: {
+                        labels  : [ 'Success', 'Failure', "Skipped/Existing", "Processing", "In Use" ],
+                        datasets: [
+                            {
+                                data: [successCount, failureCount, skippedCount, processingCount, inUse ],
+                                backgroundColor: ["green", "red", "goldenrod", style.getPropertyValue("--theme-primary-color"), "black"],
+                                borderColor: ["black", style.getPropertyValue("--theme-primary-color")],
+                                borderWidth: 1,
+                                //dataFriendly   : [ driveData[t].FriendlyUsed, driveData[t].FriendlyAvailable ]
+                            }
+                        ]
+                    },
+                    options: {
+                        cutoutPercentage: 0, 
+                        legend: { position: "left" }
+                    }
+                });
+
+        });
+
+        dialogHelper.open(dlg);
+    }
+
     function reloadItems(page, showSpinner, searchTerm = "") {
 
         if (showSpinner) {
@@ -287,6 +358,7 @@
         ApiClient.getFileOrganizationResults(query).then(function (result) {
             currentResult = result;
             renderResults(page, result);
+            
             loading.hide();
         });
 
@@ -438,6 +510,10 @@
             }
             
         }
+        
+        
+
+
     }
 
     //https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
@@ -952,7 +1028,9 @@
             }, Dashboard.processErrorResponse);
         });
 
-
+        view.querySelector('.btnResultOverview').addEventListener('click', () => {
+            openOverviewDialog();
+        });
         txtSearch.addEventListener('input', (e) => {
             debounceSearchTerm(e.target.value);
         });

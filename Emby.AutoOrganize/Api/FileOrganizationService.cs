@@ -92,13 +92,13 @@ namespace Emby.AutoOrganize.Api
         public bool RememberCorrection { get; set; }
 
         [ApiMember(Name = "NewSeriesProviderIds", Description = "A list of provider IDs identifying a new series.", IsRequired = false, DataType = "Dictionary<string, string>", ParameterType = "query", Verb = "POST")]
-        public ProviderIdDictionary NewSeriesProviderIds { get; set; }
+        public ProviderIdDictionary SeriesProviderIds { get; set; }
 
         [ApiMember(Name = "NewSeriesName", Description = "Name of a series to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
-        public string NewSeriesName { get; set; }
+        public string SeriesName { get; set; }
 
         [ApiMember(Name = "NewSeriesYear", Description = "Year of a series to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
-        public int? NewSeriesYear { get; set; }
+        public int? SeriesYear { get; set; }
 
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
@@ -233,9 +233,9 @@ namespace Emby.AutoOrganize.Api
         {
             var dicNewProviderIds = new ProviderIdDictionary();
 
-            if (request.NewSeriesProviderIds != null)
+            if (request.SeriesProviderIds != null)
             {
-                dicNewProviderIds = request.NewSeriesProviderIds;
+                dicNewProviderIds = request.SeriesProviderIds;
             }
 
             // Don't await this
@@ -247,8 +247,8 @@ namespace Emby.AutoOrganize.Api
                 ResultId                        = request.Id,
                 SeasonNumber                    = request.SeasonNumber,
                 SeriesId                        = request.SeriesId,
-                NewSeriesName                   = request.NewSeriesName,
-                NewSeriesYear                   = request.NewSeriesYear,
+                NewSeriesName                   = request.SeriesName,
+                NewSeriesYear                   = request.SeriesYear,
                 NewSeriesProviderIds            = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
                 RequestToMoveFile               = request.RequestToMoveFile,

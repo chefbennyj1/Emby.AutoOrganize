@@ -26,13 +26,13 @@
                     <div class="selectContainer">
                         <div style="display: flex; align-items: center;">
                             <div style="flex-grow: 1; position: relative;">
-                                <select is="emby-select" id="selectMedias" data-mini="true" required="required"></select>
+                                <select is="emby-select" id="selectBaseItems" data-mini="true" required="required"></select>
                             </div>
                             <button type="button" is="paper-icon-button-light" id="btnNewMedia" class="autoSize"><i class="md-icon">add</i></button>
                         </div>
                     </div>
-                    <div id="fldSelectMediaFolder" class="hide selectContainer">
-                        <select id="selectMediaFolder" is="emby-select" label="Root folder:"></select>
+                    <div class="selectRootFolderContainer hide selectContainer">
+                        <select id="selectRootFolder" is="emby-select" label="Root folder:"></select>
                     </div>
                 </div>
                 <div id="divEpisodeChoice">

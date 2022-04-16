@@ -125,14 +125,13 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                             processedFolders.Add(file.DirectoryName);
                         }
                     }
-                    catch (OperationCanceledException ex)
+                    catch (OperationCanceledException)
                     {
-                        _logger.ErrorException("Error organizing episode {0}", ex, file.FullName);
-                        continue;
+                        return;
                     }
                     catch (Exception ex)
                     {
-                        _logger.ErrorException("Error organizing episode {0}", ex, file.FullName);
+                        _logger.Warn("Error organizing episode {0} - {1}", file.FullName, ex);
                         continue;
                     }
                 }
@@ -152,14 +151,13 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                             }
                         }
                     }
-                    catch (OperationCanceledException ex)
+                    catch (OperationCanceledException)
                     {
-                        _logger.ErrorException("Error organizing movie {0}", ex, file.FullName);
-                        continue;
+                        return;
                     }
                     catch (Exception ex)
                     {
-                        _logger.ErrorException("Error organizing movie {0}", ex, file.FullName);
+                        _logger.Warn("Error organizing the movie {0} - {1}", file.FullName, ex);
                         continue;
                     }
                 }

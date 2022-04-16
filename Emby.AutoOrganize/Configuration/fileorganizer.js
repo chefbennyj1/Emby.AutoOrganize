@@ -101,6 +101,8 @@
     var mediasLocationsCount = 0;
 
     function normalizeString(input) {
+        if (input === "") return input;
+        if (!input) return "";
         const pattern = /(\s|@|&|'|:|\(|\)|<|>|#|\.)/g;
         const normalized =  input.replace(pattern, "").toLocaleLowerCase();
         return normalized;
@@ -143,35 +145,47 @@
 
    
 
-    async function populateMedias(context, item = "") {
+    async function populateBaseItems(context, item = "") {
 
         loading.show();
+        const virtualFolderResult = await ApiClient.getVirtualFolders();
         const library = await ApiClient.getItems(null,
             {
                 recursive: true,
                 includeItemTypes: chosenType,
                 sortBy: 'SortName',
-                Fields: ['ProductionYear']
+                Fields: ['ProductionYear', "Path"]
 
             });
 
         const libraryItems = library.Items;
+       
         //Create the selected item here!
         var optionsHtml = libraryItems.map(function (s) {
 
+            //var virtualFolderLocation;
+            //if (chosenType == "Series") {
+            //    virtualFolderResult.Items.forEach(folder => {
+            //        folder.Locations.forEach(l => {
+            //            if (s.Path.includes(l)) {
+            //                virtualFolderLocation = l;
+            //            }
+            //        })
+            //    })
+            //}
+
             //Don't add the production year if the name contains it already. 
             if (s.Name.includes(s.ProductionYear)) {
-                return '<option value="' + s.Id + '">' + s.Name + '</option>';
+                return '<option data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + '</option>';
             }
-            return '<option value="' + s.Id + '">' + s.Name + (s.ProductionYear ? ` (${s.ProductionYear})` : "") + '</option>';
+            return '<option data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + (s.ProductionYear ? ` (${s.ProductionYear})` : "") + '</option>';
 
         }).join('');
 
-        context.querySelector('#selectMedias').innerHTML = '<option value=""></option>' + optionsHtml;
+        context.querySelector('#selectBaseItems').innerHTML = '<option data-name="" value=""></option>' + optionsHtml;
+          
 
-        
-
-        const virtualFolderResult = await ApiClient.getVirtualFolders();
+       
 
         var mediasLocations = [];
         var virtualFolders = virtualFolderResult.Items; //|| result;
@@ -203,17 +217,20 @@
             mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
         }
 
-        context.querySelector('#selectMediaFolder').innerHTML = mediasFolderHtml;
+        context.querySelector('#selectRootFolder').innerHTML = mediasFolderHtml;
         
-
-        if (item.Status == 'SkippedExisting') {
+        //The file can be marked as "InUse" if the file organizer is open during the scheduled task, and we check it's state.
+        //Accept both "InUse", and "SkippedExisting" here. It's just bad timing when we have to also accept "InUse".
+        if (item.Status == 'SkippedExisting' || item.Status == "InUse") {  
             const selectedItem = libraryItems.filter(libraryItem => normalizeString(libraryItem.Name) == (normalizeString(item.ExtractedName)));
             if (selectedItem.length) {
                 const selectedItemId = selectedItem[0].Id;
-                context.querySelector('#selectMedias').value = selectedItemId || "";
-                context.querySelector('#btnNewMedia').classList.add('hide');
-                context.querySelector('#fldSelectMediaFolder').classList.remove('hide');
-                context.querySelector('#selectMediaFolder').setAttribute('required', 'required');
+                context.querySelector('#selectBaseItems').value = selectedItemId || "";
+
+                //context.querySelector('#btnNewMedia').classList.add('hide');
+
+                context.querySelector('.selectRootFolderContainer').classList.remove('hide');
+                context.querySelector('#selectRootFolder').setAttribute('required', 'required');
             }
         }
 
@@ -227,7 +244,7 @@
 
         chosenType = 'Movie';
 
-        await populateMedias(context, item);
+        await populateBaseItems(context, item);
     }
 
     async function initEpisodeForm(context, item) {
@@ -236,12 +253,13 @@
 
         chosenType = 'Series';
 
-        if (!item.ExtractedName || item.ExtractedName.length < 3) {
-            context.querySelector('.fldRemember').classList.add('hide');
-        }
-        else {
-            context.querySelector('.fldRemember').classList.remove('hide');
-        }
+
+        //if (!item.ExtractedName) { //|| item.ExtractedName.length < 3) {
+        //    context.querySelector('.fldRemember').classList.add('hide');
+        //}
+        //else {
+        context.querySelector('.fldRemember').classList.remove('hide');
+        //}
         
         context.querySelector('#txtSeason').value = item.ExtractedSeasonNumber;
         context.querySelector('#txtEpisode').value = item.ExtractedEpisodeNumber;
@@ -249,7 +267,7 @@
 
         context.querySelector('#chkRememberCorrection').checked = false;
 
-        await populateMedias(context, item);
+        await populateBaseItems(context, item);
         
     }
 
@@ -257,10 +275,14 @@
 
 
         console.log(item);
-        var resultId = dlg.querySelector('#hfResultId').value;
-        var mediaId = dlg.querySelector('#selectMedias').value;
+        var baseItemSelect = dlg.querySelector('#selectBaseItems');
+        var mediaFolderSelect = dlg.querySelector('#selectRootFolder');
 
-        var mediaFolderSelect = dlg.querySelector('#selectMediaFolder');
+        var resultId = dlg.querySelector('#hfResultId').value;
+
+        var mediaId = baseItemSelect.value;
+
+       
 
         var targetFolder = null;
         var newProviderIds = null;
@@ -272,11 +294,13 @@
             newProviderIds = currentNewItem.ProviderIds;
             newMediaName = currentNewItem.Name;
             newMediaYear = currentNewItem.ProductionYear;
-            targetFolder = dlg.querySelector('#selectMediaFolder').value;
+            targetFolder = dlg.querySelector('#selectRootFolder').value;
         }
 
         var options = {
-            CreateNewDestination: false
+            CreateNewDestination: false,
+            TargetFolder: mediaFolderSelect.selectedIndex > 0 ?  mediaFolderSelect.value : targetFolder,
+            RequestToOverwriteExistingFile: true
         }
 
         switch (chosenType) {
@@ -287,11 +311,9 @@
                     EpisodeNumber: dlg.querySelector('#txtEpisode').value,
                     EndingEpisodeNumber: dlg.querySelector('#txtEndingEpisode').value,
                     RememberCorrection: dlg.querySelector('#chkRememberCorrection').checked,
-                    NewSeriesProviderIds: newProviderIds,
-                    NewSeriesName: newMediaName,
-                    NewSeriesYear: newMediaYear,
-                    TargetFolder: mediaFolderSelect.selectedIndex > 0 ?  mediaFolderSelect.value : targetFolder,
-                    RequestToOverwriteExistingFile: true
+                    SeriesProviderIds: newProviderIds,
+                    SeriesName: newMediaName ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.name,
+                    SeriesYear: newMediaYear ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.year,
                 };
                 break;
             case "Movie":                 
@@ -300,8 +322,6 @@
                     NewMovieProviderIds: newProviderIds,
                     NewMovieName: newMediaName,
                     NewMovieYear: newMediaYear,
-                    TargetFolder:  mediaFolderSelect.selectedIndex > 0 ?  mediaFolderSelect.value : targetFolder,
-                    RequestToOverwriteExistingFile: true
                 };
                 break;
         }
@@ -313,7 +333,6 @@
             if (item.TargetPath.substring(0, options.TargetFolder.length) !== options.TargetFolder) {
                 //The user has changed the target folder
                 options.CreateNewDestination = true;
-
             }
         } 
        
@@ -362,7 +381,10 @@
 
     function showNewMediaDialog(dlg) {
 
-        if (mediasLocationsCount == 0) {
+        const selectRootFolder = dlg.querySelector('#selectRootFolder');
+        const selectBaseItems = dlg.querySelector('#selectBaseItems');
+
+        if (selectRootFolder.options.length === 0) {//if (mediasLocationsCount == 0) {
 
             require(['alert'], function (alert) {
                 alert({
@@ -379,9 +401,20 @@
 
                 if (newItem != null) {
                     currentNewItem = newItem;
-                    var mediasHtml = existingMediasHtml;
-                    mediasHtml = mediasHtml + '<option selected value="##NEW##">' + currentNewItem.Name + '</option>';
-                    dlg.querySelector('#selectMedias').innerHTML = mediasHtml;
+
+                    //var mediasHtml = '';
+
+                    if (selectBaseItems.options.length > 0) {
+                        const selectedItem = [...selectBaseItems.options].filter(o => normalizeString(o.dataset.name) == normalizeString(newItem.Name));
+                        if (selectedItem.length) {
+                            selectBaseItems.value = selectedItem[0].value;
+                        } else {
+                            selectBaseItems.innerHTML += '<option selected data-name="' + currentNewItem.Name + '" value="##NEW##">' + currentNewItem.Name + '</option>'
+                        }
+                    }
+
+                    //mediasHtml = mediasHtml + '<option selected value="##NEW##">' + currentNewItem.Name + '</option>';
+                    //dlg.querySelector('#selectBaseItems').innerHTML = mediasHtml;
                     selectedMediasChanged(dlg);
                 }
             });
@@ -389,18 +422,18 @@
     }
 
     function selectedMediasChanged(dlg) {
-        var mediasId = dlg.querySelector('#selectMedias');
+        var mediasId = dlg.querySelector('#selectBaseItems');
        
-        var mediaFolderSelect = dlg.querySelector('#fldSelectMediaFolder');
+        var mediaFolderSelect = dlg.querySelector('.selectRootFolderContainer');
 
         
         if (mediasId.value == "##NEW##" || mediasId.selectedIndex > 0) {
-            dlg.querySelector('#fldSelectMediaFolder').classList.remove('hide');
-            dlg.querySelector('#selectMediaFolder').setAttribute('required', 'required');
+            dlg.querySelector('.selectRootFolderContainer').classList.remove('hide');
+            dlg.querySelector('#selectRootFolder').setAttribute('required', 'required');
         }
         else {
             mediaFolderSelect.classList.add('hide');
-            dlg.querySelector('#selectMediaFolder').removeAttribute('required');
+            dlg.querySelector('#selectRootFolder').removeAttribute('required');
         }
     }
 
@@ -414,8 +447,8 @@
                 dlg.querySelector('#divEpisodeChoice').classList.add('hide');
                 break;
             case "Movie":
-                dlg.querySelector('#selectMedias').setAttribute('label', 'Movie');
-                dlg.querySelector('[for="selectMedias"]').innerHTML =  'Movie';
+                dlg.querySelector('#selectBaseItems').setAttribute('label', 'Movie');
+                dlg.querySelector('[for="selectBaseItems"]').innerHTML =  'Movie';
 
                 dlg.querySelector('#divPermitChoice').classList.remove('hide');
                 dlg.querySelector('#divGlobalChoice').classList.remove('hide');
@@ -428,8 +461,8 @@
 
                 break;
             case "Episode":
-                dlg.querySelector('#selectMedias').setAttribute('label', 'Series');
-                dlg.querySelector('[for="selectMedias"]').innerHTML = 'Series';
+                dlg.querySelector('#selectBaseItems').setAttribute('label', 'Series');
+                dlg.querySelector('[for="selectBaseItems"]').innerHTML = 'Series';
 
                 dlg.querySelector('#divPermitChoice').classList.remove('hide');
                 dlg.querySelector('#divGlobalChoice').classList.remove('hide');
@@ -505,7 +538,7 @@
                         showNewMediaDialog(dlg);
                     });
 
-                    dlg.querySelector('#selectMedias').addEventListener('change', function (e) {
+                    dlg.querySelector('#selectBaseItems').addEventListener('change', function (e) {
 
                         selectedMediasChanged(dlg);
                     });
