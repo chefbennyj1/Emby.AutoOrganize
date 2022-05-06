@@ -41,7 +41,11 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
             try
             {
-                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && fileInfo.Length >= minFileBytes && !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList());
+                //TODO: Add subtitles to the possibilities to sort. Currently it is IsVideoFile which will stop the subtitle from being picked up by the monitor.
+                return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && 
+                       fileInfo.Length >= minFileBytes && 
+                       !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList())|| 
+                       _libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan());
             }
             catch (Exception ex)
             {
@@ -107,6 +111,9 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
             var numComplete = 0;
 
+            //Organize the subtitles last. This ensure that the media files have a home before accessing their subtitle files.
+            eligibleFiles = eligibleFiles.OrderBy(f => _libraryManager.IsSubtitleFile(f.Name.AsSpan())).ToList();
+
             foreach (var file in eligibleFiles)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -115,10 +122,16 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
                 if (fileOrganizerType == FileOrganizerType.Episode)
                 {
+                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
+                    {
+                        _logger.Warn("No Default TV Show Library has been chosen in settings. Stopping Organization...");
+                        progress.Report(100);
+                        return;
+                    }
                     var organizer = new EpisodeOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
                     try
                     {
-                        var result = await organizer.OrganizeFile(null, file.FullName, options, cancellationToken).ConfigureAwait(false);
+                        var result = await organizer.OrganizeFile(false, file.FullName, options, cancellationToken);
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                         {
@@ -127,6 +140,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     }
                     catch (OperationCanceledException)
                     {
+                        progress.Report(100.0);
                         return;
                     }
                     catch (Exception ex)
@@ -138,12 +152,19 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
                 if (fileOrganizerType == FileOrganizerType.Movie)
                 {
-                    var organizer = new MovieOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
+                    if (string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    {
+                        _logger.Warn("No Default Movie Library has been chosen in settings. Stopping Organization...");
+                        progress.Report(100);
+                        return;
+                    }
+
+                    var movieOrganizer = new MovieOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
                     try
                     {
                         if (_libraryManager.IsVideoFile(file.FullName.AsSpan()))
                         {
-                            var result = await organizer.OrganizeFile(false, file.FullName, options, cancellationToken).ConfigureAwait(false);
+                            var result = await movieOrganizer.OrganizeFile(false, file.FullName, options, cancellationToken);
 
                             if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                             {
@@ -153,6 +174,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     }
                     catch (OperationCanceledException)
                     {
+                        progress.Report(100.0);
                         return;
                     }
                     catch (Exception ex)
@@ -166,6 +188,36 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 {
                     _logger.Warn($"Sorting media type for {file.Name} is unknown. New episodes must contain the season index number, and episode index number in the file name.");
                     continue;
+                }
+
+                if (fileOrganizerType == FileOrganizerType.Subtitle)
+                {
+                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) || string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    {
+                        _logger.Warn("No Default Libraries have been chosen in settings. Stopping Organization...");
+                        progress.Report(100);
+                        return;
+                    }
+                    var subtitleOrganizer = new SubtitleOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
+                    try
+                    {
+                        if (_libraryManager.IsSubtitleFile(file.FullName.AsSpan()))
+                        {
+                            var result = await subtitleOrganizer.OrganizeFile(false, file.FullName, options, cancellationToken);
+
+
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        progress.Report(100.0);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn("Error organizing the subtitle file {0} - {1}", file.FullName, ex);
+                        continue;
+                    }
                 }
 
                 numComplete++;
@@ -258,7 +310,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 }
 
                 var entries = _fileSystem.GetFileSystemEntryPaths(path);
-
+                _logger.Info($"{entries.Count()} directory enteries");
                 if (!entries.Any() && !IsWatchFolder(path, watchLocations))
                 {
                     try
@@ -270,11 +322,14 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     catch (IOException) { }
                 }
             }
-            catch (UnauthorizedAccessException) { }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.Warn("Unable to delete empty folders. Access Denied.");
+            }
         }
 
         /// <summary>
-        /// Determines if a given folder path is contained in a folder list
+        /// Determines if a given folder path is a folder folder
         /// </summary>
         /// <param name="path">The folder path to check.</param>
         /// <param name="watchLocations">A list of folders.</param>

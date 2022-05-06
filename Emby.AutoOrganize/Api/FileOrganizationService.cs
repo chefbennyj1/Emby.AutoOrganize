@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Library;
@@ -29,9 +28,11 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "Limit", Description = "Optional. The maximum number of records to return", IsRequired = false, DataType = "int", ParameterType = "query", Verb = "GET")]
         public int? Limit { get; set; }
 
-        
-        [ApiMember(Name = "Limit", Description = "Optional. Name Starts With", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        [ApiMember(Name = "NameStartsWith", Description = "Optional. Name Starts With", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
         public string NameStartsWith { get; set; }
+
+        [ApiMember(Name = "Type", Description = "Optional. The type of media to put in the response", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        public string Type { get; set; }
     }
 
     [Route("/Library/FileOrganizations", "DELETE", Summary = "Clears the activity log")]
@@ -65,7 +66,7 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "Id", Description = "Result Id", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "POST")]
         public string Id { get; set; }
 
-        [ApiMember(Name = "RequestToMoveFile", Description = "Optional. Should overwrite the existsing File, if it exists. If empty the file will not overwrite.", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        [ApiMember(Name = "RequestToMoveFile", Description = "Optional. Should overwrite the existing File, if it exists. If empty the file will not overwrite.", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToMoveFile { get; set; }
         
     }
@@ -94,16 +95,16 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "NewSeriesProviderIds", Description = "A list of provider IDs identifying a new series.", IsRequired = false, DataType = "Dictionary<string, string>", ParameterType = "query", Verb = "POST")]
         public ProviderIdDictionary SeriesProviderIds { get; set; }
 
-        [ApiMember(Name = "NewSeriesName", Description = "Name of a series to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
-        public string SeriesName { get; set; }
+        [ApiMember(Name = "Name", Description = "Name of a series to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public string Name { get; set; }
 
-        [ApiMember(Name = "NewSeriesYear", Description = "Year of a series to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
-        public int? SeriesYear { get; set; }
+        [ApiMember(Name = "Year", Description = "Year of a series to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public int? Year { get; set; }
 
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
 
-        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existing File", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToMoveFile { get; set; }
 
         [ApiMember(Name = "CreateNewDestination", Description = "Create New Destination Folder", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
@@ -124,16 +125,16 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "NewMovieProviderIds", Description = "A list of provider IDs identifying a new movie.", IsRequired = false, DataType = "Dictionary<string, string>", ParameterType = "query", Verb = "POST")]
         public ProviderIdDictionary NewMovieProviderIds { get; set; }
 
-        [ApiMember(Name = "NewMovieName", Description = "Name of a movie to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
-        public string NewMovieName { get; set; }
+        [ApiMember(Name = "Name", Description = "Name of a movie to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public string Name { get; set; }
 
-        [ApiMember(Name = "NewMovieYear", Description = "Year of a movie to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
-        public int? NewMovieYear { get; set; }
+        [ApiMember(Name = "Year", Description = "Year of a movie to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public int? Year { get; set; }
 
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
          
-        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existing File", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToMoveFile { get; set; }
     }
 
@@ -170,11 +171,11 @@ namespace Emby.AutoOrganize.Api
         private readonly IHttpResultFactory _resultFactory;
 
         public IRequest Request { get; set; }
-        private ILibraryManager _libraryManager { get; set; }
+        private ILibraryManager LibraryManager { get; set; }
         public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager)
         {
             _resultFactory = resultFactory;
-            _libraryManager = libraryManager;
+            LibraryManager = libraryManager;
         }
 
         private IFileOrganizationService InternalFileOrganizationService => PluginEntryPoint.Instance.FileOrganizationService;
@@ -184,17 +185,18 @@ namespace Emby.AutoOrganize.Api
             var result = InternalFileOrganizationService.GetResults(new FileOrganizationResultQuery
             {
                 Limit = request.Limit,
-                StartIndex = request.StartIndex
+                StartIndex = request.StartIndex,
+                Type = !string.IsNullOrEmpty(request.Type) ? request.Type : "All"
             });
 
             
             if (!string.IsNullOrEmpty(request.NameStartsWith))
             {
-                
                 var normalizedSearchTerm = request.NameStartsWith.Replace("%20", " ");
 
                 result.Items = result.Items.Where(item => item.OriginalFileName.ToUpperInvariant().Replace(".", " ").Contains(normalizedSearchTerm.ToUpperInvariant())).ToArray();
             }
+
 
             return _resultFactory.GetResult(Request, result);
         }
@@ -222,11 +224,11 @@ namespace Emby.AutoOrganize.Api
         public void Post(PerformOrganization request)
         {
             // Don't await this
-            var task = InternalFileOrganizationService.PerformOrganization(request.Id, request.RequestToMoveFile);
+            InternalFileOrganizationService.PerformOrganization(request.Id, request.RequestToMoveFile);
 
             // Async processing (close dialog early instead of waiting until the file has been copied)
             // Wait 2s for exceptions that may occur to have them forwarded to the client for immediate error display
-            task.Wait(2000);
+            //task.Wait(2000);
         }
 
         public void Post(OrganizeEpisode request)
@@ -239,7 +241,7 @@ namespace Emby.AutoOrganize.Api
             }
 
             // Don't await this
-            var task = InternalFileOrganizationService.PerformOrganization(new EpisodeFileOrganizationRequest
+            InternalFileOrganizationService.PerformOrganization(new EpisodeFileOrganizationRequest
             {
                 EndingEpisodeNumber             = request.EndingEpisodeNumber,
                 EpisodeNumber                   = request.EpisodeNumber,
@@ -247,9 +249,9 @@ namespace Emby.AutoOrganize.Api
                 ResultId                        = request.Id,
                 SeasonNumber                    = request.SeasonNumber,
                 SeriesId                        = request.SeriesId,
-                NewSeriesName                   = request.SeriesName,
-                NewSeriesYear                   = request.SeriesYear,
-                NewSeriesProviderIds            = dicNewProviderIds,
+                Name                            = request.Name,
+                Year                            = request.Year,
+                ProviderIds                     = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
                 RequestToMoveFile               = request.RequestToMoveFile,
                 CreateNewDestination            = request.CreateNewDestination
@@ -257,7 +259,7 @@ namespace Emby.AutoOrganize.Api
 
             // Async processing (close dialog early instead of waiting until the file has been copied)
             // Wait 2s for exceptions that may occur to have them forwarded to the client for immediate error display
-            task.Wait(2000);
+            //task.Wait(2000);
         }
 
         public void Post(OrganizeMovie request)
@@ -267,11 +269,6 @@ namespace Emby.AutoOrganize.Api
             if (request.NewMovieProviderIds != null)
             {
                 dicNewProviderIds = request.NewMovieProviderIds;
-
-            } else
-            {
-                var baseItem = _libraryManager.GetItemById(request.MovieId);
-                request.TargetFolder = baseItem.Path;
             }
 
             // Don't await this
@@ -279,9 +276,9 @@ namespace Emby.AutoOrganize.Api
             {
                 ResultId                        = request.Id,
                 MovieId                         = request.MovieId,
-                NewMovieName                    = request.NewMovieName,
-                NewMovieYear                    = request.NewMovieYear,
-                NewMovieProviderIds             = dicNewProviderIds,
+                Name                            = request.Name,
+                Year                            = request.Year,
+                ProviderIds                     = dicNewProviderIds,
                 TargetFolder                    = request.TargetFolder,
                 RequestToMoveFile               = request.RequestToMoveFile
             });

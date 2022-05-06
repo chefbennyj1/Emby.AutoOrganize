@@ -40,7 +40,6 @@ namespace Emby.AutoOrganize.Naming.Common
             VideoReleaseEditionFlags = new string[]
             {
                 "Theatrical",
-                "Version",
                 "Extended",
                 "Special",
                 "Edition",
@@ -49,7 +48,9 @@ namespace Emby.AutoOrganize.Naming.Common
                 "Cut",
                 "Uncut",
                 "Unrated",
-                "Ultimate"
+                "Ultimate",
+                "Remastered",
+                "IMAX"
             };
             
             VideoFileExtensions = new string[]
@@ -348,6 +349,11 @@ namespace Emby.AutoOrganize.Naming.Common
                 },
                 // "Episode 16", "Episode 16 - Title"
                 new EpisodeExpression(@".*[\\\/][^\\\/]* (?<epnumber>\d{1,3})(-(?<endingepnumber>\d{2,3}))*[^\\\/]*$")
+                {
+                    IsOptimistic = true,
+                    IsNamed = true
+                },
+                new EpisodeExpression(@"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:[Ss](\d{1,2}x[Ee]\d{1,2}))|(?:([Ss](\d{1,2})))")
                 {
                     IsOptimistic = true,
                     IsNamed = true

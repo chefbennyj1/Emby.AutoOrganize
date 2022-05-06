@@ -1,5 +1,5 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'detailtablecss', 'emby-collapse'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
-    'use strict';
+﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
+    
 
     ApiClient.getScheduledTask = function (options) {
         var url = this.getUrl("ScheduledTasks?IsHidden=false&IsEnabled=true", options || {});
@@ -49,7 +49,7 @@
 
     ApiClient.performOrganization = function (id, options) {
 
-        //Only one option: RequestToOverwriteFile = true
+        //Only one option: RequestToMoveFile = true
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
 
         return this.ajax({
@@ -93,7 +93,7 @@
         return this.ajax({
             type: "GET",
             url: url,
-            dataType: "json"
+            dataType: "application/json"
         });
     };
 
@@ -114,10 +114,27 @@
         });
     };
 
-    var query = {
+    ApiClient.getRemoteSearchImages = async function (options, item) {
 
+        var url = this.getUrl("Items/RemoteSearch/" + item.Type);
+        
+        var result = await this.ajax({
+
+            type: "POST",
+            url: url,
+            data: JSON.stringify(options),
+            contentType: "application/json"
+        });
+        console.log(result)
+        return result;
+    };
+
+    
+
+    var query = {
         StartIndex: 0,
-        Limit: 50
+        Limit: 50, 
+        Type: 'All'
     };
 
     var currentResult;
@@ -126,6 +143,8 @@
         type: 'date',
         ascending: true,
     }
+
+    
 
     function parentWithClass(elem, className) {
 
@@ -152,22 +171,17 @@
 
                 loading.show();
 
-                ApiClient.deleteOriginalFileFromOrganizationResult(id).then(function () {
+                ApiClient.deleteOriginalFileFromOrganizationResult(id).then(async function () {
 
                     loading.hide();
 
-                    reloadItems(page, true);
+                    await reloadItems(page, true);
 
                 }, Dashboard.processErrorResponse);
             });
         });
     }
-
-    function organizeFileWithCorrections(page, item) {
-
-        showCorrectionPopup(page, item);
-    }
-
+    
     function showCorrectionPopup(page, item) {
 
         require([Dashboard.getConfigurationResourceUrl('FileOrganizerJs')], function (fileorganizer) {
@@ -183,7 +197,7 @@
 
         var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
 
-        //TODO - make sure item has a target path
+        
         if (!item.TargetPath) {
 
             return;
@@ -257,8 +271,7 @@
         dlg.querySelector('#okButton').addEventListener('click', 
             () => {
                 var options = {
-                    RequestToMoveFile: true,
-                    Id: item.Id
+                    RequestToMoveFile: true
                 }
                 ApiClient.performOrganization(item.Id, options).then(function () {
                     reloadItems(view, false);
@@ -346,7 +359,7 @@
         dialogHelper.open(dlg);
     }
 
-    function reloadItems(page, showSpinner, searchTerm = "") {
+    async function reloadItems(page, showSpinner, searchTerm = "") {
 
         if (showSpinner) {
             loading.show();
@@ -354,16 +367,17 @@
 
         //Search Term from Search Box.
         query.NameStartsWith = encodeURI(searchTerm);
+        
 
-        ApiClient.getFileOrganizationResults(query).then(function (result) {
-            currentResult = result;
-            renderResults(page, result);
-            
-            loading.hide();
-        });
+        var result = await ApiClient.getFileOrganizationResults(query)
+        currentResult = result;
 
+        renderResults(page, result);
+
+        loading.hide();
     }
 
+    
     function getQueryPagingHtml(options) {
         var startIndex = options.startIndex;
         var limit = options.limit;
@@ -424,94 +438,136 @@
          
     function renderResults(page, result) {
 
-        var items;
-        switch (sort.type) {
-            case "date":
-                items = sortListResultsByDate(result.Items);
-                //if we're sorted by date show the arrow icon
-                pageGlobal.querySelector('.date_sort > svg').style.opacity = 1;
-                break;
-            case "status":
-               //if we're sorted by status show the arrow icon
-                pageGlobal.querySelector('.status_sort > svg').style.opacity = 1;
-                items = sortListResultItemsByStatus(result.Items);
-                break;
-            case "name":
-                //if we're sorted by name show the arrow icon
-                pageGlobal.querySelector('.name_sort > svg').style.opacity = 1;
-                items = sortListResultItemsByName(result.Items);
-                break;
-        }
+        return new Promise((resolve, reject) =>
+        {
+            if (Object.prototype.toString.call(page) !== "[object Window]") {
 
-        if (Object.prototype.toString.call(page) !== "[object Window]") {
-            var rows = '';
-            items.forEach(item => {
-                var html = '';
-               
-                html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '">';
-               
-                html += renderItemRow(item, page);
-              
-                html += '</tr>';                
 
-                rows += html;
-            })
+                var items;
+                switch (sort.type) {
+                    case "date":
+                        items = sortListResultsByDate(result.Items);
+                        //if we're sorted by date show the arrow icon
+                        page.querySelector('.date_sort > svg').style.opacity = 1;
+                        break;
+                    case "status":
+                        //if we're sorted by status show the arrow icon
+                        page.querySelector('.status_sort > svg').style.opacity = 1;
+                        items = sortListResultItemsByStatus(result.Items);
+                        break;
+                    case "name":
+                        //if we're sorted by name show the arrow icon
+                        page.querySelector('.name_sort > svg').style.opacity = 1;
+                        items = sortListResultItemsByName(result.Items);
+                        break;
+                }
 
-            var resultBody = page.querySelector('.resultBody');
-            resultBody.innerHTML = rows;
+                var resultBody = page.querySelector('.resultBody');
+                resultBody.innerHTML = '';
+                /*var rows = '';*/
+                items.forEach(async item => {
 
-            resultBody.addEventListener('click', handleItemClick);
+                    var html = '';
 
-            var pagingHtml = getQueryPagingHtml({
-                startIndex: query.StartIndex,
-                limit: query.Limit,
-                totalRecordCount: result.TotalRecordCount,
-                showLimit: false,
-                updatePageSizeSetting: false
-            });
+                    html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '" style="color: var(--theme-primary-text);">';
 
-            var topPaging = page.querySelector('.listTopPaging');
-            topPaging.innerHTML = pagingHtml;
+                    html += await renderItemRow(item);
 
-            var bottomPaging = page.querySelector('.listBottomPaging');
-            bottomPaging.innerHTML = pagingHtml;
+                    html += '</tr>';
 
-            var btnNextTop = topPaging.querySelector(".btnNextPage");
-            var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
-            var btnPrevTop = topPaging.querySelector(".btnPreviousPage");
-            var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
+                    resultBody.innerHTML += html;
 
-            if (btnNextTop) {
-                btnNextTop.addEventListener('click', function () {
-                    query.StartIndex += query.Limit;
-                    reloadItems(page, true);
+                    page.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
+                        btn.addEventListener('click',
+                            (e) => {
+                                let id = e.target.getAttribute('data-resultid');
+                                showStatusMessage(id);
+                            });
+                    })
+
+                    page.querySelectorAll('.btnIdentifyResult').forEach(btn => {
+                        btn.addEventListener('click',
+                            (e) => {
+                                e.preventDefault();
+                                let id = e.target.closest('button').getAttribute('data-resultid');
+                                var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
+                                showCorrectionPopup(e.view, item);
+                            });
+                    })
+
+                    page.querySelectorAll('.btnProcessResult').forEach(btn => {
+                        btn.addEventListener('click',
+                            (e) => {
+                                let id = e.target.closest('button').getAttribute('data-resultid');
+                                organizeFile(e.view, id);
+                            })
+                    });
+
+                    page.querySelectorAll('.btnDeleteResult').forEach(btn => {
+                        btn.addEventListener('click',
+                            (e) => {
+                                let id = e.target.closest('button').getAttribute('data-resultid');
+                                deleteOriginalFile(e.view, id);
+                            });
+                    })
+                })
+
+                
+
+                resultBody.addEventListener('click', handleItemClick);
+
+                
+
+                var pagingHtml = getQueryPagingHtml({
+                    startIndex: query.StartIndex,
+                    limit: query.Limit,
+                    totalRecordCount: result.TotalRecordCount,
+                    showLimit: false,
+                    updatePageSizeSetting: false
                 });
-            }
 
-            if (btnNextBottom) {
-                btnNextBottom.addEventListener('click', function () {
-                    query.StartIndex += query.Limit;
-                    reloadItems(page, true);
-                });
-            }
+                var topPaging = page.querySelector('.listTopPaging');
+                topPaging.innerHTML = pagingHtml;
 
-            if (btnPrevTop) {
-                btnPrevTop.addEventListener('click', function () {
-                    query.StartIndex -= query.Limit;
-                    reloadItems(page, true);
-                });
-            }
+                var bottomPaging = page.querySelector('.listBottomPaging');
+                bottomPaging.innerHTML = pagingHtml;
 
-            if (btnPrevBottom) {
-                btnPrevBottom.addEventListener('click', function () {
-                    query.StartIndex -= query.Limit;
-                    reloadItems(page, true);
-                });
+                var btnNextTop = topPaging.querySelector(".btnNextPage");
+                var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
+                var btnPrevTop = topPaging.querySelector(".btnPreviousPage");
+                var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
+
+                if (btnNextTop) {
+                    btnNextTop.addEventListener('click', async function () {
+                        query.StartIndex += query.Limit;
+                        await reloadItems(page, true);
+                    });
+                }
+
+                if (btnNextBottom) {
+                    btnNextBottom.addEventListener('click', async function () {
+                        query.StartIndex += query.Limit;
+                        await reloadItems(page, true);
+                    });
+                }
+
+                if (btnPrevTop) {
+                    btnPrevTop.addEventListener('click', async function () {
+                        query.StartIndex -= query.Limit;
+                        await reloadItems(page, true);
+                    });
+                }
+
+                if (btnPrevBottom) {
+                    btnPrevBottom.addEventListener('click', async function () {
+                        query.StartIndex -= query.Limit;
+                        await reloadItems(page, true);
+                    });
+                }
+
             }
-            
-        }
-        
-        
+            resolve(true);
+        })
 
 
     }
@@ -626,75 +682,16 @@
                 path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
                 color: "goldenrod",
                 text: "Awaiting user input..."
+            }
+            case "NewMedia": return {
+                path: "M20,4C21.11,4 22,4.89 22,6V18C22,19.11 21.11,20 20,20H4C2.89,20 2,19.11 2,18V6C2,4.89 2.89,4 4,4H20M8.5,15V9H7.25V12.5L4.75,9H3.5V15H4.75V11.5L7.3,15H8.5M13.5,10.26V9H9.5V15H13.5V13.75H11V12.64H13.5V11.38H11V10.26H13.5M20.5,14V9H19.25V13.5H18.13V10H16.88V13.5H15.75V9H14.5V14A1,1 0 0,0 15.5,15H19.5A1,1 0 0,0 20.5,14Z" ,
+                color: "green",
+                text: "New Media"
             };
         }
     }
 
-    //function showTableOptionDialog(view) {
-    //    var dlg = dialogHelper.createDialog({
-    //        removeOnClose: true,
-    //        size: 'small'
-    //    });
-
-    //    dlg.classList.add('ui-body-a');
-    //    dlg.classList.add('background-theme-a');
-
-    //    dlg.classList.add('formDialog');
-    //    dlg.style.maxWidth = '18%'
-    //    dlg.style.maxHeight = '20%'
-    //    var html = '';
-
-    //    html += '<div class="formDialogHeader">'
-    //    html += '<button is="paper-icon-button-light" class="btnCancel autoSize" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>'
-    //    html += '<h3 class="formDialogHeaderTitle">Table Options</h3>'
-    //    html += '</div>'
-
-    //    html += '<div class="formDialogContent" style="margin:2em">'
-    //    html += '<div class="dialogContentInner" style="max-width: 100%; max-height:100%; display: flex;align-items: center;justify-content: center;">'
-
-    //    html += '<button is="emby-button" type="button" class="btnClearCompleted raised button-cancel">'
-    //    html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">'
-    //    html += '<path fill="currentColor" d="M18 14.5C19.11 14.5 20.11 14.95 20.83 15.67L22 14.5V18.5H18L19.77 16.73C19.32 16.28 18.69 16 18 16C16.62 16 15.5 17.12 15.5 18.5C15.5 19.88 16.62 21 18 21C18.82 21 19.55 20.61 20 20H21.71C21.12 21.47 19.68 22.5 18 22.5C15.79 22.5 14 20.71 14 18.5C14 16.29 15.79 14.5 18 14.5M4 3H18C19.11 3 20 3.9 20 5V12.17C19.5 12.06 19 12 18.5 12C17.23 12 16.04 12.37 15.04 13H12V17H12.18C12.06 17.5 12 18 12 18.5L12 19H4C2.9 19 2 18.11 2 17V5C2 3.9 2.9 3 4 3M4 7V11H10V7H4M12 7V11H18V7H12M4 13V17H10V13H4Z" />'
-    //    html += '</svg>'
-    //    html += '<span>Clear Completed</span>'
-    //    html += '</button>'
-
-    //    html += '<button is="emby-button" type="button" class="btnClearLog raised button-cancel">'
-    //    html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">'
-    //    html += '<path fill="currentColor" d="M15.46,15.88L16.88,14.46L19,16.59L21.12,14.46L22.54,15.88L20.41,18L22.54,20.12L21.12,21.54L19,19.41L16.88,21.54L15.46,20.12L17.59,18L15.46,15.88M4,3H18A2,2 0 0,1 20,5V12.08C18.45,11.82 16.92,12.18 15.68,13H12V17H13.08C12.97,17.68 12.97,18.35 13.08,19H4A2,2 0 0,1 2,17V5A2,2 0 0,1 4,3M4,7V11H10V7H4M12,7V11H18V7H12M4,13V17H10V13H4Z" />'
-    //    html += '</svg>'
-    //    html += '<span>Clear All</span>'
-    //    html += '</button>'
-    //    html += '</div>'
-    //    html += '</div>'
-
-    //    dlg.innerHTML = html
-        
-
-    //    dlg.querySelector('.btnCancel').addEventListener('click', (e) => {
-    //        dialogHelper.close(dlg);
-    //    })
-
-    //    dlg.querySelector('.btnClearLog').addEventListener('click', function () {
-
-    //        ApiClient.clearOrganizationLog().then(function () {
-    //            query.StartIndex = 0;
-    //            reloadItems(view, true);
-    //            dialogHelper.close(dlg);
-    //        }, Dashboard.processErrorResponse);
-    //    });
-
-    //    dlg.querySelector('.btnClearCompleted').addEventListener('click', function () {
-
-    //        ApiClient.clearOrganizationCompletedLog().then(function () {
-    //            query.StartIndex = 0;
-    //            reloadItems(view, true);
-    //            dialogHelper.close(dlg);
-    //        }, Dashboard.processErrorResponse);
-    //    });
-
-    //    dialogHelper.open(dlg);
-    //}
+    
 
     function showStatusMessage(id) {
         var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
@@ -719,13 +716,21 @@
                 iterations: Infinity
             })
             break;
+        case "blink":
+            ele.animate([
+                { opacity: 0},
+                {opacity:1},
+                {opacity:0}
+            ], {duration : 500, iterations: Infinity})
         }
+        
         
     }
     
-    function renderItemRow(item, page) {
+    async function renderItemRow(item) {
         
         var html = '';
+
         var statusRenderData = item.IsInProgress && item.Status !== "Processing" && item.Status !== "Failure" //We're in some kind of progress, but not processing, or failing. We must be 'checking'
             ? getStatusRenderData("Checking") 
             : item.IsInProgress && item.Status === "Failure" //We failed before, but now we are processing. 
@@ -735,7 +740,7 @@
         //Progress Status Icon
         html += '<td class="detailTableBodyCell">';
         html += '<div class="progressIcon">';
-        html += '<svg id="statusIcon" style="width:24px;height:24px" viewBox="0 0 24 24">';
+        html += '<svg id="statusIcon" style="width:24px; height:24px; ' + (item.Status === "NewMedia" ? 'border: 2px dashed gold;' : '') + '" viewBox="0 0 24 24">';
         html += '<path fill="' + statusRenderData.color + '" d="' + statusRenderData.path + '"/>';
         html += '</svg>';
         html += '</div>';
@@ -753,8 +758,38 @@
         html += '</td>';
 
         //Name
-        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
-        html += '<span>' + formatItemName(item.ExtractedName ?? "") + '</span>';
+        html += '<td data-resultid="' + item.Id + '" class="detailTableBodyCell fileCell cellName_' + item.Id + '">';
+
+        //if (item.Status !== "InUse") {
+        //    var logo = logos.filter(l => l.Id === item.Id)[0];
+        //    var logoImage;
+        //    if (logo) {
+        //        logoImage = logo.Image
+        //    } else {
+        //        var imgUrl = await getLogoImage(item);
+        //        if (imgUrl) {
+        //            logos.push({ Id: item.Id, Image: imgUrl })
+        //            logoImage = imgUrl;
+        //        }
+        //    }
+
+        //    if (logoImage) {
+
+        //        html += '<img class="" style="background-color:black; height:100px; border-radius:2px; border: 1px solid black" src="' + logoImage + '" />';
+
+        //    } else {
+
+        //        html += '<span id="string_name_' + item.Id + '" class="" style="background-color:black; padding:1em; color: white; font-size:1em; border-radius:5px">';
+        //        html += formatItemName(item.ExtractedName.substring(0, 10) ?? "");
+        //        html += item.ExtractedYear ? ' (' + item.ExtractedYear + ')' : "";
+        //        html += '</span>';
+
+        //    }
+        //} else {
+        //    html += '';
+        //}
+        html += '<span id="string_name_' + item.Id + '">' + formatItemName(item.ExtractedName ?? "") + '</span>';
+
         html += '</td>';             
 
         //Release Edition
@@ -767,7 +802,7 @@
                     html += '';
                 }
             case "Movie":
-                html += '<span>' + (item.ExtractedEdition ?? "") + '</span>';  
+                html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
         }
        
         html += '</td>';
@@ -800,23 +835,23 @@
         html += '</td>';
 
         //Destination
-        html += '<td data-title="Destination" class="detailTableBodyCell fileCell">';
+        html += '<td data-title="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '" class="detailTableBodyCell fileCell">';
         html += item.TargetPath || '';
-        html += '</td>';
+        html += '</td>';                                 
 
         //Row sorting options (action buttons)
         html += '<td class="detailTableBodyCell organizerButtonCell" data-title="Actions" style="whitespace:no-wrap;">';
-        if (item.Status == "Checking" || item.Status == "InUse") {
+        if (item.Status === "Checking" || item.Status === "InUse") {
             html += '';
         } else {
             if (item.Status !== 'Success') {
 
                 if (item.Status !== "Processing") {
                     //Identify Entry Button - This opens the Identify/Lookup modal for the item.
-                    //We want to show this option if the item has been skipped because we think it alrerady exists, or the item failed to find a match.
+                    //We want to show this option if the item has been skipped because we think it already exists, or the item failed to find a match.
                     //There is a chance that the Lookup was incorrect if there was a match to an existing item.
                     //Allow the user to identify the item.
-                    if (item.Status === "Failure") {
+                    if (item.Status === "Failure" || (item.Status === "Waiting" && !item.TargetPath)) {
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
                         html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize" title="Identify">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -828,7 +863,11 @@
                     //Process Entry Button - This will process the item into the library based on the info in the "Destination" column of the table row.
                     //Only show this button option if: it is not a Success, not Processing, and has not failed to find a possible result.
                     //The "Destination" column info will be populated.
-                    if (item.Status !== "Failure" || item.Status == "NewResolution" || item.Status === "SkippedExisting" && item.TargetPath) {
+                    if (item.Status === "NewResolution" && item.TargetPath || 
+                        item.Status === "SkippedExisting" && item.TargetPath || 
+                        item.Status === "Waiting" && item.TargetPath || 
+                        item.Status === "NewMedia" && item.TargetPath) {
+
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
                         html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize" title="Organize">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -858,32 +897,32 @@
 
         var id;
 
-        var buttonStatus = parentWithClass(e.target, 'btnShowStatusMessage');
-        if (buttonStatus) {
+        //var buttonStatus = parentWithClass(e.target, 'btnShowStatusMessage');
+        //if (buttonStatus) {
 
-            id = buttonStatus.getAttribute('data-resultid');
-            showStatusMessage(id);
-        }
+        //    id = buttonStatus.getAttribute('data-resultid');
+        //    showStatusMessage(id);
+        //}
 
-        var identifyOrganize = parentWithClass(e.target, "btnIdentifyResult");
-        if (identifyOrganize) {
-            id = identifyOrganize.getAttribute('data-resultid');
-            var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
-            showCorrectionPopup(e.view, item);
-        }
+        //var identifyOrganize = parentWithClass(e.target, "btnIdentifyResult");
+        //if (identifyOrganize) {
+        //    id = identifyOrganize.getAttribute('data-resultid');
+        //    var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
+        //    showCorrectionPopup(e.view, item);
+        //}
 
-        var buttonOrganize = parentWithClass(e.target, 'btnProcessResult');
-        if (buttonOrganize) {
-            id = buttonOrganize.getAttribute('data-resultid');
-            organizeFile(e.view, id);
-        }
+        //var buttonOrganize = parentWithClass(e.target, 'btnProcessResult');
+        //if (buttonOrganize) {
+        //    id = buttonOrganize.getAttribute('data-resultid');
+        //    organizeFile(e.view, id);
+        //}
 
-        var buttonDelete = parentWithClass(e.target, 'btnDeleteResult');
-        if (buttonDelete) {
+        //var buttonDelete = parentWithClass(e.target, 'btnDeleteResult');
+        //if (buttonDelete) {
 
-            id = buttonDelete.getAttribute('data-resultid');
-            deleteOriginalFile(e.view, id);
-        }
+        //    id = buttonDelete.getAttribute('data-resultid');
+        //    deleteOriginalFile(e.view, id);
+        //}
 
         var buttonRemoveSmartMatchResult = parentWithClass(e.target, 'btnRemoveSmartMatchResult');
         if (buttonRemoveSmartMatchResult) {
@@ -908,38 +947,45 @@
         }
     }
 
-    function onServerEvent(e, apiClient, data) {
+    async function onServerEvent(e, apiClient, data) {
         if (e.type === "TaskCompleted") {
             if (data && data == 'AutoOrganize') {
-                reloadItems(pageGlobal, false);
-               
+                await reloadItems(pageGlobal, false);
+                
             }
         }
-        if (e.type === 'ScheduledTaskEnded') {
+        if (e.type === 'ScheduledTasksInfoStop') {
 
             if (data && data.ScheduledTask.Key === 'AutoOrganize') {
-                reloadItems(pageGlobal, false);
+                await reloadItems(pageGlobal, false);
             }
 
         } else if (e.type === 'TaskData') {
 
             if (data && data.ScheduledTask.Key === 'AutoOrganize') {
+                
                 updateTaskScheduleLastRun(data);
-                reloadItems(pageGlobal, false);
+                
+                await reloadItems(pageGlobal, false);
+                
+                setTimeout(() => { //Ah, yes this is a trick. It is to show the user that the task ran. Give them 2 seconds to see the progress. yes it ran.
+                   pageGlobal.querySelector('.organizeProgress').classList.add('hide');
+                }, 2000);
+
                 //checkUpdatingTableItems(pageGlobal);
             }
 
         } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
 
-            updateItemStatus(pageGlobal, data);
+            await updateItemStatus(pageGlobal, data);  
 
         } else if (e.type === 'AutoOrganize_ItemAdded' && data) {
 
-            reloadItems(pageGlobal, false);
+            await reloadItems(pageGlobal, false);
 
         } else {
 
-            reloadItems(pageGlobal, false);
+            await reloadItems(pageGlobal, false);
 
         }
     }
@@ -949,18 +995,65 @@
         if (data) {
             var last_task_run_header = pageGlobal.querySelector('.last-execution-time');
             var last_run_time = datetime.parseISO8601Date(data.LastExecutionResult.EndTimeUtc, true);
-            last_task_run_header.innerHTML = "Task last run: " + datetime.toLocaleTimeString(last_run_time);
+            last_task_run_header.innerHTML = datetime.toLocaleTimeString(last_run_time);
         }
     }
 
-    function updateItemStatus(page, item) {
+    async function updateItemStatus(page, item) {
 
+        
         var rowId = '#row' + item.Id;
         var row = page.querySelector(rowId);
 
         if (row) {
 
-            row.innerHTML = renderItemRow(item, page);
+            row.innerHTML = await renderItemRow(item);
+
+            try {
+                row.querySelector('.btnShowStatusMessage').addEventListener('click',
+                    (e) => {
+                        let id = e.target.getAttribute('data-resultid');
+                        showStatusMessage(id);
+                    });
+            } catch (err) {}
+            try {
+                row.querySelector('.btnIdentifyResult').addEventListener('click',
+                    (e) => {
+                        e.preventDefault();
+                        let id = e.target.closest('button').getAttribute('data-resultid');
+                        let resultItem = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
+                        showCorrectionPopup(e.view, resultItem);
+                    });
+            } catch (err) {}
+            try {
+                row.querySelector('.btnProcessResult').addEventListener('click',
+                    (e) => {
+                        let id = e.target.closest('button').getAttribute('data-resultid');
+                        organizeFile(e.view, id);
+                    })
+            } catch (err) {}
+            try {
+                row.querySelector('.btnDeleteResult').addEventListener('click',
+                    (e) => {
+                        let id = e.target.closest('button').getAttribute('data-resultid');
+                        deleteOriginalFile(e.view, id);
+                    });
+            } catch (err) {}
+
+            
+            //getLogoImage(item.ExtractedName, item.Type === "Episode" ? "Series" : item.Type).then(logo => {
+
+            //    var td = row.querySelector('.cellName_' + item.Id);
+            //    if (logo) {
+
+            //        td.innerHTML = '<img class="" style="background-color:black; padding:1em; border-radius:5px" src="' + logo + '" />';
+
+            //    } else {
+
+            //        td.innerHTML =  html += '<span id="string_name_' + item.Id + '" class="" style="background-color:black; padding:1em; color: white; font-size:1em">' + formatItemName(item.ExtractedName ?? "") + '</span>';
+
+            //    }
+            //});
 
         }
     }
@@ -985,8 +1078,8 @@
             }];
     }
 
-    const debounceSearchTerm = debounce((text) => {
-        reloadItems(pageGlobal, false, text);
+    const debounceSearchTerm = debounce(async (text) => {
+        await reloadItems(pageGlobal, false, text);
     })
 
     function debounce(callback, delay = 1000) {
@@ -1003,28 +1096,50 @@
     return function (view, params) {
 
         pageGlobal = view;
-        //view.querySelector('.btnOpenTableOptionsBtn').addEventListener('click', (e) => {
-        //     showTableOptionDialog(view);
-        //});
         
         var sortByDateBtn = view.querySelector('.date_sort')
         var sortByNameBtn = view.querySelector('.name_sort')
         var sortByStatusBtn = view.querySelector('.status_sort')
         var txtSearch = view.querySelector('#txtSearch');
+        var taskProgress = view.querySelector('.organizeProgress');
+        var taskBtn = view.querySelector('.btnOrganize')
+
+        taskBtn.addEventListener('click', () => {
+            taskProgress.classList.remove('hide');
+            animateElement(taskProgress.querySelector('svg'), "blink");
+        })
+
+        view.querySelector('.btnAll').addEventListener('click', async () => {
+            query.StartIndex = 0;
+            query.Type = "All";
+            await reloadItems(view, true);
+        });
+
+        view.querySelector('.btnMovie').addEventListener('click', async () => {
+            query.StartIndex = 0;
+            query.Type = "Movie";
+            await reloadItems(view, true);
+        });
+
+        view.querySelector('.btnEpisode').addEventListener('click', async () => {
+            query.StartIndex = 0;
+            query.Type = "Episode";
+            await reloadItems(view, true);
+        });
 
         view.querySelector('.btnClearLog').addEventListener('click', function () {
 
-            ApiClient.clearOrganizationLog().then(function () {
+            ApiClient.clearOrganizationLog().then(async function () {
                 query.StartIndex = 0;
-                reloadItems(view, true);
+                await reloadItems(view, true);
             }, Dashboard.processErrorResponse);
         });
 
         view.querySelector('.btnClearCompleted').addEventListener('click', function () {
 
-            ApiClient.clearOrganizationCompletedLog().then(function () {
+            ApiClient.clearOrganizationCompletedLog().then(async function () {
                 query.StartIndex = 0;
-                reloadItems(view, true);
+                await reloadItems(view, true);
             }, Dashboard.processErrorResponse);
         });
 
@@ -1035,7 +1150,7 @@
             debounceSearchTerm(e.target.value);
         });
         //Sort by name column header, and directional arrow
-        sortByNameBtn.addEventListener('click', function (e) {
+        sortByNameBtn.addEventListener('click', async function (e) {
             e.preventDefault();
             sort = { type: 'name', ascending: sort.type == "name" ? sort.ascending ? false : true : true };
             var path = sortByNameBtn.querySelector('path')
@@ -1048,7 +1163,7 @@
             sortByDateBtn.querySelector('svg').style.opacity = 0
             sortByStatusBtn.querySelector('svg').style.opacity = 0
 
-            reloadItems(view, false)
+            await reloadItems(view, false)
         })
         sortByNameBtn.addEventListener('mouseenter', (e) => {
             var svg = sortByNameBtn.querySelector('svg')
@@ -1063,7 +1178,7 @@
         })
 
         //Sort by status column header, and directional arrow
-        sortByStatusBtn.addEventListener('click', function (e) {
+        sortByStatusBtn.addEventListener('click', async function (e) {
             e.preventDefault();
             sort = { type: 'status', ascending: sort.type == "status" ? sort.ascending ? false : true : true };
             var path = sortByStatusBtn.querySelector('path')
@@ -1076,7 +1191,7 @@
             sortByDateBtn.querySelector('svg').style.opacity = 0
             sortByNameBtn.querySelector('svg').style.opacity = 0
 
-            reloadItems(view, false)
+            await reloadItems(view, false)
         })
         sortByStatusBtn.addEventListener('mouseenter', (e) => {
             var svg = sortByStatusBtn.querySelector('svg')
@@ -1091,7 +1206,7 @@
         })
 
         //Sort by date column header, and directional arrow
-        sortByDateBtn.addEventListener('click', function (e) {
+        sortByDateBtn.addEventListener('click', async function (e) {
             e.preventDefault();
             sort = { type: 'date', ascending: sort.type == "date" ? sort.ascending ? false : true : true };
             var path = sortByDateBtn.querySelector('path')
@@ -1104,7 +1219,7 @@
             sortByStatusBtn.querySelector('svg').style.opacity = 0
             sortByNameBtn.querySelector('svg').style.opacity = 0
 
-            reloadItems(view, false)
+            await reloadItems(view, false)
         })
         sortByDateBtn.addEventListener('mouseenter', (e) => {
             var svg = sortByDateBtn.querySelector('svg')
@@ -1118,23 +1233,25 @@
             }
         })
         
-        view.addEventListener('viewshow', function (e) {
+
+
+        view.addEventListener('viewshow', async function (e) {
 
             mainTabsManager.setTabs(this, 0, getTabs);
 
-            reloadItems(view, true);
+           
                  
-            events.on(serverNotifications, 'AutoOrganize_LogReset', onServerEvent);
-            events.on(serverNotifications, 'AutoOrganize_ItemUpdated', onServerEvent);
-            events.on(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
-            events.on(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
-            events.on(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
-            events.on(serverNotifications, 'TaskData', onServerEvent)
+            events.on(serverNotifications, 'AutoOrganize_LogReset', await onServerEvent);
+            events.on(serverNotifications, 'AutoOrganize_ItemUpdated', await onServerEvent);
+            events.on(serverNotifications, 'AutoOrganize_ItemRemoved', await onServerEvent);
+            events.on(serverNotifications, 'AutoOrganize_ItemAdded', await onServerEvent);
+            events.on(serverNotifications, 'ScheduledTasksInfoStop', await onServerEvent);
+            events.on(serverNotifications, 'TaskData', await onServerEvent)
             // on here
             taskButton({
                 mode: 'on',
-                progressElem: view.querySelector('.organizeProgress'),
-                panel: view.querySelector('.organizeTaskPanel'),
+                //progressElem: view.querySelector('.organizeProgress'),
+                //panel: view.querySelector('.organizeTaskPanel'),
                 taskKey: 'AutoOrganize',
                 button: view.querySelector('.btnOrganize')
             });
@@ -1143,6 +1260,8 @@
                 var data = tasks.filter(t => t.Key == 'AutoOrganize')[0];
                 updateTaskScheduleLastRun(data);
             })
+
+            await reloadItems(view, true);
         });
 
         view.addEventListener('viewhide', function (e) {

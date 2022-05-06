@@ -174,7 +174,7 @@
 
         //view.querySelector('#chkEnableScheduledTask').checked = config.EnableScheduledTask;
 
-        view.querySelector('#chkEnableTvSorting').checked = config.IsEpisodeSortingEnabled;
+        //view.querySelector('#chkEnableTvSorting').checked = config.IsEpisodeSortingEnabled;
 
         view.querySelector('#chkOverwriteExistingItems').checked = config.OverwriteExistingFiles;
 
@@ -186,14 +186,15 @@
 
         view.querySelector('#txtSeasonZeroName').value = config.SeasonZeroFolderName;
 
-        view.querySelector('#txtWatchFolder').value = config.WatchLocations[0] || '';
+        //view.querySelector('#txtWatchFolder').value = config.WatchLocations[0] || '';
 
         //view.querySelector('.watchFolderListContainer').innerHTML = getWatchedLocationListItemHtml(config.WatchLocations)
         var watchLocationList = view.querySelector('.watchFolderListContainer');
         watchLocationList.innerHTML = getWatchedLocationListItemHtml(config.WatchLocations);
         var removeButtons = watchLocationList.querySelectorAll('Button');
         if (removeButtons) {
-          removeButtons.forEach(btn => btn.addEventListener('click', async (e) => await removeWatchedFolder(e, view)))
+            removeButtons.forEach(btn => btn.addEventListener('click',
+                async (e) => await removeWatchedFolder(e, view)));
         }
 
 
@@ -215,8 +216,6 @@
 
         view.querySelector('#copyOrMoveFile').value = config.CopyOriginalFile.toString();
 
-        view.querySelector('#chkEnableMovieSorting').checked = config.IsMovieSortingEnabled;
-
         view.querySelector('#chkEnableMoviesAutoDetect').checked = config.AutoDetectMovie;
 
         view.querySelector('#chkSubMovieFolders').checked = config.CreateMovieInFolder;
@@ -236,9 +235,9 @@
 
             //config.EnableScheduledTask = view.querySelector('#chkEnableScheduledTask').checked;
 
-            config.IsEpisodeSortingEnabled = view.querySelector('#chkEnableTvSorting').checked;
+            //config.IsEpisodeSortingEnabled = view.querySelector('#chkEnableTvSorting').checked;
 
-            config.IsMovieSortingEnabled = view.querySelector('#chkEnableMovieSorting').checked;
+            config.AutoDetectMovie = view.querySelector('#chkEnableMoviesAutoDetect').checked;
 
             config.OverwriteExistingFiles = view.querySelector('#chkOverwriteExistingItems').checked;
 
@@ -446,15 +445,15 @@
             });
         }
 
-        function toggleSeriesLocation() {
-            if (view.querySelector('#chkEnableSeriesAutoDetect').checked) {
-                view.querySelector('.fldSelectSeriesFolder').classList.remove('hide');
-                view.querySelector('#selectSeriesFolder').setAttribute('required', 'required');
-            } else {
-                view.querySelector('.fldSelectSeriesFolder').classList.add('hide');
-                view.querySelector('#selectSeriesFolder').removeAttribute('required');
-            }
-        }
+        //function toggleSeriesLocation() {
+        //    if (view.querySelector('#chkEnableSeriesAutoDetect').checked) {
+        //        view.querySelector('.fldSelectSeriesFolder').classList.remove('hide');
+        //        view.querySelector('#selectSeriesFolder').setAttribute('required', 'required');
+        //    } else {
+        //        view.querySelector('.fldSelectSeriesFolder').classList.add('hide');
+        //        view.querySelector('#selectSeriesFolder').removeAttribute('required');
+        //    }
+        //}
 
         function toggleOverwriteExistingItemKeyWords() {
             if (!view.querySelector('#chkOverwriteExistingItems').checked) {
@@ -535,15 +534,15 @@
             }
         }
 
-        function toggleMovieLocation() {
-            if (view.querySelector('#chkEnableMoviesAutoDetect').checked) {
-                view.querySelector('.fldSelectMovieFolder').classList.remove('hide');
-                view.querySelector('#selectMovieFolder').setAttribute('required', 'required');
-            } else {
-                view.querySelector('.fldSelectMovieFolder').classList.add('hide');
-                view.querySelector('#selectMovieFolder').removeAttribute('required');
-            }
-        }
+        //function toggleMovieLocation() {
+        //    if (view.querySelector('#chkEnableMoviesAutoDetect').checked) {
+        //        view.querySelector('.fldSelectMovieFolder').classList.remove('hide');
+        //        view.querySelector('#selectMovieFolder').setAttribute('required', 'required');
+        //    } else {
+        //        view.querySelector('.fldSelectMovieFolder').classList.add('hide');
+        //        view.querySelector('#selectMovieFolder').removeAttribute('required');
+        //    }
+        //}
 
         function populateMovieLocation(config) {
 
@@ -594,11 +593,11 @@
         
         view.querySelector('#btnSelectWatchFolder').addEventListener('click', selectWatchFolder);
           
-        view.querySelector('#chkEnableSeriesAutoDetect').addEventListener('change', () => {
-            toggleSeriesLocation();
-            onSubmit(view);
-            return false;
-        });
+        //view.querySelector('#chkEnableSeriesAutoDetect').addEventListener('change', () => {
+        //    //toggleSeriesLocation();
+        //    onSubmit(view);
+        //    return false;
+        //});
 
         view.querySelector('#chkOverwriteExistingItems').addEventListener('change', () => {
             toggleOverwriteExistingItemKeyWords();
@@ -609,11 +608,11 @@
         view.querySelector('#txtMoviePattern').addEventListener('change', updateMoviePatternHelp);
         view.querySelector('#txtMoviePattern').addEventListener('keyup', updateMoviePatternHelp);
 
-        view.querySelector('#chkEnableMoviesAutoDetect').addEventListener('change', () => {
-            toggleMovieLocation();
-            onSubmit(view);
+        //view.querySelector('#chkEnableMoviesAutoDetect').addEventListener('change', () => {
+        //    //toggleMovieLocation();
+        //    onSubmit(view);
             
-        });
+        //});
 
         view.querySelector('#chkSubMovieFolders').addEventListener('click', () => {
             toggleMovieFolderPattern();
@@ -634,7 +633,7 @@
 
             mainTabsManager.setTabs(this, 1, getTabs);
 
-            var config = await ApiClient.getNamedConfiguration('autoorganize')
+            var config = await ApiClient.getNamedConfiguration('autoorganize');
             
             loadPage(view, config);
 
@@ -643,12 +642,12 @@
             updateEpisodePatternHelp();
             updateMultiEpisodePatternHelp();
             populateSeriesLocation(config);
-            toggleSeriesLocation();
+            //toggleSeriesLocation();
 
             updateMoviePatternHelp();
             updateMovieFolderPatternHelp();
             populateMovieLocation(config);
-            toggleMovieLocation();
+            //toggleMovieLocation();
             toggleMovieFolderPattern();
             
         });

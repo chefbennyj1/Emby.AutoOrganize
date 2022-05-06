@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -147,7 +148,7 @@ namespace Emby.AutoOrganize.Core
             return _config.GetAutoOrganizeOptions();
         }
 
-        public async Task PerformOrganization(string resultId, bool? requestToMoveFile)
+        public async void PerformOrganization(string resultId, bool requestToMoveFile)
         {
             var result = _repo.GetResult(resultId);
 
@@ -156,34 +157,36 @@ namespace Emby.AutoOrganize.Core
          
             if (string.IsNullOrEmpty(result.TargetPath))
             {
-                throw new ArgumentException("No target path available.");
+                _logger.Warn("No target path available.");
+                return;
             }
 
-            FileOrganizationResult organizeResult;
-            IFileOrganizer organizer;
+            FileOrganizationResult organizeResult = null;
+                //IFileOrganizer organizer;
 
             switch (result.Type)
             {
                 case FileOrganizerType.Episode:
-                     organizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);                                        
+                    var episodeOrganizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
-                    organizeResult = await organizer.OrganizeFile(requestToMoveFile, result.OriginalPath, options, CancellationToken.None)
-                        .ConfigureAwait(false);
+                    organizeResult = await episodeOrganizer.OrganizeFile(requestToMoveFile, result.OriginalPath, options, CancellationToken.None);
 
                     break;
                 case FileOrganizerType.Movie:
-                    organizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
+                    var movieOrganizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
-                    organizeResult = await organizer.OrganizeFile(requestToMoveFile, result.OriginalPath, options, CancellationToken.None)
-                        .ConfigureAwait(false);
+                    organizeResult = await movieOrganizer.OrganizeFile(requestToMoveFile, result.OriginalPath, options, CancellationToken.None);
+
                     break;
                 default:
-                    throw new OrganizationException("No organizer exist for the type " + result.Type);
+                    _logger.Warn("No organizer exist for the type " + result.Type);
+                    break;
             }
 
-            if (organizeResult.Status != FileSortingStatus.Success)
+            if (organizeResult != null && organizeResult.Status != FileSortingStatus.Success)
             {
-                throw new OrganizationException(result.StatusMessage);
+                _logger.Warn($"Error organizing file: { result.OriginalFileName}");
+
             }
         }
 
@@ -199,18 +202,18 @@ namespace Emby.AutoOrganize.Core
             EventHelper.FireEventIfNotNull(LogReset, this, EventArgs.Empty, _logger);
         }
 
-        public async Task PerformOrganization(EpisodeFileOrganizationRequest request)
+        public void PerformOrganization(EpisodeFileOrganizationRequest request)
         {
             var organizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();
-            _logger.Info($"Beginning file organization with corrections: {request.NewSeriesName} to {request.TargetFolder}");
-            var result = await organizer.OrganizeWithCorrection(request, options, CancellationToken.None).ConfigureAwait(false);
+            _logger.Info($"Beginning file organization with corrections: {request.Name} to {request.TargetFolder}");
+            organizer.OrganizeWithCorrection(request, options, CancellationToken.None); //.ConfigureAwait(false);
 
-            if (result.Status != FileSortingStatus.Success)
-            {
-                throw new Exception(result.StatusMessage);
-            }
+            //if (result.Status != FileSortingStatus.Success)
+            //{
+            //    _logger.Warn(result.StatusMessage);
+            //}
         }
 
         public void PerformOrganization(MovieFileOrganizationRequest request)
@@ -218,12 +221,12 @@ namespace Emby.AutoOrganize.Core
             var organizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();
-            var result = organizer.OrganizeWithCorrection(request, options, CancellationToken.None);
+            organizer.OrganizeWithCorrection(request, options, CancellationToken.None);
 
-            if (result.Status != FileSortingStatus.Success)
-            {
-                throw new Exception(result.StatusMessage);
-            }
+            //if (result.Status != FileSortingStatus.Success)
+            //{
+            //   _logger.Warn(result.StatusMessage);
+            //}
         }
 
         public QueryResult<SmartMatchResult> GetSmartMatchInfos(FileOrganizationResultQuery query)
@@ -236,6 +239,21 @@ namespace Emby.AutoOrganize.Core
             return _config.Configuration;
         }
 
+        //public string ParseMovieNameFromFileName(string fileName)
+        //{
+        //    var name = fileName;
+        //    var regexName = new Regex(@"(?<=[a-zA-Z0-9]{3}-).*");
+        //    var namingMatch1 = regexName.Match(fileName);
+
+        //    if (namingMatch1.Success)
+        //    {
+        //        name = namingMatch1.Value;
+        //    }
+
+
+
+        //    return name;
+        //}
         public string GetVideoEncodingType(string fileName)
         {
             var streamEncodingRegex = new Regex(@"(x264|h264|H264|X264|xvid|xvidvd)([ _\,\.\(\)\[\]\-]|$)", RegexOptions.IgnoreCase);
@@ -244,8 +262,13 @@ namespace Emby.AutoOrganize.Core
         }
         public FileOrganizerType GetFileOrganizerType(string fileName)
         {
+            if (_libraryManager.IsSubtitleFile(fileName.AsSpan()))
+            {
+                return FileOrganizerType.Subtitle;
+            }
+
             var regexDate = new Regex(@"\b(19|20|21)\d{2}\b");
-            var testTvShow = new Regex(@"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:([Ss](\d{1,2})))", RegexOptions.IgnoreCase);
+            var testTvShow = new Regex(@"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:[Ss](\d{1,2}x[Ee]\d{1,2}))|(?:([Ss](\d{1,2})))", RegexOptions.IgnoreCase);
 
             var dateMatch = regexDate.Match(fileName);
             //The file name has a date in it

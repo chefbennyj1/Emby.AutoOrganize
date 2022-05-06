@@ -10,7 +10,6 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Events;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
-using MediaBrowser.Model.Providers;
 using System;
 using System.IO;
 using System.Linq;
@@ -21,7 +20,7 @@ using MediaBrowser.Model.Extensions;
 
 namespace Emby.AutoOrganize.Core.FileOrganization
 {
-    public class MovieOrganizer : IFileOrganizer
+    public class MovieOrganizer : BaseFileOrganizer<MovieFileOrganizationRequest>
     {
         private ILibraryMonitor LibraryMonitor               { get; }
         private ILibraryManager LibraryManager               { get; }
@@ -34,7 +33,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         public static event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
 
         //public static MovieOrganizer Instance { get; private set; }
-        public MovieOrganizer(IFileOrganizationService organizationService, IFileSystem fileSystem, ILogger log, ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager)
+        public MovieOrganizer(IFileOrganizationService organizationService, IFileSystem fileSystem, ILogger log, ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager) 
+            : base(organizationService, fileSystem, log, libraryManager, libraryMonitor, providerManager)
         {
             OrganizationService = organizationService;
             FileSystem          = fileSystem;
@@ -48,7 +48,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
         //private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Movie;
 
-        public async Task<FileOrganizationResult> OrganizeFile(bool? requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
+        public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {                
             Log.Info("Sorting file {0}", path);
 
@@ -84,10 +84,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             if (LibraryMonitor.IsPathLocked(path.AsSpan()) && result.Status != FileSortingStatus.Processing || IsCopying(path, FileSystem))
             {
                 result.Status = FileSortingStatus.InUse;
+                result.Date = DateTime.UtcNow; //Update the Date so that it moves to the top of the list in the UI (UI table is sorted by date)
                 result.StatusMessage = "Path is locked by other processes. Please try again later.";
                 Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                //OrganizationService.RemoveFromInprogressList(result);
                 OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 return result;
             }           
@@ -101,35 +102,158 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
 
             try
-            {      
+            {
                 
-                var serverConfiguration = OrganizationService.GetServerConfiguration();
-                var movieInfo = LibraryManager.IsVideoFile(path.AsSpan()) ? 
-                    LibraryManager.ParseName(Path.GetFileName(path).AsSpan()) : 
-                    new ItemLookupInfo()
+                var movieName = string.Empty;
+                int? movieYear = null;
+
+                //Parse the file name for data
+                var movieInfoFromFileName = LibraryManager.ParseName(Path.GetFileName(path).AsSpan());
+                
+                //Possible name of the movie
+                var extractedMovieNameFromFile = movieInfoFromFileName.Name;
+                
+                //Movie name could be null or empty
+                //Or it could contain a dash.
+                //If the movie name contains a dash, this is a typical naming convention, and it may not be possible to parse an actual name for the file.
+                //Try the parent folder for proper naming that emby will understand.
+                if (extractedMovieNameFromFile.Contains("-") || string.IsNullOrEmpty(extractedMovieNameFromFile))
+                {
+                    Log.Info($"Movie name  contains dash. Checking parent folder for naming..");
+                    //Split the file path by the Separator
+                    var paths = path.Split(FileSystem.DirectorySeparatorChar);
+
+                    //Check the file's Parent folder for some kind of proper naming
+                    var  movieInfoFromParentFolderName = LibraryManager.ParseName(paths[paths.Count() - 2].AsSpan());
+
+                    var extractedMovieNameFromParentFolder = movieInfoFromParentFolderName.Name;
+                    var extractedMovieYearFromParentFolder = movieInfoFromParentFolderName.Year;
+
+                    //Both attempts to read a movie name from the file and parent folder has no results
+                    //User will have to sort with corrections.
+                    if (string.IsNullOrEmpty(extractedMovieNameFromFile) && string.IsNullOrEmpty(extractedMovieNameFromParentFolder))
                     {
-                        MetadataCountryCode = serverConfiguration.MetadataCountryCode,
-                        MetadataLanguage = serverConfiguration.PreferredMetadataLanguage
-                    };
+                        var msg = $"Unable to determine movie name from {path}";
+                        result.Status = FileSortingStatus.Failure;
+                        result.StatusMessage = msg;
+                        Log.Warn(msg);
+                        OrganizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                        return result;
+                    }
 
-                var movieName = movieInfo.Name;
-                
-                if (!string.IsNullOrEmpty(movieName))
-                {
-                    var movieYear = movieInfo.Year;
-
-                    Log.Debug("Extracted information from {0}. Movie {1}, Year {2}", path, movieName, movieYear);
-                                       
-                    
-                    await OrganizeMovie(requestToMoveFile, path, movieName, movieYear, options, result, cancellationToken).ConfigureAwait(false);
+                    //We found everything we need.
+                    if (!string.IsNullOrEmpty(extractedMovieNameFromParentFolder) && extractedMovieYearFromParentFolder.HasValue)
+                    {
+                        Log.Info("Parsed movie name from parent folder successful...");
+                        movieName = movieInfoFromParentFolderName.Name;
+                        movieYear = movieInfoFromParentFolderName.Year;
+                    }
                 }
-                else
+
+                
+                //We tried the parent folder for naming, but got nothing.
+                //Use the name which may contains a dash.
+                //Use Regex to select everything after the dash.
+                if (string.IsNullOrEmpty(movieName))
                 {
+                    movieName = CleanMovieFileName(extractedMovieNameFromFile);
+                }
+
+                if (!movieYear.HasValue)
+                {
+                    movieYear = CleanMovieYear(FileSystem.GetFileNameWithoutExtension(path));
+                }
+
+                Log.Info($"Extracted information from {path}. Movie {movieName}, Year {(movieYear.HasValue ? movieYear.Value.ToString() : " Can not parse year")}");
+
+                result.ExtractedName = movieName.Replace(".", " ");
+                result.ExtractedYear = movieYear;
+                result.ExtractedResolution = GetStreamResolutionFromFileName(path);
+                result.ExtractedEdition = GetReleaseEditionFromFileName(path);
+
+                OrganizationService.SaveResult(result, cancellationToken);
+                 
+                
+
+                Log.Info(requestToMoveFile ? $"User Requests to sort {result.OriginalFileName}." : "");
+                
+                //If we have both a year and a name, that is all we really need to name the file for the user
+                if (!string.IsNullOrEmpty(result.ExtractedName) && result.ExtractedYear.HasValue)
+                {
+                    var targetFolder = "";
+                    if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    {
+                        targetFolder = options.DefaultMovieLibraryPath;
+                    } 
+                    else
+                    {
+                        //The user didn't filling the settings - warn the log, return failure - that is all
+                        var msg = $"Auto sorting for {movieName} is not possible. Please choose a default library path in settings";
+                        result.Status = FileSortingStatus.Failure;
+                        result.StatusMessage = msg;
+                        Log.Warn(msg);
+                        //OrganizationService.RemoveFromInprogressList(result);
+                        OrganizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                        return result;
+                    }
+
+                    //Name the file path with the options the user filled out, and the meta from the source file name.
+                    var movieFolderName = GetMovieFolderName(result, options);
+                    var movieFileName   = GetMovieFileName(result.OriginalPath, result, options);
+                    result.TargetPath   = Path.Combine(targetFolder, movieFolderName, movieFileName);
+
+                    
+                    //organize the the file
+                    OrganizeMovie(requestToMoveFile, path, options, result, cancellationToken);
+
+                    return result;
+
+                }
+
+                    
+                //Oh so we don't have a name or a year... most likely a year is missing. We'll need that to sort the file - it's an option the user has for naming.
+
+                //Maybe the movie already part of the library... ...
+                var movie = GetMatchingMovie(result.ExtractedName, movieYear, result);
+            
+                    
+                if (movie == null)
+                {
+                    //Not part of the library, but we really need that year... 
+                    //Ask the metadata providers for it...
+                    movie = await GetMovieRemoteProviderData(result.ExtractedName, movieYear, result, options, cancellationToken).ConfigureAwait(false);
+                }
+
+                //Did any of that work... ?
+
+                if (movie is null)
+                {
+                    //Nope none of it did. Fail the movie sorting. The user will have to sort with corrections.
                     var msg = $"Unable to determine movie name from {path}";
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     Log.Warn(msg);
+                    //OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    return result;
                 }
+                    
+                //We have a movie either from the library or the providers data. 
+                //At this point one of the methods gave us a path for the movie.
+                //TODO: I don't like that one of those methods handed us a path... It would be best to build the path here using the data returned from those methods. Fix that!
+
+                result.TargetPath = movie.Path;
+                OrganizationService.SaveResult(result, cancellationToken);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+                 
+                
+                //Guess the naming is good to go! Organize it.
+                OrganizeMovie(requestToMoveFile, path, options, result, cancellationToken);
+            
+                
 
                 // Handle previous result
                 var previousResult = OrganizationService.GetResultBySourcePath(path);
@@ -146,124 +270,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 if (ex.Message.Contains("being used by another process"))
                 {
-                    var errorMsg =
-                        $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
-                    result.Status = FileSortingStatus.InUse;
-                    result.StatusMessage = errorMsg;
-                    Log.ErrorException(errorMsg, ex);
-                    
-                }
-                else
-                {
-                    result.Status = FileSortingStatus.Failure;
-                    result.StatusMessage = ex.Message;
-                    Log.ErrorException("Error organizing file", ex);
-                }
-            }
-            catch (OrganizationException ex)
-            {
-                
-            }
-            catch (Exception ex)
-            {
-                result.Status = FileSortingStatus.Failure;
-                result.StatusMessage = ex.Message;
-                Log.ErrorException("Error organizing file", ex);
-            }
-            
-            OrganizationService.SaveResult(result, CancellationToken.None);
-
-            return result;
-        }
-        
-
-        private Movie CreateNewMovie(MovieFileOrganizationRequest request, BaseItem targetFolder, FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
-        {
-            // To avoid Movie duplicate by mistake (Missing SmartMatch and wrong selection in UI)
-            var movie = GetMatchingMovie(request.NewMovieName, request.NewMovieYear, targetFolder, result, options);
-
-            if (movie == null)
-            {
-                // We're having a new movie here
-                movie = new Movie
-                {
-                    Name = request.NewMovieName,
-                    ProductionYear = request.NewMovieYear,
-                    IsInMixedFolder = !options.CreateMovieInFolder,
-                    ProviderIds = request.NewMovieProviderIds,
-                };
-
-                var newPath = GetMoviePath(result.OriginalPath, movie, options);
-
-                if (string.IsNullOrEmpty(newPath))
-                {
-                    var msg = $"Unable to sort {result.OriginalPath} because target path could not be determined.";
-                    throw new OrganizationException(msg);
-                }
-
-                movie.Path = Path.Combine(request.TargetFolder ?? targetFolder.Path, newPath);
-            }
-
-            return movie;
-        }
-
-        public FileOrganizationResult OrganizeWithCorrection(MovieFileOrganizationRequest request, AutoOrganizeOptions options, CancellationToken cancellationToken)
-        {
-            
-            var result = OrganizationService.GetResult(request.ResultId);
-
-            try
-            {
-                Movie movie = null;
-
-                if (request.NewMovieProviderIds.Count > 0)
-                {
-                    BaseItem targetFolder = null;
-
-                    if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
-                    {
-                        targetFolder = LibraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
-                    }
-
-                    // To avoid movie duplicate by mistake (Missing SmartMatch and wrong selection in UI)
-                    movie = CreateNewMovie(request, targetFolder, result, options, cancellationToken);
-                }
-
-                if (movie == null)
-                {
-                    // Existing movie
-                    movie = (Movie)LibraryManager.GetItemById(request.MovieId);
-                    var fileName = GetMovieFileName(result.OriginalPath, movie, options);
-                    //var newPath = GetMovieFolder(result.OriginalPath, movie, options);
-                    var targetFolder = FileSystem.GetDirectoryName(movie.Path);
-                    //var targetFolder = _libraryManager
-                    //.GetVirtualFolders()
-                    //.Where(i => string.Equals(i.CollectionType, CollectionType.Movies.ToString(), StringComparison.OrdinalIgnoreCase))
-                    //.FirstOrDefault()
-                    //.Locations
-                    //.Where(i => movie.Path.Contains(i))
-                    //.FirstOrDefault();
-                   
-                    movie.Path = Path.Combine(targetFolder, fileName);
-                    result.TargetPath = movie.Path;
-                    
-                    //request.RequestToMoveFile = true;
-
-                    Log.Info("Organize with corrections: " + movie.Path);
-                }
-
-                // We manually set the media as Movie 
-                //result.Type = CurrentFileOrganizerType;
-
-                OrganizeMovie(request.RequestToMoveFile, result.OriginalPath, movie, options, null, result, cancellationToken);
-
-               //organizationService.SaveResult(result, CancellationToken.None);
-
-            }
-            catch (IOException ex)
-            {
-                if (ex.Message.Contains("being used by another process"))
-                {
                     var errorMsg = $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
                     result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
@@ -277,6 +283,167 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Log.ErrorException("Error organizing file", ex);
                 }
             }
+            catch (OrganizationException)
+            {
+                
+            }
+            catch (Exception ex)
+            {
+                result.Status = FileSortingStatus.Failure;
+                result.StatusMessage = ex.Message;
+                Log.ErrorException("Error organizing file", ex);
+            }
+
+            OrganizationService.SaveResult(result, cancellationToken);
+            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+
+            return result;
+        }
+        
+
+        private Movie CreateNewMovie(MovieFileOrganizationRequest request, string targetRootFolder, FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
+        {
+            // To avoid Movie duplicate by mistake (Missing SmartMatch and wrong selection in UI)
+            var movie = GetMatchingMovie(request.Name, request.Year, result);
+
+            if (movie == null)
+            {
+                movie = new Movie
+                {
+                    Name = request.Name,
+                    ProductionYear = request.Year,
+                    IsInMixedFolder = !options.CreateMovieInFolder,
+                    ProviderIds = request.ProviderIds ?? new ProviderIdDictionary(),
+                };
+
+                var movieFolderPath = "";
+
+                if (options.CreateMovieInFolder)
+                {
+                    movieFolderPath = Path.Combine(movieFolderPath, GetMovieFolderName(result, options));
+                }
+
+                movieFolderPath = Path.Combine(movieFolderPath, GetMovieFileName(result.OriginalPath, result, options));
+                
+                if (string.IsNullOrEmpty(movieFolderPath))
+                {
+                    var msg = $"Unable to sort {result.OriginalPath} because target path could not be determined.";
+                    Log.Warn(msg);
+                    return null;
+                }
+
+                movie.Path = Path.Combine(request.TargetFolder ?? targetRootFolder, movieFolderPath);
+
+            }
+
+            return movie;
+        }
+
+        public void OrganizeWithCorrection(MovieFileOrganizationRequest request, AutoOrganizeOptions options, CancellationToken cancellationToken)
+        {
+            
+            var result = OrganizationService.GetResult(request.ResultId);
+            var overwriteFile = request.RequestToMoveFile ?? false;
+
+            try
+            {
+                Movie movie = null;
+
+                
+                string targetRootFolder = null;
+
+                if (!string.IsNullOrEmpty(request.TargetFolder))
+                {
+                    //User wants the file to go in this root folder.
+                    targetRootFolder = request.TargetFolder;
+                }
+                else
+                {
+                    //User didn't specify a root folder, so we'll use default 
+                    if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    {
+                        targetRootFolder = options.DefaultMovieLibraryPath;
+                    }
+                    else
+                    {
+                        //User didn't fill out the settings - warn the log, and fail organization.
+                        result.Status = FileSortingStatus.Failure;
+                        result.StatusMessage = "Auto Organize settings: default library not set for Movies. Stopping Organization";
+                        Log.Warn(result.StatusMessage);
+                        //OrganizationService.RemoveFromInprogressList(result);
+                        OrganizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                        //return result;
+
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(request.Name) && request.Year.HasValue)
+                {
+                    result.ExtractedName = request.Name;
+                    result.ExtractedYear = request.Year;
+
+                    OrganizationService.SaveResult(result, cancellationToken);
+
+                    //Name the file path with the options the user filled out, and the request.
+                    var movieFolderName = GetMovieFolderName(result, options);
+                    var movieFileName   = GetMovieFileName(result.OriginalPath, result, options);
+                    result.TargetPath   = Path.Combine(targetRootFolder, movieFolderName, movieFileName);
+
+                    
+                    //organize the the file
+                    OrganizeMovie(overwriteFile, result.OriginalPath, options, result, cancellationToken);
+
+                    //We won't use this old version of the result in the UI. It will have been updated
+                    //return result;
+                    return;
+                }
+
+                // To avoid movie duplicate by mistake (Missing SmartMatch and wrong selection in UI)
+                movie = CreateNewMovie(request, targetRootFolder, result, options, cancellationToken);
+                
+
+                if (movie is null)
+                {
+                    var msg = "Error organizing file with corrections";
+                    result.Status = FileSortingStatus.Failure;
+                    result.StatusMessage = msg;
+                    Log.Warn(msg);
+                    //OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    return;
+                }
+
+                result.TargetPath = movie.Path;
+                 
+                OrganizationService.SaveResult(result, cancellationToken);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+
+                Log.Info("Organize with corrections: " + movie.Path);
+                
+                OrganizeMovie(overwriteFile, result.OriginalPath, options, result, cancellationToken);
+
+               
+
+            }
+            catch (IOException ex)
+            {
+                if (ex.Message.Contains("being used by another process"))
+                {
+                    var errorMsg = $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
+                    result.Status = FileSortingStatus.InUse;
+                    result.StatusMessage = errorMsg;
+                    Log.Warn(errorMsg, ex);
+                    
+                }
+                else
+                {
+                    result.Status = FileSortingStatus.Failure;
+                    result.StatusMessage = ex.Message;
+                    Log.Warn("Error organizing file", ex);
+                }
+            }
             catch (Exception ex)
             {
                 result.Status = FileSortingStatus.Failure;
@@ -284,76 +451,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
 
             OrganizationService.SaveResult(result, CancellationToken.None);
-
-            return result;
+            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+            //return result;
         }
+     
 
-
-        private async Task OrganizeMovie(bool? requestToMoveFile, string sourcePath, string movieName, int? movieYear, AutoOrganizeOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
+        private void OrganizeMovie(bool overwriteFile, string sourcePath, AutoOrganizeOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
         {
-            var movie = GetMatchingMovie(movieName, movieYear, null, result, options);
-            RemoteSearchResult searchResult = null;
-
-            if (movie == null)
-            {
-                var autoResult = await AutoDetectMovie(movieName, movieYear, result, options, cancellationToken).ConfigureAwait(false);
-
-                movie = autoResult?.Item1;
-                searchResult = autoResult?.Item2;
-
-                if (movie == null)
-                {
-                    var msg = string.Format("Unable to find movie in library matching name {0}", movieName);
-                    result.Status = FileSortingStatus.Failure;
-                    result.Type = FileOrganizerType.Movie; 
-                    result.StatusMessage = msg;
-                    OrganizationService.RemoveFromInprogressList(result);
-                    //_organizationService.SaveResult(result, cancellationToken);
-                                       
-                    throw new OrganizationException(msg);
-                }
-            }
-
-            // We detected an Movie (either auto-detect or in library)
-            // We have all the chance that the media type is an Movie
-            //result.Type = CurrentFileOrganizerType;
-
-            OrganizeMovie(requestToMoveFile, sourcePath, movie, options, searchResult, result, cancellationToken);
-
-        }
-
-        private void OrganizeMovie(bool? requestToMoveFile,string sourcePath, Movie movie, AutoOrganizeOptions options, RemoteSearchResult remoteResult, FileOrganizationResult result, CancellationToken cancellationToken)
-        {
-            OrganizeMovie(requestToMoveFile,sourcePath, movie, options,result, cancellationToken);
-        }
-
-        private void OrganizeMovie(bool? requestToMoveFile, string sourcePath, Movie movie, AutoOrganizeOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
-        {
-            //Handle user request from UI
-            if (requestToMoveFile.HasValue)
-            {                
-                if (requestToMoveFile.Value && !string.IsNullOrWhiteSpace(result.TargetPath))
-                {
-                    //The request came in from the client. The file needs to be moved into the target folder dispite the status.
-                    Log.Info("Auto organize request to move file");
-                    Log.Info("Processing " + result.TargetPath);
-                    result.Status = FileSortingStatus.Processing;
-                    result.FileSize = FileSystem.GetFileInfo(result.OriginalPath).Length; //Update the file size so it will show the actual size of the file here. It may have been copying before.
-                    Log.Info($"Auto organize adding {result.TargetPath} to inprogress list");
-                    OrganizationService.AddToInProgressList(result, true);
-                    OrganizationService.SaveResult(result, cancellationToken);
-                    PerformFileSorting(requestToMoveFile, options, result, cancellationToken);
-                    Log.Info($"Auto organize {result.TargetPath} success.");
-                    Log.Info($"Auto organize removing {result.TargetPath} from inprogress list");
-                    
-                    OrganizationService.RemoveFromInprogressList(result);
-                    OrganizationService.SaveResult(result, cancellationToken);
-
-                    //We can't rely on the Removal from inprogress Items to update the UI. We'll try again here.
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                    return;
-                }
-            }
+            
 
             bool isNew = string.IsNullOrWhiteSpace(result.Id);
 
@@ -362,133 +467,145 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 OrganizationService.SaveResult(result, cancellationToken);
             }
 
-            if (!OrganizationService.AddToInProgressList(result, isNew))
-            {
-                
-                //_organizationService.SaveResult(result, cancellationToken);
-                throw new OrganizationException("File is currently processed otherwise. Please try again later.");
-            }
-
+            //if (!OrganizationService.AddToInProgressList(result, isNew))
+            //{
+            //    Log.Info("File is currently processed otherwise. Please try again later.");
+            //    return;
+            //}
             
-            result.ExtractedResolution = GetStreamResolutionFromFileName(sourcePath);
-            result.ExtractedEdition = GetReleaseEditionFromFileName(sourcePath);
-            if (string.IsNullOrWhiteSpace(result.TargetPath))
-            {
-                result.TargetPath = Path.Combine(FileSystem.GetDirectoryName(movie.Path), GetMovieFileName(sourcePath, movie, options));
-            }
 
             try
             {
                 // Proceed to sort the file
-               
-               Log.Info("Sorting file {0} into movie {1}", sourcePath, result.TargetPath);
-               
 
-               //The actual file, or the movie folder it lives in.
-               var fileExists = FileSystem.FileExists(result.TargetPath) || FileSystem.DirectoryExists(FileSystem.GetDirectoryName(result.TargetPath));
-
-                //if (!options.OverwriteExistingFiles)
-                if (!options.AutoDetectMovie)
+                //The actual file, or the movie folder it lives in.
+                var fileExists = FileSystem.FileExists(result.TargetPath) || FileSystem.DirectoryExists(FileSystem.GetDirectoryName(result.TargetPath));
+                
+                //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "InUse"
+                if (IsCopying(sourcePath, FileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
                 {
-                    //if (fileExists && IsSameMovie(sourcePath, movie.Path))
-                    //{
-                    //    var msg = $"File '{sourcePath}' already exists in target path '{movie.Path}', stopping organization";
-                    //    Log.Info(msg);
-                    //    result.Status = FileSortingStatus.SkippedExisting;
-                    //    result.StatusMessage = msg;
-                    //    OrganizationService.RemoveFromInprogressList(result);
-                    //    OrganizationService.SaveResult(result, cancellationToken);
-                    //    return;
-                    //}
+                    var msg = $"File '{sourcePath}' is currently in use, stopping organization";
+                    Log.Info(msg);
+                    result.Status = FileSortingStatus.InUse;
+                    result.StatusMessage = msg;
+                    //OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    return;
+                }
+
+                //User is forcing sorting from the UI - Sort it!
+                if (overwriteFile)
+                {
+                    Log.Info("Sorting file {0} into movie {1}", sourcePath, result.TargetPath);
+                    //The request came in from the client. The file needs to be moved into the target folder dispite the status.
+                    PerformFileSorting(options, result, cancellationToken);
+                    return;
+                }
+
+                //Five phases:
+                //1. Check for new resolution when no auto sorting is enabled
+                //1. Overwrite existing files option is unchecked - The key words input is empty - no files will be overwritten.
+                //2. Overwrite existing files option is checked - Doesn't matter about key words - any file will overwrite the library item.
+                //3. Overwrite existing files option is unchecked - Key words inputs have values - only items with key words in the file name will overwrite the library item.
+                //4. If the file doesn't exist and is new sort it!
+                //5. The file is new (doesn't exist in the library), but auto sorting is turned off - Mark the file as NewMedia
 
 
-                    if (fileExists)
+                //1.
+                if (fileExists && !options.AutoDetectMovie)
+                {
+                    Log.Info($"Checking Existing Resolution: {result.ExtractedName}");
+                    var moviesResult = LibraryManager.GetItemsResult(new InternalItemsQuery()
                     {
-                        var msg = string.Empty;
-                        
-                        //The resolution of the current source movie, and the current library item are the same - mark as existing
-                        if (!IsNewStreamResolution(movie, result.ExtractedResolution))
+                        IncludeItemTypes = new[] {nameof(Movie)},
+                        Recursive = true,
+                        DtoOptions = new DtoOptions(true),
+                    });
+
+                    var movies = moviesResult.Items.Where(m => NormalizeString(m.Name) == NormalizeString(result.ExtractedName)).ToList();
+
+                    if (!movies.Any()) //hail mary comparison for movie name
+                    {
+                        movies = moviesResult.Items.Where(m => NormalizeString(m.Name).ContainsIgnoreCase(NormalizeString(result.ExtractedName))).ToList();
+                    }
+
+                    if (movies.Any()) //<-- Found the movie, and possibly several versions/resolutions of it.
+                    {
+                        if(movies.All(m => !ResolutionExists(m, result.ExtractedResolution))) 
                         {
-                            msg = $"File '{sourcePath}' already exists as '{movie.Path}', stopping organization";
-                            Log.Info(msg);
-                            result.Status = FileSortingStatus.SkippedExisting;
-                            result.StatusMessage = msg;
-                            result.TargetPath = movie.Path;                           
-                            OrganizationService.RemoveFromInprogressList(result);
-                            OrganizationService.SaveResult(result, cancellationToken);
-                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                            return;
-                        }
-                        else //The movie exists in the library, but the new source version has a different resolution
-                        { 
-                            result.TargetPath = result.TargetPath ?? Path.Combine(LibraryManager.GetVirtualFolders()
-                                .FirstOrDefault(i => string.Equals(i.CollectionType, CollectionType.Movies.ToString(), StringComparison.OrdinalIgnoreCase))
-                                .Locations.FirstOrDefault(i => movie.Path.Contains(i)), GetMoviePath(result.OriginalPath, movie, options));
-
-                            msg = $"The library currently contains the movie {movie.Name}, but it may have a different resolution than the current source file.";
-
+                            var msg = $"File {sourcePath} is a new resolution, stopping organization";
                             Log.Info(msg);
                             result.Status = FileSortingStatus.NewResolution;
                             result.StatusMessage = msg;
-                            OrganizationService.RemoveFromInprogressList(result);
+                            //OrganizationService.RemoveFromInprogressList(result);
                             OrganizationService.SaveResult(result, cancellationToken);
                             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                             return;
                         }
                     }
+
+
                 }
-                else
+
+                //2.
+                if (!options.OverwriteExistingFiles && !options.OverwriteExistingFilesKeyWords.Any() && fileExists)
                 {
-                    //Auto Detection True
-
-                    //No overwrite
-                    //No overwrite keywords
-                    if (!options.OverwriteExistingFiles && !options.OverwriteExistingFilesKeyWords.Any() && fileExists)
-                    {
-                        var msg = $"File '{sourcePath}' already exists as '{movie.Path}', stopping organization";
-                        Log.Info(msg);
-                        result.Status = FileSortingStatus.SkippedExisting;
-                        result.StatusMessage = msg;
-                        result.TargetPath = movie.Path;                           
-                        OrganizationService.RemoveFromInprogressList(result);
-                        OrganizationService.SaveResult(result, cancellationToken);
-                        return;
-                    }
-
-                    //NO overwrite
-                    //Overwrite on keywords
-                    if (!options.OverwriteExistingFiles && options.OverwriteExistingFilesKeyWords.Any() && fileExists)
-                    {
-                        if (options.OverwriteExistingFilesKeyWords.Any(word => result.OriginalFileName.ContainsIgnoreCase(word)))
-                        {
-                            PerformFileSorting(true, options, result, cancellationToken);
-                            OrganizationService.RemoveFromInprogressList(result);
-                            OrganizationService.SaveResult(result, cancellationToken);
-                            return;
-                        }
-
-                        return;
-                    }
-
-                    if(options.OverwriteExistingFiles && fileExists)
-                    {
-                        PerformFileSorting(true, options, result, cancellationToken);
-                        OrganizationService.RemoveFromInprogressList(result);
-                        OrganizationService.SaveResult(result, cancellationToken);
-                        return;
-                    }
-
-                    if (!fileExists)
-                    {
-                        PerformFileSorting(true, options, result, cancellationToken);
-                        OrganizationService.RemoveFromInprogressList(result);
-                        OrganizationService.SaveResult(result, cancellationToken);
-                        return;
-                    }
-
+                    var msg = $"File '{sourcePath}' already exists: '{result.TargetPath}', stopping organization";
+                    Log.Info(msg);
+                    result.Status = FileSortingStatus.SkippedExisting;
+                    result.StatusMessage = msg;
+                    //OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    return;
                 }
 
-                //PerformFileSorting(requestToMoveFile, options, result, cancellationToken);
+                //3.
+                if (options.OverwriteExistingFiles && fileExists && options.AutoDetectMovie)
+                {
+                    PerformFileSorting(options, result, cancellationToken);
+                    return;
+                }
+
+                //4.
+                if (!options.OverwriteExistingFiles && options.OverwriteExistingFilesKeyWords.Any() && fileExists && options.AutoDetectMovie)
+                {
+                    if (options.OverwriteExistingFilesKeyWords.Any(word => result.OriginalFileName.ContainsIgnoreCase(word)))
+                    {
+                        PerformFileSorting(options, result, cancellationToken);
+                        return;
+                    }
+
+                    var msg = $"File '{sourcePath}' already exists at path '{result.TargetPath}', stopping organization";
+                    Log.Info(msg);
+                    result.Status = FileSortingStatus.SkippedExisting;
+                    result.StatusMessage = msg;
+                    OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    return;
+                }
+
+                //5.
+                if (!fileExists && options.AutoDetectMovie)
+                {
+                    PerformFileSorting(options, result, cancellationToken);
+                }
+
+                //6.
+                if (!options.AutoDetectMovie && !fileExists)
+                {
+                    var msg = $"Movie Auto detect disabled. File '{sourcePath}' will wait for user interaction. Stopping organization";
+                    Log.Info(msg);
+                    result.Status = FileSortingStatus.NewMedia;
+                    result.StatusMessage = msg;
+                    //OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    return;
+                }
+                
             }
             catch (OrganizationException ex)
             {
@@ -502,7 +619,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     var errorMsg = $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
                     result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
-                    Log.ErrorException(errorMsg, ex);
+                    Log.Warn(errorMsg, ex);
+                    //OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 }
             }
@@ -511,23 +630,33 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
                 Log.Warn(ex.Message);
+                //OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.SaveResult(result, cancellationToken);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
             }
 
-            finally
-            {
-                OrganizationService.RemoveFromInprogressList(result);
-                OrganizationService.SaveResult(result, cancellationToken);
-            }
+            
         }
 
-        private void PerformFileSorting(bool? requestToMoveFile, AutoOrganizeOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
+        private bool ResolutionExists(BaseItem movie, string resolution)
+        {
+            if (resolution == "2160p") //We have to check for this being also 4K.
+            {
+               return movie.GetMediaStreams().Any(s => s.DisplayTitle.ContainsIgnoreCase(resolution) || s.DisplayTitle.ContainsIgnoreCase("4K"));
+            }
+
+            return movie.GetMediaStreams().Any(s => s.DisplayTitle.ContainsIgnoreCase(resolution));
+        }
+
+        
+        public void PerformFileSorting(AutoOrganizeOptions options, FileOrganizationResult result, CancellationToken cancellationToken)
         {
             Log.Info("Processing " + result.TargetPath);
             result.Status = FileSortingStatus.Processing;
             result.FileSize = FileSystem.GetFileInfo(result.OriginalPath).Length; //Update the file size so it will show the actual size of the file here. It may have been copying before.
             Log.Info($"Auto organize adding {result.TargetPath} to inprogress list");
-            OrganizationService.AddToInProgressList(result, true);
             OrganizationService.SaveResult(result, cancellationToken);
+            OrganizationService.AddToInProgressList(result, true);
             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
 
 
@@ -535,26 +664,24 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             if (string.Equals(result.OriginalPath, result.TargetPath, StringComparison.OrdinalIgnoreCase))
             {
                 result.Status = FileSortingStatus.Failure;
-                OrganizationService.RemoveFromInprogressList(result);
                 OrganizationService.SaveResult(result, cancellationToken);
-                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                OrganizationService.RemoveFromInprogressList(result);
+                
+                //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 return;
             }
-             
-            
 
             LibraryMonitor.ReportFileSystemChangeBeginning(result.TargetPath);
             
             //Check to see if the library already has this entry
             var targetAlreadyExists = FileSystem.FileExists(result.TargetPath) || FileSystem.DirectoryExists(Path.GetDirectoryName(result.TargetPath));
 
-            if (requestToMoveFile.HasValue)
+
+            if (targetAlreadyExists) //(targetAlreadyExists && options.OverwriteExistingFiles && requestToMoveFile.Value)
             {
-                if (targetAlreadyExists && requestToMoveFile.Value) //(targetAlreadyExists && options.OverwriteExistingFiles && requestToMoveFile.Value)
-                {
-                    RemoveExistingLibraryItem(result);
-                }
+                RemoveExistingLibraryItem(result);
             }
+
 
             if (!FileSystem.DirectoryExists(FileSystem.GetDirectoryName(result.TargetPath)))
             {
@@ -564,11 +691,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             try
             {
                 
-                if (targetAlreadyExists || options.CopyOriginalFile)
+                if (options.CopyOriginalFile)
                 {
                     try
                     {
-                         Log.Info("Auto organize copying file");                    
+                        Log.Info(targetAlreadyExists ? "Overwriting Existing Destination File" : "Copying File");
                         FileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
                     }
                     catch (Exception ex)
@@ -578,26 +705,22 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             Log.Warn(ex.Message);
                             result.Status = FileSortingStatus.NotEnoughDiskSpace;
                             result.StatusMessage = "There is not enough disk space on the drive to move this file";
-                          
-                        } 
-                        else if (ex.Message.Contains("used by another process"))
-                        {
-                            Log.Warn(ex.Message);
-                            result.Status = FileSortingStatus.InUse;
-                            result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";                         
+                            OrganizationService.SaveResult(result, cancellationToken);
+                            OrganizationService.RemoveFromInprogressList(result);
+                            
+                            //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+                            return;
+
                         }
-                        OrganizationService.RemoveFromInprogressList(result);
-                        OrganizationService.SaveResult(result, cancellationToken);
-                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
-                        return;
-                    }                
+                    }
+                    Log.Info($"{result.OriginalPath} has successfully been placed in the target destination: {result.TargetPath}");
+
                 }
                 else
                 {
-                    
+                    Log.Info("Moving File");
                     try 
                     {
-                        Log.Info("Auto organize moving file");
                         FileSystem.MoveFile(result.OriginalPath, result.TargetPath);
                     }
                     catch (Exception ex)
@@ -614,17 +737,20 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             result.Status = FileSortingStatus.InUse;
                             result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";                           
                         }
-                        OrganizationService.RemoveFromInprogressList(result);
                         OrganizationService.SaveResult(result, cancellationToken);
-                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+                        OrganizationService.RemoveFromInprogressList(result);
+                        
+                        //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                         return;
                     }
                 }
 
                 result.Status = FileSortingStatus.Success;
-                result.StatusMessage = string.Empty;                
-                OrganizationService.RemoveFromInprogressList(result);
+                result.StatusMessage = string.Empty;
                 OrganizationService.SaveResult(result, cancellationToken);
+                OrganizationService.RemoveFromInprogressList(result);
+               
+                //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
             }
             catch (IOException ex)
             {
@@ -633,10 +759,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     var errorMsg = $"Waiting to move file from {result.OriginalPath} to {result.TargetPath}: {ex.Message}";
                     result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
-                    Log.ErrorException(errorMsg, ex);                    
-                    OrganizationService.RemoveFromInprogressList(result);
+                    Log.ErrorException(errorMsg, ex);
                     OrganizationService.SaveResult(result, cancellationToken);
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    OrganizationService.RemoveFromInprogressList(result);
+                    
+                    //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                     return;
                 }
@@ -647,9 +774,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = errorMsg;
-                Log.ErrorException(errorMsg, ex);               
-                OrganizationService.RemoveFromInprogressList(result);
+                Log.ErrorException(errorMsg, ex);
                 OrganizationService.SaveResult(result, cancellationToken);
+                OrganizationService.RemoveFromInprogressList(result);
+               
                 LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                 return;
             }
@@ -658,90 +786,96 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
             }
 
-            if (targetAlreadyExists && !options.CopyOriginalFile)
+            if (options.CopyOriginalFile) return;
+
+            try
             {
-                try
-                {
-                    FileSystem.DeleteFile(result.OriginalPath);
-                }
-                catch (Exception ex)
-                {
-                    Log.ErrorException("Error deleting {0}", ex, result.OriginalPath);
-                }
+                FileSystem.DeleteFile(result.OriginalPath);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Error deleting {0}", ex, result.OriginalPath);
             }
 
-            
+
+
         }
 
-        private async Task<Tuple<Movie, RemoteSearchResult>> AutoDetectMovie(string movieName, int? movieYear, FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
+        private async Task<Movie> GetMovieRemoteProviderData(string movieName, int? movieYear, FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
-            if (options.AutoDetectMovie)
+            //if (!options.AutoDetectMovie) return null;
+
+            var parsedName = LibraryManager.ParseName(movieName.AsSpan());
+
+            var yearInName = parsedName.Year;
+            var nameWithoutYear = parsedName.Name;
+
+            if (string.IsNullOrWhiteSpace(nameWithoutYear))
             {
-                var parsedName = LibraryManager.ParseName(movieName.AsSpan());
-
-                var yearInName = parsedName.Year;
-                var nameWithoutYear = parsedName.Name;
-
-                if (string.IsNullOrWhiteSpace(nameWithoutYear))
-                {
-                    nameWithoutYear = movieName;
-                }
-
-                if (!yearInName.HasValue)
-                {
-                    yearInName = movieYear;
-                }
-
-                string metadataLanguage = null;
-                string metadataCountryCode = null;
-                BaseItem targetFolder = null;
-
-                if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
-                {
-                    targetFolder = LibraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
-                }
-
-                if (targetFolder != null)
-                {
-                    metadataLanguage = targetFolder.GetPreferredMetadataLanguage();
-                    metadataCountryCode = targetFolder.GetPreferredMetadataCountryCode();
-                }
-
-                var movieInfo = new MovieInfo
-                {
-                    Name = nameWithoutYear,
-                    Year = yearInName,
-                    MetadataCountryCode = metadataCountryCode,
-                    MetadataLanguage = metadataLanguage
-                };
-
-                var searchResultsTask = await ProviderManager.GetRemoteSearchResults<Movie, MovieInfo>(new RemoteSearchQuery<MovieInfo>
-                {
-                    SearchInfo = movieInfo
-
-                }, targetFolder, cancellationToken);
-
-                var finalResult = searchResultsTask.FirstOrDefault();
-
-                if (finalResult != null)
-                {
-                    // We are in the good position, we can create the item
-                    var organizationRequest = new MovieFileOrganizationRequest
-                    {
-                        NewMovieName = finalResult.Name,
-                        NewMovieProviderIds = finalResult.ProviderIds,
-                        NewMovieYear = finalResult.ProductionYear,
-                        TargetFolder = options.DefaultMovieLibraryPath,
-                        
-                    };
-
-                    var movie = CreateNewMovie(organizationRequest, targetFolder, result, options, cancellationToken);
-
-                    return new Tuple<Movie, RemoteSearchResult>(movie, finalResult);
-                }
+                nameWithoutYear = movieName;
             }
 
-            return null;
+            if (!yearInName.HasValue)
+            {
+                yearInName = movieYear;
+            }
+
+            string metadataLanguage = null;
+            string metadataCountryCode = null;
+            BaseItem targetFolder = null;
+
+            if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+            {
+                targetFolder = LibraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
+            } 
+            else
+            {
+                result.Status = FileSortingStatus.Failure;
+                result.StatusMessage = "Auto Organize settings: default library not set for Movies.";
+                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.SaveResult(result, cancellationToken);
+                //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                throw new OrganizationException(result.StatusMessage);
+                
+            }
+
+            if (targetFolder != null)
+            {
+                metadataLanguage = targetFolder.GetPreferredMetadataLanguage();
+                metadataCountryCode = targetFolder.GetPreferredMetadataCountryCode();
+            }
+
+            var movieInfo = new MovieInfo
+            {
+                Name = nameWithoutYear,
+                Year = yearInName,
+                MetadataCountryCode = metadataCountryCode,
+                MetadataLanguage = metadataLanguage
+            };
+
+            var searchResultsTask = await ProviderManager.GetRemoteSearchResults<Movie, MovieInfo>(new RemoteSearchQuery<MovieInfo>
+            {
+                SearchInfo = movieInfo,
+                //IncludeDisabledProviders = true
+
+            }, targetFolder, cancellationToken);
+
+            var finalResult = searchResultsTask.FirstOrDefault(m => NormalizeString(m.Name) == NormalizeString(movieInfo.Name));
+
+            if (finalResult == null) return null;
+
+            // We are in the good position, we can create the item
+            var organizationRequest = new MovieFileOrganizationRequest
+            {
+                Name = finalResult.Name,
+                ProviderIds  = finalResult.ProviderIds,
+                Year = finalResult.ProductionYear,
+                TargetFolder = options.DefaultMovieLibraryPath,
+                        
+            };
+            
+            return CreateNewMovie(organizationRequest, targetFolder.Path, result, options, cancellationToken);
+
         }
         
         private void RemoveExistingLibraryItem(FileOrganizationResult result)
@@ -773,7 +907,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 Log.ErrorException("Error deleting {0}", ex, itemToRemove);
             }
         }
-        private Movie GetMatchingMovie(string movieName, int? movieYear, BaseItem targetFolder, FileOrganizationResult result, AutoOrganizeOptions options)
+        private Movie GetMatchingMovie(string movieName, int? movieYear, FileOrganizationResult result)
         {
             var parsedName = LibraryManager.ParseName(movieName.AsSpan());
             
@@ -790,77 +924,77 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 yearInName = movieYear;
             }
 
-            result.ExtractedName = nameWithoutYear;
-            result.ExtractedYear = yearInName;
-            
-
-            var movie = LibraryManager.GetItemList(new InternalItemsQuery
+            var movieResult = LibraryManager.GetItemList(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { nameof(Movie) },
                 Recursive = true,
                 DtoOptions = new DtoOptions(true),
-                AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
-                SearchTerm = nameWithoutYear,
-                Years = yearInName.HasValue ? new[] { yearInName.Value } : Array.Empty<int>()
-            })
-                .Cast<Movie>()
-                // Check For the right extension (to handle quality upgrade)
-                .FirstOrDefault(m => Path.GetExtension(m.Path) == Path.GetExtension(result.OriginalPath));
-                //TODO: checking extentions for quailty upgrades is priobabaly not the best. We should check MediaStreams for higher video outputs
-            return movie;
-        }
+                Years = yearInName.HasValue ? new[] { yearInName.Value } : Array.Empty<int>(),
+                
 
-        /// <summary>
-        /// Gets the new path.
-        /// </summary>
-        /// <param name="sourcePath">The source path.</param>
-        /// <param name="movie">The movie.</param>
-        /// <param name="options">The options.</param>
-        /// <returns>System.String.</returns>
-        private string GetMoviePath(string sourcePath, Movie movie, AutoOrganizeOptions options)
-        {
-            var movieFolderPath = "";
+            }).Cast<Movie>();
 
-            if (options.CreateMovieInFolder)
+            var movieItems = movieResult.ToList();
+            
+            var movies = movieItems.Where(m => NormalizeString(m.Name) == NormalizeString(nameWithoutYear)).ToList();
+
+            if (!movies.Any())
             {
-                movieFolderPath = Path.Combine(movieFolderPath, GetMovieFolder(sourcePath, movie, options));
+                movies = movieItems.Where(m => NormalizeString(m.Name).ContainsIgnoreCase(NormalizeString(nameWithoutYear))).ToList();
             }
 
-            movieFolderPath = Path.Combine(movieFolderPath, GetMovieFileName(sourcePath, movie, options));
-
-            if (string.IsNullOrEmpty(movieFolderPath))
+            if (!movies.Any())
             {
-                // cause failure
-                Log.Warn("Unable to produce movie folder path.");
-                return string.Empty;
+                return null;
             }
 
-            return movieFolderPath;
+            var resolution = movies.FirstOrDefault(m =>  !IsNewStreamResolution(m, result.ExtractedResolution));
+
+            if (resolution != null)
+            {
+                return resolution;
+            }
+
+            return null;
         }
 
-        private string GetMovieFileName(string sourcePath, BaseItem movie, AutoOrganizeOptions options)
-        {
-            return GetMovieNameInternal(sourcePath, movie, options.MoviePattern);
-        }
+        
+        //private string GetMoviePath(string sourcePath, Movie movie, AutoOrganizeOptions options)
+        //{
+        //    var movieFolderPath = "";
 
-        private string GetMovieFolder(string sourcePath, BaseItem movie, AutoOrganizeOptions options)
-        {
-            return GetMovieNameInternal(sourcePath, movie, options.MovieFolderPattern);
-        }
+        //    if (options.CreateMovieInFolder)
+        //    {
+        //        movieFolderPath = Path.Combine(movieFolderPath, GetMovieFolderName(sourcePath, movie, options));
+        //    }
 
-        private string GetMovieNameInternal(string sourcePath, BaseItem movie, string pattern)
-        {
-            var movieName = FileSystem.GetValidFilename(movie.Name).Trim();
-            var productionYear = movie.ProductionYear.ToString() ?? "";
+        //    movieFolderPath = Path.Combine(movieFolderPath, GetMovieFileName(sourcePath, movie, options));
 
-            var sourceExtension = (Path.GetExtension(sourcePath) ?? string.Empty).TrimStart('.');
+        //    if (string.IsNullOrEmpty(movieFolderPath))
+        //    {
+        //        // cause failure
+        //        Log.Warn("Unable to produce movie folder path.");
+        //        return string.Empty;
+        //    }
+
+        //    return movieFolderPath;
+        //}
+
+        private string GetMovieFileName(string sourcePath, FileOrganizationResult result, AutoOrganizeOptions options)
+        {
+            var movieName = FileSystem.GetValidFilename(result.ExtractedName).Trim();
+            var productionYear = result.ExtractedYear.ToString() ?? "";
+
+            var pattern = options.MoviePattern;
 
             if (string.IsNullOrWhiteSpace(pattern))
             {
-                throw new OrganizationException("GetMovieFolder: Configured movie name pattern is empty!");
+                Log.Warn("GetMovieFolder: Configured movie name pattern is empty!");
+                return null;
             }
 
-            var result = pattern.Replace("%mn", movieName)
+            var sourceExtension = (Path.GetExtension(sourcePath) ?? string.Empty).TrimStart('.');
+            var patternResult = pattern.Replace("%mn", movieName)
                 .Replace("%m.n", movieName.Replace(" ", "."))
                 .Replace("%m_n", movieName.Replace(" ", "_"))
                 .Replace("%my", productionYear)
@@ -870,7 +1004,32 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 .Replace("%fn", Path.GetFileNameWithoutExtension(sourcePath));
 
             // Finally, call GetValidFilename again in case user customized the movie expression with any invalid filename characters
-            return FileSystem.GetValidFilename(result).Trim();
+            return FileSystem.GetValidFilename(patternResult).Trim();
+        }
+
+        private string GetMovieFolderName(FileOrganizationResult result, AutoOrganizeOptions options)
+        {
+            var movieName = FileSystem.GetValidFilename(result.ExtractedName).Trim();
+            var productionYear = result.ExtractedYear.ToString() ?? "";
+            
+            var pattern = options.MovieFolderPattern;
+
+            if (string.IsNullOrWhiteSpace(pattern))
+            {
+                Log.Warn("GetMovieFolder: Configured movie name pattern is empty!");
+                return null;
+            }
+
+            var patternResult = pattern.Replace("%mn", movieName)
+                .Replace("%m.n", movieName.Replace(" ", "."))
+                .Replace("%m_n", movieName.Replace(" ", "_"))
+                .Replace("%my", productionYear)
+                .Replace("%res", GetStreamResolutionFromFileName(Path.GetFileName(result.OriginalPath)))
+                .Replace("%e", GetReleaseEditionFromFileName(Path.GetFileName(result.OriginalPath)))
+                .Replace("%fn", Path.GetFileNameWithoutExtension(result.OriginalPath));
+
+            // Finally, call GetValidFilename again in case user customized the movie expression with any invalid filename characters
+            return FileSystem.GetValidFilename(patternResult).Trim();
         }
 
         private bool IsSameMovie(string sourcePath, string newPath)
@@ -897,22 +1056,54 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return false;
         }
 
-        private bool IsNewStreamResolution(Movie movie, string extractedResolution)
+        private int? CleanMovieYear(string fileName)
         {
-            //We may have a library entery for this movie, but this particular copy of it may have a different Resolution.
+            var regexDate = new Regex(@"(19|20|21)\d{2}");
+            var yearMatch = regexDate.Match(fileName);
+            
+            if (!yearMatch.Success) return null;
+            
+            if(int.TryParse(yearMatch.Value, out var year))
+            {
+                return year;
+            }
+            return null;
+        }
+        private string CleanMovieFileName(string fileName)
+        {
+            var name = fileName;
+            var regexName = new Regex(@"(?<=[a-zA-Z0-9]{0,4}-)(.*)");
+            var namingMatch1 = regexName.Match(fileName);
+
+            if (namingMatch1.Success)
+            {
+                name = namingMatch1.Value;
+            }
+
+
+
+            return name;
+        }
+        private bool IsNewStreamResolution(BaseItem movie, string extractedResolution)
+        {
+            //We may have a library entry for this movie, but this particular copy of it may have a different Resolution.
+           
             try
             {   
                 return !movie.GetMediaStreams().Any(s => s.DisplayTitle.Contains(extractedResolution));
-                //if (movie.GetMediaStreams().Any(s => s.DisplayTitle.Contains(extractedResolution)))
-                //{
-                //    return false;
-                //}
-                //return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Log.Warn(ex.Message);
                 return false;
             }
+
+            //if (newResolution)
+            //{
+            //    Log.Info($"Resolution check found new resolution for sorting {movie.Name} {extractedResolution} ");
+            //}
+
+            //return false;
         }
 
         private static bool IsCopying(string source, IFileSystem fileSystem)
@@ -944,7 +1135,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var pattern = $"{string.Join("|", namingOptions.VideoReleaseEditionFlags)}";
             var input = sourceFileName.Replace(".", " ").Replace("_", " ");
             var results = Regex.Matches(input, pattern, RegexOptions.IgnoreCase);
-            return results.Count > 0 ? string.Join(" ", from Match match in results select match.Value) : "Theatrical Version";
+            return results.Count > 0 ? results[0].Value : "Theatrical";
         }
 
         private static string GetStreamResolutionFromFileName(string sourceFileName)
@@ -963,6 +1154,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             
         }
 
+        private string NormalizeString(string value)
+        {
+            return Regex.Replace(value, @"(\s+|@|&|'|:|\(|\)|<|>|#|\.)", string.Empty, RegexOptions.IgnoreCase).ToLowerInvariant();
+        }
         
     }
 }

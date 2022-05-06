@@ -6,9 +6,7 @@ namespace Emby.AutoOrganize.Model
         public SmartMatchInfo[] SmartMatchInfos        { get; set; }
         public bool Converted                          { get; set; }
         public string[] WatchLocations                 { get; set; }
-        //public bool EnableScheduledTask                { get; set; } = true;
-        public bool IsMovieSortingEnabled              { get; set; } = true;
-        public bool IsEpisodeSortingEnabled            { get; set; } = true;
+        
         public int MinFileSizeMb                       { get; set; }
         public string[] LeftOverFileExtensionsToDelete { get; set; }
         public string SeasonFolderPattern              { get; set; }

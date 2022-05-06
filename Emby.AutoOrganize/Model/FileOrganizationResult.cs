@@ -12,6 +12,11 @@ namespace Emby.AutoOrganize.Model
         public string Id { get; set; }
         
         /// <summary>
+        /// Series, or Movie Id
+        /// </summary>
+        public string ItemId { get; set; }
+
+        /// <summary>
         /// Gets or sets the original path.
         /// </summary>
         /// <value>The original path.</value>
@@ -117,6 +122,7 @@ namespace Emby.AutoOrganize.Model
 
         public string VideoStreamEncoding { get; set; }
 
+        public string PrimaryImageUrl { get; set; }
         public FileOrganizationResult()
         {
             DuplicatePaths = new List<string>();

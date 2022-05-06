@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using MediaBrowser.Model.Drawing;
 
 namespace Emby.AutoOrganize
 {
     public class Plugin : BasePlugin, IHasWebPages, IHasThumbImage
     {
+        
         public override string Name => "Auto Organize";
 
 

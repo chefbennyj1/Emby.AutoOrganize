@@ -162,10 +162,14 @@ namespace Emby.AutoOrganize.Data
                 {
                     var commandText = "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedResolution, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths from FileOrganizerResults";
 
+                    if (!string.IsNullOrEmpty(query.Type) && query.Type != "All")
+                    {
+                        commandText += $" WHERE OrganizationType = \"{query.Type}\"";
+                    }
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
-                        commandText += string.Format(" WHERE ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY OrganizationDate desc LIMIT {0})",
-                            query.StartIndex.Value.ToString(CultureInfo.InvariantCulture));
+                        commandText +=
+                            $" WHERE ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY OrganizationDate desc LIMIT {query.StartIndex.Value.ToString(CultureInfo.InvariantCulture)})";
                     }
 
                     commandText += " ORDER BY OrganizationDate desc";

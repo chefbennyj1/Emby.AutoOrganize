@@ -3,40 +3,14 @@
         <div class="content-primary">
 
             <form class="libraryFileOrganizerForm">
-
-                <!--<div class="paperList checkboxList checkboxList-paperList" style="padding:3% !important">
-                    <h3>Task Options</h3>
-                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
-                        <label style="width:auto;" class="emby-toggle-label">
-                            <input type="checkbox" is="emby-toggle" id="chkEnableScheduledTask" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable auto-organize scheduled Task</span>
-                        </label>
-                        <div class="fieldDescription toggleFieldDescription">Enable organization of new files using a schedule task</div>
-                    </div>
-                </div>-->
-
-
+                
                 <div class="verticalSection verticalSection-extrabottompadding">
                     <h2>Television Options</h2>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom: 2%; display: none">
-                        <label style="width: auto;" class="emby-toggle-label">
-                            <input type="checkbox" is="emby-toggle" id="chkEnableTvSorting" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable auto organization of TV episodes</span>
-                        </label>
-                        <div class="fieldDescription toggleFieldDescription">Enable smart organization of new episode files</div>
-                    </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom: 2%;">
-                        <label style="width: auto;" class="emby-toggle-label">
-                            <input type="checkbox" is="emby-toggle" id="chkEnableSeriesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable television smart auto detection and library creation</span>
-                        </label>
-                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new Series folders in libraries.</div>
-                    </div>
-                    <div class="fldSelectSeriesFolder hide selectContainer">
-                        <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:"></select>
-                        <div class="fieldDescription">New series folders will be created here.</div>
+                    <div class="fldSelectSeriesFolder selectContainer">
+                        <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:" required="required"></select>
+                        <div class="fieldDescription">New series folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span></div>
                     </div>
 
                     <!--Series-->
@@ -206,33 +180,24 @@
                         </div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                        <label style="width: auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkEnableSeriesAutoDetect" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Enable television smart auto detection and library creation</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new Series folders in libraries, and sorts new episode files.</div>
+                    </div>
                 </div>
 
                 <div class="verticalSection verticalSection-extrabottompadding">
                     <h2>Movie Options</h2>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom: 2%; display: none">
-                        <label style="width:auto;" class="emby-toggle-label">
-                            <input type="checkbox" is="emby-toggle" id="chkEnableMovieSorting" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable auto organization of Movies</span>
-                        </label>
-                        <div class="fieldDescription toggleFieldDescription">Enable smart organization of new movie files</div>
+                    <div class="fldSelectMovieFolder selectContainer">
+                        <select id="selectMovieFolder" is="emby-select" label="Default Movie library:" required="required"></select>
+                        <div class="fieldDescription">New movie folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span></div>
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom: 2%;">
-                        <label style="width: auto;" class="emby-toggle-label">
-                            <input type="checkbox" is="emby-toggle" id="chkEnableMoviesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable movie smart auto detection and library creation</span>
-                        </label>
-                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new movie folders in libraries.</div>
-                    </div>
-
-                    <div class="fldSelectMovieFolder hide selectContainer">
-                        <select id="selectMovieFolder" is="emby-select" label="Default Movie library:"></select>
-                        <div class="fieldDescription">New movie folders will be created here.</div>
-                    </div>
-
-                    <div class="fldSubMovieFolder checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
+                    <div class="fldSubMovieFolder checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                         <label style="width:auto;" class="emby-toggle-label">
                             <input type="checkbox" is="emby-toggle" id="chkSubMovieFolders" class="emby-toggle emby-toggle-focusring">
                             <span class="toggleLabel">Create sub-directory per Movie</span>
@@ -362,23 +327,23 @@
 
                         </div>
                     </div>
+                    
+                    
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                        <label style="width: auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkEnableMoviesAutoDetect" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Enable movie smart auto detection and library creation</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new movie folders in libraries.</div>
+                    </div>
 
-
+                    
 
                 </div>
 
                 <div class="verticalSection verticalSection-extrabottompadding">
                     <h2 class="checkboxListLabel">Source Folder Options</h2>
-
-                    <div class="inputContainer hide">
-                        <div style="display:flex; align-items:center;">
-                            <div style="flex-grow:1;">
-                                <input is="emby-input" id="txtWatchFolder" type="text" label="Watch folder:" />
-                                <div class="fieldDescription">This folder will be monitored for new episodes.</div>
-                            </div>
-                            <!--<button type="button" is="paper-icon-button-light" id="btnSelectWatchFolder" title="Select directory" class="autoSize"><i class="md-icon">search</i></button>-->
-                        </div>
-                    </div>
+                    
 
                     <div is="emby-collapse" title="Watch folders" class="verticalSection-extrabottompadding" style="padding: 1em 0 2em 0;">
                         <div class="collapseContent">
@@ -395,6 +360,7 @@
                             <div class="fieldDescription">These folders will be monitored for new files.</div>
                         </div>
                     </div>
+
                     <div class="selectContainer">
                         <select is="emby-select" id="copyOrMoveFile" label="Transfer method:">
                             <option value="true">Copy</option>
@@ -409,7 +375,7 @@
                     </div>
 
                     <div class="inputContainer">
-                        <input is="emby-input" id="txtMinFileSize" type="number" label="Min file size:" pattern="[0-9]*" min="0" required />
+                        <input is="emby-input" id="txtMinFileSize" type="number" label="Min file size (MB):" pattern="[0-9]*" min="0" required />
                         <div class="fieldDescription">Files smaller than this will be ignored.</div>
                     </div>
 
@@ -424,14 +390,14 @@
                             <input type="checkbox" is="emby-checkbox" id="chkDeleteEmptyFolders" />
                             <span>Delete empty folders</span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription">Empty folders will be deleted</div>
+                        <div class="fieldDescription checkboxFieldDescription">Empty folders will be deleted when all files have been sorted.</div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label>
                             <input type="checkbox" is="emby-checkbox" id="chkExtendedClean" />
                             <span>Extended Clean</span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription">Clean empty folders from watch folders</div>
+                        <div class="fieldDescription checkboxFieldDescription">Clean empty folders from watch folders when all files have been sorted.</div>
                     </div>
                 </div>
 

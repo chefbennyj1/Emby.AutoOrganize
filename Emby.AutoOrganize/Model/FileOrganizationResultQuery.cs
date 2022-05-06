@@ -14,5 +14,8 @@ namespace Emby.AutoOrganize.Model
         /// </summary>
         /// <value>The limit.</value>
         public int? Limit { get; set; }
+
+        //The type of media to respond with
+        public string Type { get; set; }
     }
 }

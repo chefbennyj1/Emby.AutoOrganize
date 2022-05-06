@@ -9,6 +9,7 @@
         Processing,
         Waiting,
         NotEnoughDiskSpace,
-        InUse
+        InUse,
+        NewMedia
     }
 }

@@ -8,36 +8,7 @@
         return this.getJSON(url);
     };
 
-    ApiClient.deleteOriginalFileFromOrganizationResult = function (id) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/File");
-
-        return this.ajax({
-            type: "DELETE",
-            url: url
-        });
-    };
-
-    ApiClient.clearOrganizationLog = function () {
-
-        var url = this.getUrl("Library/FileOrganizations");
-
-        return this.ajax({
-            type: "DELETE",
-            url: url
-        });
-    };
-
-    ApiClient.performOrganization = function (id) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
-
-        return this.ajax({
-            type: "POST",
-            url: url
-        });
-    };
-
+    
     ApiClient.performEpisodeOrganization = function (id, options) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
@@ -98,12 +69,12 @@
     var extractedYear;
     var currentNewItem;
     var existingMediasHtml;
-    var mediasLocationsCount = 0;
+    var virtualFolderLocationsCount = 0;
 
     function normalizeString(input) {
         if (input === "") return input;
         if (!input) return "";
-        const pattern = /(\s|@|&|'|:|\(|\)|<|>|#|\.)/g;
+        const pattern = /(\s|@|&|'|:|\(|\)|-|<|>|#|\.)/g;
         const normalized =  input.replace(pattern, "").toLocaleLowerCase();
         return normalized;
     }
@@ -148,6 +119,9 @@
     async function populateBaseItems(context, item = "") {
 
         loading.show();
+        var baseItemsSelect = context.querySelector('#selectBaseItems');
+        var rootFolderSelect = context.querySelector('#selectRootFolder');
+
         const virtualFolderResult = await ApiClient.getVirtualFolders();
         const library = await ApiClient.getItems(null,
             {
@@ -163,17 +137,7 @@
         //Create the selected item here!
         var optionsHtml = libraryItems.map(function (s) {
 
-            //var virtualFolderLocation;
-            //if (chosenType == "Series") {
-            //    virtualFolderResult.Items.forEach(folder => {
-            //        folder.Locations.forEach(l => {
-            //            if (s.Path.includes(l)) {
-            //                virtualFolderLocation = l;
-            //            }
-            //        })
-            //    })
-            //}
-
+            
             //Don't add the production year if the name contains it already. 
             if (s.Name.includes(s.ProductionYear)) {
                 return '<option data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + '</option>';
@@ -182,12 +146,10 @@
 
         }).join('');
 
-        context.querySelector('#selectBaseItems').innerHTML = '<option data-name="" value=""></option>' + optionsHtml;
-          
+        baseItemsSelect.innerHTML = '<option data-name="" value=""></option>' + optionsHtml;
+         
+        var virtualFolderLocations = [];
 
-       
-
-        var mediasLocations = [];
         var virtualFolders = virtualFolderResult.Items; //|| result;
         for (var n = 0; n < virtualFolders.length; n++) {
 
@@ -201,39 +163,60 @@
 
                 if ((chosenType == 'Movie' && virtualFolder.CollectionType == 'movies') ||
                     (chosenType == 'Series' && virtualFolder.CollectionType == 'tvshows')) {
-                    mediasLocations.push(location);
+                    virtualFolderLocations.push(location);
                 }
             }
         }
 
-        mediasLocationsCount = mediasLocations.length;
+        virtualFolderLocationsCount = virtualFolderLocations.length;
 
-        var mediasFolderHtml = mediasLocations.map(function (s) {
+        var mediasFolderHtml = virtualFolderLocations.map(function (s) {
             return '<option value="' + s.value + '">' + s.display + '</option>';
         }).join('');
 
-        if (mediasLocations.length > 1) {
+        if (virtualFolderLocations.length > 1) {
             // If the user has multiple folders, add an empty item to enforce a manual selection
             mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
         }
 
-        context.querySelector('#selectRootFolder').innerHTML = mediasFolderHtml;
-        
-        //The file can be marked as "InUse" if the file organizer is open during the scheduled task, and we check it's state.
-        //Accept both "InUse", and "SkippedExisting" here. It's just bad timing when we have to also accept "InUse".
-        if (item.Status == 'SkippedExisting' || item.Status == "InUse") {  
-            const selectedItem = libraryItems.filter(libraryItem => normalizeString(libraryItem.Name) == (normalizeString(item.ExtractedName)));
-            if (selectedItem.length) {
-                const selectedItemId = selectedItem[0].Id;
-                context.querySelector('#selectBaseItems').value = selectedItemId || "";
+        rootFolderSelect.innerHTML = mediasFolderHtml;
+        context.querySelector('.selectRootFolderContainer').classList.remove('hide');
+        rootFolderSelect.setAttribute('required', 'required');
+        rootFolderSelect.value = "";
 
-                //context.querySelector('#btnNewMedia').classList.add('hide');
 
-                context.querySelector('.selectRootFolderContainer').classList.remove('hide');
-                context.querySelector('#selectRootFolder').setAttribute('required', 'required');
+        var libraryItem = libraryItems.filter(l => normalizeString(l.Name) === (normalizeString(item.ExtractedName)))[0];
+
+        if (libraryItem) { //If the current item to sort is a movie, check the production years match if an item was found in the library.
+            if (item.Type === "Movie" && libraryItem.ProductionYear !== item.ExtractedYear) {
+                libraryItem = null;
             }
         }
 
+        if (libraryItem) {
+            const libraryItemId = libraryItem.Id;
+            baseItemsSelect.value = libraryItemId || "";
+        }
+
+        if (item.Status !== "Waiting" && libraryItem) {
+            if (virtualFolderLocations) {
+                let itemLocationFolder = virtualFolderLocations.filter(l => libraryItem.Path.substring(0, l.value.length) === l.value)
+                rootFolderSelect.value = itemLocationFolder[0].value || "";
+            }
+        }
+
+        //Attach an event to the base item select, so when the base item changes we attempt to match the root folder for the user. It's a courtesy. They can change it.
+        baseItemsSelect.addEventListener('change', () => {
+            if (baseItemsSelect.value !== "") {
+                var baseItem = libraryItems.filter(i => i.Id == baseItemsSelect.value)[0];
+                if (baseItem && baseItem.Path) {
+                    let itemLocationFolder = virtualFolderLocations.filter(l => baseItem.Path.substring(0, l.value.length) === l.value)[0];
+                    if (itemLocationFolder) {
+                        rootFolderSelect.value = itemLocationFolder.value || "";
+                    }
+                }
+            }
+        });
 
         loading.hide();
     }
@@ -272,9 +255,8 @@
     }
 
     function submitMediaForm(dlg, item) {
-
-
-        console.log(item);
+                  
+        console.table(item);
         var baseItemSelect = dlg.querySelector('#selectBaseItems');
         var mediaFolderSelect = dlg.querySelector('#selectRootFolder');
 
@@ -282,47 +264,37 @@
 
         var mediaId = baseItemSelect.value;
 
-       
-
-        var targetFolder = null;
-        var newProviderIds = null;
+        
         var newMediaName = null;
         var newMediaYear = null;
 
         if (mediaId == "##NEW##" && currentNewItem != null) {
             mediaId = null;
-            newProviderIds = currentNewItem.ProviderIds;
             newMediaName = currentNewItem.Name;
             newMediaYear = currentNewItem.ProductionYear;
-            targetFolder = dlg.querySelector('#selectRootFolder').value;
         }
 
         var options = {
             CreateNewDestination: false,
-            TargetFolder: mediaFolderSelect.selectedIndex > 0 ?  mediaFolderSelect.value : targetFolder,
-            RequestToOverwriteExistingFile: true
+            TargetFolder: mediaFolderSelect.selectedIndex > 0 ? mediaFolderSelect.value : "",
+            RequestToMoveFile: true,
+            Name: newMediaName ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.name,
+            Year: newMediaYear ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.year,
+            ProviderIds: currentNewItem ? currentNewItem.ProviderIds : []
         }
 
         switch (chosenType) {
             case "Series":
-                options = {
-                    SeriesId: mediaId,
-                    SeasonNumber: dlg.querySelector('#txtSeason').value,
-                    EpisodeNumber: dlg.querySelector('#txtEpisode').value,
-                    EndingEpisodeNumber: dlg.querySelector('#txtEndingEpisode').value,
-                    RememberCorrection: dlg.querySelector('#chkRememberCorrection').checked,
-                    SeriesProviderIds: newProviderIds,
-                    SeriesName: newMediaName ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.name,
-                    SeriesYear: newMediaYear ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.year,
-                };
+                options.SeriesId            = mediaId;
+                options.SeasonNumber        = dlg.querySelector('#txtSeason').value;
+                options.EpisodeNumber       = dlg.querySelector('#txtEpisode').value;
+                options.EndingEpisodeNumber = dlg.querySelector('#txtEndingEpisode').value;
+                options.RememberCorrection  = dlg.querySelector('#chkRememberCorrection').checked;
+                
+                
                 break;
-            case "Movie":                 
-                options = {
-                    MovieId: mediaId,
-                    NewMovieProviderIds: newProviderIds,
-                    NewMovieName: newMediaName,
-                    NewMovieYear: newMediaYear,
-                };
+            case "Movie":
+                options.MovieId             = mediaId;
                 break;
         }
 
@@ -336,22 +308,36 @@
             }
         } 
        
-        if (options.CreateNewDestination) {
-            message = "The " + chosenType + " " + item.ExtractedName.replaceAll(".", " ") +
-                " current library folder exists in <br/> " + item.TargetPath.substring(0, options.TargetFolder.length) +
-                "<br/> but a new folder for the " + chosenType + " will be created in <br/>" + options.TargetFolder + ".";
-        } 
+        console.table(options)
 
-        //This is a new item without a target path figured out yet.
-        if (!item.TargetPath && options.TargetFolder) {
+        if (options.CreateNewDestination) {
+            message = "The " +
+                chosenType +
+                " " +
+                options.Name +
+                ' ' +
+                (options.Year ?? '') +
+                " current target folder is <br/> " +
+                item.TargetPath.substring(0, options.TargetFolder.length) +
+                "<br/> but the file for the " +
+                chosenType +
+                " will be created in<br/>" +
+                options.TargetFolder +
+                ".";
+        } else {
             message = 'The following ' + item.Type + ' will be moved to: ' + options.TargetFolder;
         }
+
+        //This is a new item without a target path figured out yet.
+        //if (!item.TargetPath && options.TargetFolder) {
+        //    message = 'The following ' + item.Type + ' ' + options.Name + ' will be moved to: ' + options.TargetFolder;
+        //}
 
         message += '<br/><br/>' + 'Are you sure you wish to proceed?';
 
         require(['confirm'], function (confirm) {
 
-            confirm(message, 'Organize File').then(function () {
+            confirm(message, options.Name + (options.Year ? ' (' + options.Year + ')' : '')).then(function () {
                 
                 switch (chosenType) {
                     case "Movie":                         
@@ -361,7 +347,9 @@
                             dlg.submitted = true;
                             dialogHelper.close(dlg);
 
-                        }, dialogHelper.close(dlg));
+                        });
+                        dlg.submitted = true;
+                        dialogHelper.close(dlg);
                         break;
 
                     case "Series":
@@ -371,7 +359,9 @@
                             dlg.submitted = true;
                             dialogHelper.close(dlg);
                             
-                        }, dialogHelper.close(dlg));
+                        });
+                        dlg.submitted = true;
+                        dialogHelper.close(dlg);
                         break;
                 }
             });
@@ -405,11 +395,11 @@
                     //var mediasHtml = '';
 
                     if (selectBaseItems.options.length > 0) {
-                        const selectedItem = [...selectBaseItems.options].filter(o => normalizeString(o.dataset.name) == normalizeString(newItem.Name));
-                        if (selectedItem.length) {
-                            selectBaseItems.value = selectedItem[0].value;
+                        const itemToSelect = [...selectBaseItems.options].filter(o => normalizeString(o.dataset.name) == normalizeString(newItem.Name) && o.dataset.year == newItem.ProductionYear);
+                        if (itemToSelect.length) {
+                            selectBaseItems.value = itemToSelect[0].value;
                         } else {
-                            selectBaseItems.innerHTML += '<option selected data-name="' + currentNewItem.Name + '" value="##NEW##">' + currentNewItem.Name + '</option>'
+                            selectBaseItems.innerHTML += '<option selected data-name="' + currentNewItem.Name + '" data-year="' + currentNewItem.ProductionYear + '" value="##NEW##">' + currentNewItem.Name + ' (' + currentNewItem.ProductionYear + ')</option>'
                         }
                     }
 

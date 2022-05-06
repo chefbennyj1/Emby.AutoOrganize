@@ -15,7 +15,7 @@ namespace Emby.AutoOrganize.Model
 
         public SmartMatchResult()
         {
-            Id = Guid.NewGuid();
+            
             Paths = new List<string>();
             MatchStrings = new List<string>();
         }

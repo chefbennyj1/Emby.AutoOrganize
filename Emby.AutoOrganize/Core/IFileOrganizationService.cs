@@ -44,14 +44,14 @@ namespace Emby.AutoOrganize.Core
         /// </summary>
         /// <param name="resultId">The result identifier.</param>
         /// <returns>Task.</returns>
-        Task PerformOrganization(string resultId, bool? requestToMoveFile);
+        void PerformOrganization(string resultId, bool requestToMoveFile);
 
         /// <summary>
         /// Performs the episode organization.
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns>Task.</returns>
-        Task PerformOrganization(EpisodeFileOrganizationRequest request);
+        void PerformOrganization(EpisodeFileOrganizationRequest request);
 
         /// <summary>
         /// Performs the episode organization.
@@ -103,6 +103,8 @@ namespace Emby.AutoOrganize.Core
         /// <param name="query">The query.</param>
         /// <returns>IEnumerable{SmartMatchInfo}.</returns>
         QueryResult<SmartMatchResult> GetSmartMatchInfos(FileOrganizationResultQuery query);
+
+        //string ParseMovieNameFromFileName(string fileName);
 
         FileOrganizerType GetFileOrganizerType(string fileName);
 
