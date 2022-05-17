@@ -84,42 +84,38 @@
                 <div class="listTopPaging">
                 </div>
 
-                <div class="autoorganizetable">
-                    <table class="tblOrganizationResults table detailTable ui-responsive" style="width:100%;">
+                <div class="autoorganizetable" style="max-width: 94%;">
+                    <table class="tblOrganizationResults table detailTable ui-responsive">
                         <thead>
                             <tr style="text-align: left;">
                                 <th class="detailTableHeaderCell" data-priority="1"></th> <!--Status Icon-->
                                 <th class="detailTableHeaderCell" data-priority="2">
                                     <div class="date_sort" style="cursor:pointer;  display:flex; align-items:center">
                                         <span>Date</span>
-                                        <svg style="width:24px;height:24px; opacity:0" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M7,10L12,15L17,10H7Z" />
-                                        </svg>
                                     </div>
                                 </th>
-                                <th class="detailTableHeaderCell" data-priority="3">
+                                <th class="detailTableHeaderCell" data-priority="3" style="min-width:80px">
                                     <div class="status_sort" style="cursor:pointer;  display:flex; align-items:center">
                                         <span>Status</span>
-                                        <svg style="width:24px;height:24px; opacity:0" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M7,10L12,15L17,10H7Z" />
-                                        </svg>
                                     </div>
                                 </th>
                                 <th class="detailTableHeaderCell" data-priority="3">
                                     <div class="name_sort" style="cursor:pointer; display:flex; align-items:center">
                                         <span>Name</span>
-                                        <svg style="width:24px;height:24px;opacity:0" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M7,10L12,15L17,10H7Z" />
-                                        </svg>
                                     </div>
                                 </th>
-                                <th class="detailTableHeaderCell" data-priority="1">Release/Edition</th>
-                                <th class="detailTableHeaderCell" data-priority="1">Resolution</th>
+
+                                <th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>
+                                <th class="detailTableHeaderCell" data-priority="1" style="max-width:100px">Quality</th>
+                                <th class="detailTableHeaderCell" data-priority="1" style="max-width:120px">Codec</th>
+                                <th class="detailTableHeaderCell" data-priority="1">Audio</th>
+                                <th class="detailTableHeaderCell" data-priority="1">Subtitles</th>
                                 <th class="detailTableHeaderCell" data-priority="1">File Size</th>
                                 <th class="detailTableHeaderCell" data-priority="1"></th> <!--Type-->
                                 <th class="detailTableHeaderCell" data-priority="2">Source</th>
                                 <th class="detailTableHeaderCell" data-priority="2">Destination</th>
                                 <th class="detailTableHeaderCell" data-priority="3">Actions</th> <!--Sorting option buttons - we'll call them Actions in the UI-->
+
                             </tr>
                         </thead>
                         <tbody class="resultBody"></tbody>
@@ -129,6 +125,7 @@
 
                 <div class="listBottomPaging">
                 </div>
+                <div class="mediaImage hide" style="position:absolute"></div>
             </div>
         </div>
     </div>

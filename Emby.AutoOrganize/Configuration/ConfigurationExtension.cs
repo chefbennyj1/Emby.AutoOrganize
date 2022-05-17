@@ -1,36 +1,37 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Common.Configuration;
 
-namespace Emby.AutoOrganize.Core
+namespace Emby.AutoOrganize.Configuration
 {
     public static class ConfigurationExtension
     {
         public const string AutoOrganizeOptionsKey = "autoorganize";
 
-        public static void Convert(this IConfigurationManager manager, IFileOrganizationService service)
-        {
-            var options = manager.GetConfiguration<AutoOrganizeOptions>(AutoOrganizeOptionsKey);
-            if (!options.Converted)
-            {
-                options.Converted = true;
+        //public static void Convert(this IConfigurationManager manager, IFileOrganizationService service)
+        //{
+        //    var options = manager.GetConfiguration<AutoOrganizeOptions>(AutoOrganizeOptionsKey);
+        //    if (!options.Converted)
+        //    {
+        //        options.Converted = true;
 
-                foreach (SmartMatchInfo optionsSmartMatchInfo in options.SmartMatchInfos)
-                {
-                    service.SaveResult(new SmartMatchResult
-                    {
-                        DisplayName = optionsSmartMatchInfo.DisplayName,
-                        ItemName = optionsSmartMatchInfo.ItemName,
-                        OrganizerType = optionsSmartMatchInfo.OrganizerType,
-                        MatchStrings = optionsSmartMatchInfo.MatchStrings.ToList(),
-                    }, CancellationToken.None);
-                }
+        //        foreach (SmartMatchResult optionsSmartMatchInfo in options.SmartMatchInfos)
+        //        {
+        //            service.SaveResult(new SmartMatchResult
+        //            {
+        //                DisplayName = optionsSmartMatchInfo.DisplayName,
+        //                ItemName = optionsSmartMatchInfo.ItemName,
+        //                OrganizerType = optionsSmartMatchInfo.OrganizerType,
+        //                MatchStrings = optionsSmartMatchInfo.MatchStrings.ToList(),
+        //            }, CancellationToken.None);
+        //        }
 
-                manager.SaveAutoOrganizeOptions(options);
-            }
-        }
+        //        manager.SaveAutoOrganizeOptions(options);
+        //    }
+        //}
 
         public static AutoOrganizeOptions GetAutoOrganizeOptions(this IConfigurationManager manager)
         {

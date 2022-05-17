@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Data;
@@ -76,7 +77,7 @@ namespace Emby.AutoOrganize
             
             
             // Convert Config
-            ConfigurationManager.Convert(FileOrganizationService);
+            //ConfigurationManager.Convert(FileOrganizationService);
 
 
         }
@@ -84,7 +85,7 @@ namespace Emby.AutoOrganize
         
         private void _taskManager_TaskCompleted(object sender, TaskCompletionEventArgs e)
         {
-            SessionManager.SendMessageToAdminSessions("TaskComplete",  e.Task.Name, CancellationToken.None);
+            SessionManager.SendMessageToAdminSessions("TaskComplete",  "AutoOrganize", CancellationToken.None);
            
         }
 

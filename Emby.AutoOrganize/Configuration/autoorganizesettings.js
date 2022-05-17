@@ -131,6 +131,7 @@
         var seriesName = "Series Name";
         var episodeTitle = "Episode Four";
         var fileName = seriesName + ' ' + episodeTitle;
+        var resolution = "1080p";
 
         var result = value.replace('%sn', seriesName)
             .replace('%s.n', seriesName.replace(' ', '.'))
@@ -142,7 +143,8 @@
             .replace('%en', episodeTitle)
             .replace('%e.n', episodeTitle.replace(' ', '.'))
             .replace('%e_n', episodeTitle.replace(' ', '_'))
-            .replace('%fn', fileName);
+            .replace('%fn', fileName)
+            .replace('%res', resolution);
 
         if (enableMultiEpisode) {
             result = result
@@ -176,7 +178,9 @@
 
         //view.querySelector('#chkEnableTvSorting').checked = config.IsEpisodeSortingEnabled;
 
-        view.querySelector('#chkOverwriteExistingItems').checked = config.OverwriteExistingFiles;
+        view.querySelector('#chkOverwriteExistingEpisodeItems').checked = config.OverwriteExistingEpisodeFiles;
+
+        view.querySelector('#chkOverwriteExistingMovieItems').checked = config.OverwriteExistingMovieFiles;
 
         view.querySelector('#chkDeleteEmptyFolders').checked = config.DeleteEmptyFolders;
 
@@ -185,6 +189,8 @@
         view.querySelector('#txtSeasonFolderPattern').value = config.SeasonFolderPattern;
 
         view.querySelector('#txtSeasonZeroName').value = config.SeasonZeroFolderName;
+
+        view.querySelector('#chkEnableSubtitleSorting').checked = config.AutoDetectSubtitles;
 
         //view.querySelector('#txtWatchFolder').value = config.WatchLocations[0] || '';
 
@@ -210,7 +216,9 @@
 
         view.querySelector('#txtDeleteLeftOverFiles').value = config.LeftOverFileExtensionsToDelete.join(';');
 
-        view.querySelector('#txtOverWriteExistingFilesKeyWords').value = config.OverwriteExistingFilesKeyWords ? config.OverwriteExistingFilesKeyWords.join(';') : "";
+        view.querySelector('#txtOverWriteExistingEpisodeFilesKeyWords').value = config.OverwriteExistingEpisodeFilesKeyWords ? config.OverwriteExistingEpisodeFilesKeyWords.join(';') : "";
+
+        view.querySelector('#txtOverWriteExistingMovieFilesKeyWords').value = config.OverwriteExistingMovieFilesKeyWords ? config.OverwriteExistingMovieFilesKeyWords.join(';') : "";
 
         view.querySelector('#chkExtendedClean').checked = config.ExtendedClean;
 
@@ -239,7 +247,9 @@
 
             config.AutoDetectMovie = view.querySelector('#chkEnableMoviesAutoDetect').checked;
 
-            config.OverwriteExistingFiles = view.querySelector('#chkOverwriteExistingItems').checked;
+            config.OverwriteExistingEpisodeFiles = view.querySelector('#chkOverwriteExistingEpisodeItems').checked;
+
+            config.OverwriteExistingMovieFiles = view.querySelector('#chkOverwriteExistingMovieItems').checked;
 
             config.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyFolders').checked;
 
@@ -255,6 +265,8 @@
 
             config.AutoDetectSeries = view.querySelector('#chkEnableSeriesAutoDetect').checked;
 
+            config.AutoDetectSubtitles = view.querySelector('#chkEnableSubtitleSorting').checked;
+
             config.DefaultSeriesLibraryPath = view.querySelector('#selectSeriesFolder').value;
 
             config.SeriesFolderPattern = view.querySelector('#txtSeriesPattern').value;
@@ -265,13 +277,19 @@
 
             config.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
 
-            var keywordsInput = view.querySelector('#txtOverWriteExistingFilesKeyWords');
-            if (keywordsInput.value == "") {
-                config.OverwriteExistingFilesKeyWords = [];
+            var episodeKeywordsInput = view.querySelector('#txtOverWriteExistingEpisodeFilesKeyWords');
+            if (episodeKeywordsInput.value == "") {
+                config.OverwriteExistingEpisodeFilesKeyWords = [];
             } else {
-                config.OverwriteExistingFilesKeyWords = keywordsInput.value.split(';');
+                config.OverwriteExistingEpisodeFilesKeyWords = episodeKeywordsInput.value.split(';');
             }
             
+            var movieKeywordsInput = view.querySelector('#txtOverWriteExistingMovieFilesKeyWords');
+            if (movieKeywordsInput.value == "") {
+                config.OverwriteExistingMovieFilesKeyWords = [];
+            } else {
+                config.OverwriteExistingMovieFilesKeyWords = movieKeywordsInput.value.split(';');
+            }
 
             config.ExtendedClean = view.querySelector('#chkExtendedClean').checked;
 
@@ -455,12 +473,22 @@
         //    }
         //}
 
-        function toggleOverwriteExistingItemKeyWords() {
-            if (!view.querySelector('#chkOverwriteExistingItems').checked) {
-                view.querySelector('.fldOverWriteExistingFilesKeyWords').classList.remove('hide');
+        function toggleOverwriteExistingEpisodeItemKeyWords() {
+            if (!view.querySelector('#chkOverwriteExistingEpisodeItems').checked) {
+                view.querySelector('.fldOverWriteExistingEpisodeFilesKeyWords').classList.remove('hide');
                 //view.querySelector('#selectSeriesFolder').setAttribute('required', 'required');
             } else {
-                view.querySelector('.fldOverWriteExistingFilesKeyWords').classList.add('hide');
+                view.querySelector('.fldOverWriteExistingEpisodeFilesKeyWords').classList.add('hide');
+                //view.querySelector('#selectSeriesFolder').removeAttribute('required');
+            }
+        }
+
+        function toggleOverwriteExistingMovieItemKeyWords() {
+            if (!view.querySelector('#chkOverwriteExistingMovieItems').checked) {
+                view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.remove('hide');
+                //view.querySelector('#selectSeriesFolder').setAttribute('required', 'required');
+            } else {
+                view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.add('hide');
                 //view.querySelector('#selectSeriesFolder').removeAttribute('required');
             }
         }
@@ -599,8 +627,14 @@
         //    return false;
         //});
 
-        view.querySelector('#chkOverwriteExistingItems').addEventListener('change', () => {
-            toggleOverwriteExistingItemKeyWords();
+        view.querySelector('#chkOverwriteExistingEpisodeItems').addEventListener('change', () => {
+            toggleOverwriteExistingEpisodeItemKeyWords();
+            onSubmit(view);
+            return false;
+        });
+
+        view.querySelector('#chkOverwriteExistingMovieItems').addEventListener('change', () => {
+            toggleOverwriteExistingMovieItemKeyWords();
             onSubmit(view);
             return false;
         });

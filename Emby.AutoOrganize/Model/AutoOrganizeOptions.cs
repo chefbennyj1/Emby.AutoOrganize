@@ -3,10 +3,10 @@ namespace Emby.AutoOrganize.Model
 {
     public class AutoOrganizeOptions
     {
-        public SmartMatchInfo[] SmartMatchInfos        { get; set; }
+        //public SmartMatchInfo[] SmartMatchInfos        { get; set; }
         public bool Converted                          { get; set; }
         public string[] WatchLocations                 { get; set; }
-        
+        public bool AutoDetectSubtitles                { get; set; }
         public int MinFileSizeMb                       { get; set; }
         public string[] LeftOverFileExtensionsToDelete { get; set; }
         public string SeasonFolderPattern              { get; set; }
@@ -21,16 +21,18 @@ namespace Emby.AutoOrganize.Model
         public string DefaultSeriesLibraryPath         { get; set; }
         public string SeriesFolderPattern              { get; set; }
         public string MoviePattern                     { get; set; }
-        public bool OverwriteExistingFiles             { get; set; }
+        public bool OverwriteExistingEpisodeFiles      { get; set; }
+        public bool OverwriteExistingMovieFiles        { get; set; }
         public bool AutoDetectMovie                    { get; set; }
         public string DefaultMovieLibraryPath          { get; set; }
         public bool CreateMovieInFolder                { get; set; }
         public string MovieFolderPattern               { get; set; }
-        public string[] OverwriteExistingFilesKeyWords { get; set; }
+        public string[] OverwriteExistingEpisodeFilesKeyWords { get; set; }
+        public string[] OverwriteExistingMovieFilesKeyWords { get; set; }
         public AutoOrganizeOptions()
         {
             MinFileSizeMb = 50;
-            SmartMatchInfos = new SmartMatchInfo[] { };
+            //SmartMatchInfos = new SmartMatchInfo[] { };
             Converted = false;
             MovieFolderPattern = "%mn (%my)";
             MoviePattern = "%mn (%my) - %res [ %e ].%ext";
@@ -38,6 +40,7 @@ namespace Emby.AutoOrganize.Model
             WatchLocations = new string[] { };
             CopyOriginalFile = false;
             CreateMovieInFolder = true;
+            AutoDetectSubtitles = false;
             ExtendedClean = false;
             IgnoredFileNameContains = new string[] { };
             EpisodeNamePattern = "%sn - %sx%0e - %en.%ext";
@@ -46,7 +49,8 @@ namespace Emby.AutoOrganize.Model
             SeasonZeroFolderName = "Season 0";
             SeriesFolderPattern = "%fn";
             LeftOverFileExtensionsToDelete = new string[] { };
-            OverwriteExistingFilesKeyWords = new string[] { };
+            OverwriteExistingEpisodeFilesKeyWords = new string[] { };
+            OverwriteExistingMovieFilesKeyWords = new string[] { };
         }
     }
 }

@@ -134,17 +134,14 @@
     var query = {
         StartIndex: 0,
         Limit: 50, 
-        Type: 'All'
+        Type: 'All',
+        Ascending : false,
+        SortBy: 'OrganizationDate'
     };
 
     var currentResult;
     var pageGlobal;
-    var sort = {
-        type: 'date',
-        ascending: true,
-    }
-
-    
+    var loaded = false;
 
     function parentWithClass(elem, className) {
 
@@ -288,8 +285,16 @@
         dialogHelper.open(dlg);
     }
 
-    function openOverviewDialog() {
-        var result = currentResult;
+    
+
+    async function openComparisonDialog(id) {
+       
+        var sourceResult = await ApiClient.getFileOrganizationResults(query)
+        var item = sourceResult.Items.filter(r => r.Id == id)[0];
+        var libraryResult = await ApiClient.getJSON( await ApiClient.getUrl('Items?Recursive=true&Fields=MediaStreams&IncludeItemTypes=' + item.Type + '&Ids=' + item.ExistingInternalId))
+        
+        var libraryItem = libraryResult.Items[0];
+        if (!libraryItem) return;
         var dlg = dialogHelper.createDialog({
             size: "small",
             removeOnClose: !1,
@@ -299,19 +304,170 @@
         dlg.classList.add("formDialog");
         dlg.classList.add("ui-body-a");
         dlg.classList.add("background-theme-a");
-       
+        dlg.style.height = "20em";
 
 
         var html = '';
         html += '<div class="formDialogHeader" style="display:flex">';
-        html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light" tabindex="-1"><i class="md-icon"></i></button><h3 class="formDialogHeaderTitle"></h3>';
+        html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light" tabindex="-1"><i class="md-icon"></i></button>';
+        
+        if (item.Type === "Episode") {
+            html += '<h3 class="formDialogHeaderTitle">' + libraryItem.SeriesName + ' Season ' + libraryItem.ParentIndexNumber + ' Episode ' + libraryItem.IndexNumber + '</h3>';
+        }
+       
+        if (item.Type === "Movie") {
+            html += '<h3 class="formDialogHeaderTitle">' + libraryItem.Name + '</h3>';
+        }
+
         html += '</div>';
 
-        html += '<div class="formDialogContent" style="position: relative;display: flex;justify-content: center;">';
+        html += '<div class="formDialogContent" style="margin:2em;">';
 
-        html += '<div style="height:50%; width:50%">'
-        html += '<canvas id="sortingStats" width="100" height="100"></canvas>';
-        html += '</div>';
+        html += '<table class="tblOrganizationResults table detailTable ui-responsive">'
+        html += '<thead> ';
+        html += '<tr style="text-align: left;">';
+        
+        html += '<th class="detailTableHeaderCell" data-priority="3">Location</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="3">File Size</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
+        html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Subtitles</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Action</th>'
+        html += '</tr>';
+        html += '</thead>';
+        html += '<tbody class="resultBody">';
+
+        //Source Folder Item
+        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" style="color: var(--theme-primary-text);">';
+        
+        html += '<td class="detailTableBodyCell fileCell">';
+        html += 'Source Folder'
+        html += '</td>';
+
+        //File Size
+        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+        html += '<span>' + formatBytes(item.FileSize) + '</span>';
+        html += '</td>';
+
+        //Release Edition
+        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+        switch(item.Type) {
+        case "Episode":
+            if (item.ExtractedSeasonNumber && item.ExtractedEpisodeNumber) {
+                html += '<span>' + item.ExtractedSeasonNumber + 'x' + (item.ExtractedEpisodeNumber <= 9 ? `0${item.ExtractedEpisodeNumber}` : item.ExtractedEpisodeNumber) + '</span>';
+            } else {
+                html += '';
+            }
+        case "Movie":
+            html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
+        }
+        html += '</td>';
+
+        //Quality
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
+        html += '</td>';
+
+        //Codec
+        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+        if (item.VideoStreamCodecs.length) {
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.VideoStreamCodecs[0] + '</span>';
+        }
+        html += '</td>';
+
+        //Audio
+        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+        if (item.AudioStreamCodecs.length) {
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[0].toLocaleUpperCase() + '</span>';
+        }
+        html += '</td>';
+        
+
+        //Internal Subtitles
+        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
+        if (item.Subtitles.length) {
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[0].toLocaleUpperCase() + '</span>';
+        }
+        
+        html += '</td>';
+        
+
+        //Action
+        html += '<td class="detailTableBodyCell fileCell" data-title="Action">';
+        var processBtn = getButtonSvgIconRenderData("ProcessBtn");
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button fab" title="Organize" style="background-color:transparent">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+        html += '<path fill="' + processBtn.color + '" d="' + processBtn.path + '"/>';
+        html += '</svg>';
+        html += '</button>';
+
+        var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button fab" title="Delete" style="background-color:transparent">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+        html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
+        html += '</svg>';
+        html += '</button>';
+        html += '</td>';
+
+        html += '</tr>';
+
+
+        //Library Item
+        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" style="color: var(--theme-primary-text);">';
+        
+        html += '<td class="detailTableBodyCell fileCell">';
+        html += 'Library'
+        html += '</td>';   
+        
+        //File Size
+        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+        html += '<span>' + formatBytes(libraryItem.MediaSources[0].Size) + '</span>';
+        html += '</td>';
+
+        //Release Edition
+        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+        switch(item.Type) {
+        case "Episode":
+            
+            html += '<span>' + libraryItem.ParentIndexNumber + 'x' + (libraryItem.IndexNumber <= 9 ? `0${libraryItem.IndexNumber}` : libraryItem.IndexNumber) + '</span>';
+            
+        case "Movie":
+            html += '<span>' + "" + '</span>';  
+        }
+        html += '</td>';
+
+        //Quality
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0]  + '</span>';  
+        html += '</td>';
+
+        //Codec
+        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase() + '</span>'; 
+        html += '</td>';
+
+        //Audio
+        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase() + '</span>';
+        html += '</td>';
+
+        //Internal Subtitle
+        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
+        var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
+        var subtitleLabel = subtitles ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
+        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
+        html += '</td>';
+
+        //Action
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        
+        html += '</td>';
+
+        html += '</tr>';
+        html += '</tbody>'
+        html += '</table>';
 
         html += '</div>';
 
@@ -322,45 +478,32 @@
                 dialogHelper.close(dlg);
             });
 
-        var style = getComputedStyle(document.body);
-        var successCount    = Math.floor(result.Items.filter(i => i.Status == "Success").length / result.Items.length * 100);
-        var failureCount    = Math.floor(result.Items.filter(i => i.Status == "Failure").length  / result.Items.length * 100);
-        var skippedCount    = Math.floor(result.Items.filter(i => i.Status == "SkippedExisting").length  / result.Items.length * 100);
-        var processingCount = Math.floor(result.Items.filter(i => i.Status == "Processing").length  / result.Items.length * 100);
-        var inUse           = Math.floor(result.Items.filter(i => i.Status == "InUse").length  / result.Items.length * 100);
-
-        require([Dashboard.getConfigurationResourceUrl('Chart.js')], (Chart) => {
-
-            var progressCtx = dlg.querySelector('#sortingStats').getContext("2d");
-            new Chart(progressCtx,
-                {
-                    type: 'doughnut',
-                    label: "Status",
-                    data: {
-                        labels  : [ 'Success', 'Failure', "Skipped/Existing", "Processing", "In Use" ],
-                        datasets: [
-                            {
-                                data: [successCount, failureCount, skippedCount, processingCount, inUse ],
-                                backgroundColor: ["green", "red", "goldenrod", style.getPropertyValue("--theme-primary-color"), "black"],
-                                borderColor: ["black", style.getPropertyValue("--theme-primary-color")],
-                                borderWidth: 1,
-                                //dataFriendly   : [ driveData[t].FriendlyUsed, driveData[t].FriendlyAvailable ]
-                            }
-                        ]
-                    },
-                    options: {
-                        cutoutPercentage: 0, 
-                        legend: { position: "left" }
-                    }
-                });
-
+        dlg.querySelectorAll('.btnProcessResult').forEach(btn => {
+            btn.addEventListener('click',
+                async (e) => {
+                    //let id = e.target.closest('button').getAttribute('data-resultid');
+                    organizeFile(e.view, id);
+                    await reloadItems(view, false)
+                    dialogHelper.close(dlg);
+                })
         });
+
+        dlg.querySelectorAll('.btnDeleteResult').forEach(btn => {
+            btn.addEventListener('click',
+                async (e) => {
+                    //let id = e.target.closest('button').getAttribute('data-resultid');
+                    deleteOriginalFile(e.view, id);
+                    await reloadItems(view, false)
+                    dialogHelper.close(dlg);
+                });
+        })
 
         dialogHelper.open(dlg);
     }
 
     async function reloadItems(page, showSpinner, searchTerm = "") {
 
+        
         if (showSpinner) {
             loading.show();
         }
@@ -412,56 +555,13 @@
         return html;
     }
 
-    function sortListResultsByDate(items) {
-        return items.sort((a, b) => {
-            var da = new Date(datetime.parseISO8601Date(a.Date, true)),
-                db = new Date(datetime.parseISO8601Date(b.Date, true))
-            return sort.ascending ? da + db : da - db;            
-        })
-    }
-
-    function sortListResultItemsByName(items) {
-        return items.sort((a, b) => {
-            var fa = a.ExtractedName.toLowerCase(),
-                fb = b.ExtractedName.toLowerCase();
-            return sort.ascending ? fa < fb ? -1 : fa > fb ? 1 : 0 : fb < fa ? -1 : fb > fa ? 1 : 0;
-        })
-    }
-
-    function sortListResultItemsByStatus(items) {
-        return items.sort((a, b) => {
-            var fa = a.Status,
-                fb = b.Status;
-            return sort.ascending ? fa < fb ? -1 : fa > fb ? 1 : 0 : fb < fa ? -1 : fb > fa ? 1 : 0;            
-        })
-    }
-         
     function renderResults(page, result) {
 
-        return new Promise((resolve, reject) =>
-        {
-            if (Object.prototype.toString.call(page) !== "[object Window]") {
+        if (Object.prototype.toString.call(page) !== "[object Window]") {
 
 
-                var items;
-                switch (sort.type) {
-                    case "date":
-                        items = sortListResultsByDate(result.Items);
-                        //if we're sorted by date show the arrow icon
-                        page.querySelector('.date_sort > svg').style.opacity = 1;
-                        break;
-                    case "status":
-                        //if we're sorted by status show the arrow icon
-                        page.querySelector('.status_sort > svg').style.opacity = 1;
-                        items = sortListResultItemsByStatus(result.Items);
-                        break;
-                    case "name":
-                        //if we're sorted by name show the arrow icon
-                        page.querySelector('.name_sort > svg').style.opacity = 1;
-                        items = sortListResultItemsByName(result.Items);
-                        break;
-                }
-
+                var items = result.Items;
+                
                 var resultBody = page.querySelector('.resultBody');
                 resultBody.innerHTML = '';
                 /*var rows = '';*/
@@ -510,6 +610,19 @@
                                 deleteOriginalFile(e.view, id);
                             });
                     })
+
+                    var statusIcons = [...resultBody.querySelectorAll('#statusIcon')];
+                    var itemsToCompare = statusIcons.filter(icon => icon.dataset.status === "SkippedExisting" || icon.dataset.status === "NewEdition" || icon.dataset.status === "NewResolution");
+
+                    itemsToCompare.forEach(i => { 
+                        i.style.cursor = "pointer";
+                        i.addEventListener('click', async (e) => {
+                            var id = e.target.closest('svg').dataset.resultid;
+                            await openComparisonDialog(id);
+                        })
+                        
+                    })
+                     
                 })
 
                 
@@ -566,8 +679,6 @@
                 }
 
             }
-            resolve(true);
-        })
 
 
     }
@@ -687,6 +798,11 @@
                 path: "M20,4C21.11,4 22,4.89 22,6V18C22,19.11 21.11,20 20,20H4C2.89,20 2,19.11 2,18V6C2,4.89 2.89,4 4,4H20M8.5,15V9H7.25V12.5L4.75,9H3.5V15H4.75V11.5L7.3,15H8.5M13.5,10.26V9H9.5V15H13.5V13.75H11V12.64H13.5V11.38H11V10.26H13.5M20.5,14V9H19.25V13.5H18.13V10H16.88V13.5H15.75V9H14.5V14A1,1 0 0,0 15.5,15H19.5A1,1 0 0,0 20.5,14Z" ,
                 color: "green",
                 text: "New Media"
+            }
+            case "NewEdition": return {
+                path : "M19.65 6.5L16.91 2.96L20.84 2.18L21.62 6.1L19.65 6.5M16.71 7.07L13.97 3.54L12 3.93L14.75 7.46L16.71 7.07M19 13C20.1 13 21.12 13.3 22 13.81V10H2V20C2 21.11 2.9 22 4 22H13.81C13.3 21.12 13 20.1 13 19C13 15.69 15.69 13 19 13M11.81 8.05L9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05M4.16 5.5L3.18 5.69C2.1 5.91 1.4 6.96 1.61 8.04L2 10L6.9 9.03L4.16 5.5M20 18V15H18V18H15V20H18V23H20V20H23V18H20Z",
+                color: "var(--theme-accent-text-color)",
+                text: "New Edition Available"
             };
         }
     }
@@ -737,10 +853,10 @@
             ? getStatusRenderData("Processing") 
             : getStatusRenderData(item.Status); //The actual status icon
         
-        //Progress Status Icon
+        //Status Icon
         html += '<td class="detailTableBodyCell">';
         html += '<div class="progressIcon">';
-        html += '<svg id="statusIcon" style="width:24px; height:24px; ' + (item.Status === "NewMedia" ? 'border: 2px dashed gold;' : '') + '" viewBox="0 0 24 24">';
+        html += '<svg id="statusIcon" style="width:24px; height:24px;" viewBox="0 0 24 24" data-resultid="' + item.Id + '" data-status="' + item.Status + '">';
         html += '<path fill="' + statusRenderData.color + '" d="' + statusRenderData.path + '"/>';
         html += '</svg>';
         html += '</div>';
@@ -759,35 +875,7 @@
 
         //Name
         html += '<td data-resultid="' + item.Id + '" class="detailTableBodyCell fileCell cellName_' + item.Id + '">';
-
-        //if (item.Status !== "InUse") {
-        //    var logo = logos.filter(l => l.Id === item.Id)[0];
-        //    var logoImage;
-        //    if (logo) {
-        //        logoImage = logo.Image
-        //    } else {
-        //        var imgUrl = await getLogoImage(item);
-        //        if (imgUrl) {
-        //            logos.push({ Id: item.Id, Image: imgUrl })
-        //            logoImage = imgUrl;
-        //        }
-        //    }
-
-        //    if (logoImage) {
-
-        //        html += '<img class="" style="background-color:black; height:100px; border-radius:2px; border: 1px solid black" src="' + logoImage + '" />';
-
-        //    } else {
-
-        //        html += '<span id="string_name_' + item.Id + '" class="" style="background-color:black; padding:1em; color: white; font-size:1em; border-radius:5px">';
-        //        html += formatItemName(item.ExtractedName.substring(0, 10) ?? "");
-        //        html += item.ExtractedYear ? ' (' + item.ExtractedYear + ')' : "";
-        //        html += '</span>';
-
-        //    }
-        //} else {
-        //    html += '';
-        //}
+               
         html += '<span id="string_name_' + item.Id + '">' + formatItemName(item.ExtractedName ?? "") + '</span>';
 
         html += '</td>';             
@@ -807,9 +895,58 @@
        
         html += '</td>';
 
-        //Resolution
+        //Quality
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += '<span>' + (item.ExtractedResolution ?? "")  + '</span>';  
+        html += '<span style="color: white;background-color: var(--theme-primary-color); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "")  + '</span>';  
+        html += '</td>';
+
+        //Codec
+        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+        if (item.VideoStreamCodecs.length) {
+            html += '<div style="display:flex; flex-direction:row">';
+            html += '<div style="display:flex; flex-direction:column">'
+            for(var i = 0; i <= item.VideoStreamCodecs.length-1; i++) {
+                if (i > 1 && i % 2 === 0) {
+                    html += '</div>';
+                    html += '<div style="display:flex; flex-direction:column">'
+                }
+                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.VideoStreamCodecs[i] + '</span>'; 
+            }
+            html += '</div>';
+            html += '</div>';
+        }
+        
+        html += '</td>';
+
+        //Audio
+        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+        if (item.AudioStreamCodecs.length) {
+           
+            html += '<div style="display:flex; flex-direction:column">'
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[0].toLocaleUpperCase() + '</span>';
+            //html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px; margin:2px; font-size: 11px;">' + item.AudioStreamCodecs[1].toLocaleUpperCase() + '</span>';
+            html += '</div>';
+            
+        }
+
+        html += '</td>';
+
+        //Internal Subtitles
+        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
+        if (item.Subtitles.length) {
+            html += '<div style="display:flex; flex-direction:row">';
+            html += '<div style="display:flex; flex-direction:column">'
+            for(var i = 0; i <= item.Subtitles.length-1; i++) {
+                if (i > 1 && i % 2 === 0) {
+                    html += '</div>';
+                    html += '<div style="display:flex; flex-direction:column">'
+                }
+                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[i].toLocaleUpperCase() + '</span>'; 
+            }
+            html += '</div>';
+            html += '</div>';
+        }
+        
         html += '</td>';
 
         //File Size
@@ -817,7 +954,7 @@
         html += '<span>' + formatBytes(item.FileSize) + '</span>';
         html += '</td>';        
 
-        //Media Type Icon (Movie/Episode) / Progress Bar
+        //Media Type Icon (Movie/Episode)
         var icon = getResultItemTypeIcon(item.Type)
         html += '<td class="detailTableBodyCell">';
         html += '<div class="type-icon-container">';
@@ -827,20 +964,20 @@
         html += '</div>';
         html += '</td>';
 
-        //Source
+        //Source file path
         html += '<td data-title="Source" class="detailTableBodyCell fileCell">';
         html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + ';" href="#" class="button-link btnShowStatusMessage">';
         html += item.OriginalFileName;
         html += '</a>';
         html += '</td>';
 
-        //Destination
+        //Destination file path
         html += '<td data-title="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '" class="detailTableBodyCell fileCell">';
         html += item.TargetPath || '';
         html += '</td>';                                 
 
         //Row sorting options (action buttons)
-        html += '<td class="detailTableBodyCell organizerButtonCell" data-title="Actions" style="whitespace:no-wrap;">';
+        html += '<td class="detailTableBodyCell" data-title="Actions" style="whitespace:no-wrap;">';
         if (item.Status === "Checking" || item.Status === "InUse") {
             html += '';
         } else {
@@ -853,7 +990,7 @@
                     //Allow the user to identify the item.
                     if (item.Status === "Failure" || (item.Status === "Waiting" && !item.TargetPath)) {
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
-                        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize" title="Identify">';
+                        html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button fab" title="Identify" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                         html += '<path fill="' + identifyBtn.color + '" d="' + identifyBtn.path + '"/>';
                         html += '</svg>';
@@ -866,10 +1003,11 @@
                     if (item.Status === "NewResolution" && item.TargetPath || 
                         item.Status === "SkippedExisting" && item.TargetPath || 
                         item.Status === "Waiting" && item.TargetPath || 
-                        item.Status === "NewMedia" && item.TargetPath) {
+                        item.Status === "NewMedia" && item.TargetPath ||
+                        item.Status === "NewEdition") {
 
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
-                        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize" title="Organize">';
+                        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button fab" title="Organize" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                         html += '<path fill="' + processBtn.color + '" d="' + processBtn.path + '"/>';
                         html += '</svg>';
@@ -879,7 +1017,7 @@
 
                 //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
                 var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-                html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete">';
+                html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button fab" title="Delete" style="background-color:transparent">';
                 html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                 html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
                 html += '</svg>';
@@ -948,10 +1086,10 @@
     }
 
     async function onServerEvent(e, apiClient, data) {
-        if (e.type === "TaskCompleted") {
+        if (e.type === "TaskComplete") {
             if (data && data == 'AutoOrganize') {
                 await reloadItems(pageGlobal, false);
-                
+                pageGlobal.querySelector('.organizeProgress').classList.add('hide');
             }
         }
         if (e.type === 'ScheduledTasksInfoStop') {
@@ -965,22 +1103,20 @@
             if (data && data.ScheduledTask.Key === 'AutoOrganize') {
                 
                 updateTaskScheduleLastRun(data);
+                var taskProgress = pageGlobal.querySelector('.organizeProgress');
+                taskProgress.classList.remove('hide');
+                animateElement(taskProgress.querySelector('svg'), "blink");
                 
-                await reloadItems(pageGlobal, false);
-                
-                setTimeout(() => { //Ah, yes this is a trick. It is to show the user that the task ran. Give them 2 seconds to see the progress. yes it ran.
-                   pageGlobal.querySelector('.organizeProgress').classList.add('hide');
-                }, 2000);
-
                 //checkUpdatingTableItems(pageGlobal);
             }
 
         } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
 
-            await updateItemStatus(pageGlobal, data);  
+           
+            await updateItemStatus(pageGlobal, data);
 
         } else if (e.type === 'AutoOrganize_ItemAdded' && data) {
-
+           
             await reloadItems(pageGlobal, false);
 
         } else {
@@ -1067,11 +1203,7 @@
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
                 name: globalize.translate("HeaderSettings")
-    },
-            //{
-            //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
-            //    name: 'Movie'
-            //},
+            },
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
                 name: 'Smart Matches'
@@ -1101,13 +1233,6 @@
         var sortByNameBtn = view.querySelector('.name_sort')
         var sortByStatusBtn = view.querySelector('.status_sort')
         var txtSearch = view.querySelector('#txtSearch');
-        var taskProgress = view.querySelector('.organizeProgress');
-        var taskBtn = view.querySelector('.btnOrganize')
-
-        taskBtn.addEventListener('click', () => {
-            taskProgress.classList.remove('hide');
-            animateElement(taskProgress.querySelector('svg'), "blink");
-        })
 
         view.querySelector('.btnAll').addEventListener('click', async () => {
             query.StartIndex = 0;
@@ -1149,88 +1274,42 @@
         txtSearch.addEventListener('input', (e) => {
             debounceSearchTerm(e.target.value);
         });
-        //Sort by name column header, and directional arrow
+
+        //Sort by name column header
         sortByNameBtn.addEventListener('click', async function (e) {
             e.preventDefault();
-            sort = { type: 'name', ascending: sort.type == "name" ? sort.ascending ? false : true : true };
-            var path = sortByNameBtn.querySelector('path')
-
-            //Swap the arrow svg icon to show the arrow pointing up or down based on ascending or descending
-            !sort.ascending ? path.setAttribute('d', "M7,15L12,10L17,15H7Z") :
-                path.setAttribute('d', "M7,10L12,15L17,10H7Z")
-
-            //Turn off the arrows on the other sorting options
-            sortByDateBtn.querySelector('svg').style.opacity = 0
-            sortByStatusBtn.querySelector('svg').style.opacity = 0
-
+            if (query.SortBy === 'ExtractedName') {
+                query.Ascending = !query.Ascending;
+            } else {
+                query.SortBy = 'ExtractedName';
+                query.Ascending = false;
+            }
             await reloadItems(view, false)
         })
-        sortByNameBtn.addEventListener('mouseenter', (e) => {
-            var svg = sortByNameBtn.querySelector('svg')
-            svg.style.opacity = 1;
-        })
-        sortByNameBtn.addEventListener('mouseleave', (e) => {
-            //Only hide the arrow on mouse leave if we are not sorted by this type
-            if (sort.type !== "name") {
-                var svg = sortByNameBtn.querySelector('svg')
-                svg.style.opacity = 0;
-            }
-        })
-
+        
         //Sort by status column header, and directional arrow
         sortByStatusBtn.addEventListener('click', async function (e) {
             e.preventDefault();
-            sort = { type: 'status', ascending: sort.type == "status" ? sort.ascending ? false : true : true };
-            var path = sortByStatusBtn.querySelector('path')
-
-            //Swap the sort arrow svg icon to show the arrow pointing up or down based on ascening or decending
-            !sort.ascending ? path.setAttribute('d', "M7,15L12,10L17,15H7Z") :
-                path.setAttribute('d', "M7,10L12,15L17,10H7Z")
-
-            //Turn off the arrows on the other sorting options
-            sortByDateBtn.querySelector('svg').style.opacity = 0
-            sortByNameBtn.querySelector('svg').style.opacity = 0
-
+            if (query.SortBy === 'Status') {
+                query.Ascending = !query.Ascending;
+            } else {
+                query.SortBy = 'Status';
+                query.Ascending = false;
+            }
             await reloadItems(view, false)
         })
-        sortByStatusBtn.addEventListener('mouseenter', (e) => {
-            var svg = sortByStatusBtn.querySelector('svg')
-            svg.style.opacity = 1;
-        })
-        sortByStatusBtn.addEventListener('mouseleave', (e) => {
-            //Only hide the arrow on mouse leave if we are not sorted by this type
-            if (sort.type !== "status") {
-                var svg = sortByStatusBtn.querySelector('svg')
-                svg.style.opacity = 0;
-            }
-        })
+       
 
         //Sort by date column header, and directional arrow
         sortByDateBtn.addEventListener('click', async function (e) {
             e.preventDefault();
-            sort = { type: 'date', ascending: sort.type == "date" ? sort.ascending ? false : true : true };
-            var path = sortByDateBtn.querySelector('path')
-
-            //Swap the sort arrow svg icon to show the arrow pointing up or down based on ascening or decending
-            !sort.ascending ? path.setAttribute('d', "M7,15L12,10L17,15H7Z") :
-                path.setAttribute('d', "M7,10L12,15L17,10H7Z")
-
-            //Turn off the arrows on the other sorting options
-            sortByStatusBtn.querySelector('svg').style.opacity = 0
-            sortByNameBtn.querySelector('svg').style.opacity = 0
-
-            await reloadItems(view, false)
-        })
-        sortByDateBtn.addEventListener('mouseenter', (e) => {
-            var svg = sortByDateBtn.querySelector('svg')
-            svg.style.opacity = 1;
-        })
-        sortByDateBtn.addEventListener('mouseleave', (e) => {
-            //Only hide the arrow on mouse leave if we are not sorted by this type
-            if (sort.type !== "date") {
-                var svg = sortByDateBtn.querySelector('svg')
-                svg.style.opacity = 0;
+            if (query.SortBy === 'OrganizationDate') {
+                query.Ascending = !query.Ascending;
+            } else {
+                query.SortBy = 'OrganizationDate';
+                query.Ascending = false;
             }
+            await reloadItems(view, false)
         })
         
 
@@ -1247,6 +1326,7 @@
             events.on(serverNotifications, 'AutoOrganize_ItemAdded', await onServerEvent);
             events.on(serverNotifications, 'ScheduledTasksInfoStop', await onServerEvent);
             events.on(serverNotifications, 'TaskData', await onServerEvent)
+            events.on(serverNotifications, 'TaskComplete', await onServerEvent)
             // on here
             taskButton({
                 mode: 'on',
@@ -1261,7 +1341,11 @@
                 updateTaskScheduleLastRun(data);
             })
 
-            await reloadItems(view, true);
+            try {
+                await reloadItems(view, true);
+            } catch (err) {
+                loading.hide();
+            }
         });
 
         view.addEventListener('viewhide', function (e) {
@@ -1274,6 +1358,7 @@
             events.off(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
             events.off(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
             events.off(serverNotifications, 'TaskData', onServerEvent)
+            events.off(serverNotifications, 'TaskComplete', onServerEvent)
 
             // off here
             taskButton({

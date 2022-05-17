@@ -108,8 +108,6 @@ namespace Emby.AutoOrganize.Core
 
         FileOrganizerType GetFileOrganizerType(string fileName);
 
-        string GetVideoEncodingType(string fileName);
-
         ServerConfiguration GetServerConfiguration();
 
         /// <summary>

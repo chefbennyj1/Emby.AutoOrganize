@@ -10,6 +10,7 @@
         Waiting,
         NotEnoughDiskSpace,
         InUse,
-        NewMedia
+        NewMedia,
+        NewEdition
     }
 }

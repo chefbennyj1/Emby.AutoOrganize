@@ -114,6 +114,12 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             //Organize the subtitles last. This ensure that the media files have a home before accessing their subtitle files.
             eligibleFiles = eligibleFiles.OrderBy(f => _libraryManager.IsSubtitleFile(f.Name.AsSpan())).ToList();
 
+            //if (eligibleFiles.Count > 20)
+            //{
+            //    _logger.Warn("Throttling eligible files for sorting. Sorting 20 files...");
+            //    eligibleFiles = eligibleFiles.Take(20).ToList();
+            //}
+
             foreach (var file in eligibleFiles)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -143,9 +149,9 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                         progress.Report(100.0);
                         return;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        _logger.Warn("Error organizing episode {0} - {1}", file.FullName, ex);
+                        _logger.Warn("Error organizing episode {0}", file.FullName);
                         continue;
                     }
                 }
@@ -192,6 +198,10 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
                 if (fileOrganizerType == FileOrganizerType.Subtitle)
                 {
+                    if (!options.AutoDetectSubtitles)
+                    {
+                        continue;
+                    }
                     if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) || string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Libraries have been chosen in settings. Stopping Organization...");

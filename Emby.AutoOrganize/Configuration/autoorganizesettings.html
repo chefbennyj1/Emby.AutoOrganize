@@ -3,10 +3,11 @@
         <div class="content-primary">
 
             <form class="libraryFileOrganizerForm">
-                
+
                 <div class="verticalSection verticalSection-extrabottompadding">
                     <h2>Television Options</h2>
 
+                    <p class="benefits">Supported television naming <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159110-tv-naming" target="_blank">Learn more</a>.</p>
 
                     <div class="fldSelectSeriesFolder selectContainer">
                         <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:" required="required"></select>
@@ -175,6 +176,11 @@
                                         <td>%fn</td>
                                         <td>filename</td>
                                     </tr>
+                                    <tr>
+                                        <td>Resolution</td>
+                                        <td>%res</td>
+                                        <td>1080p</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -187,10 +193,13 @@
                         </label>
                         <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new Series folders in libraries, and sorts new episode files.</div>
                     </div>
+
                 </div>
 
                 <div class="verticalSection verticalSection-extrabottompadding">
                     <h2>Movie Options</h2>
+
+                    <p class="benefits">Supported movie naming <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming" target="_blank">Learn more</a>.</p>
 
                     <div class="fldSelectMovieFolder selectContainer">
                         <select id="selectMovieFolder" is="emby-select" label="Default Movie library:" required="required"></select>
@@ -323,12 +332,12 @@
                                     </tr>
                                 </tbody>
                             </table>
-                            <p class="benefits">In order to handle multi-version movie items, the folder and file names must adhere to emby muti-version naming requirements. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102" target="_blank">Learn more</a>.</p>
+                            <p class="benefits">In order to benefit from multi-version movie items, the folder and file names must adhere to emby muti-version naming requirements. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102" target="_blank">Learn more</a>.</p>
 
                         </div>
                     </div>
-                    
-                    
+
+
                     <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                         <label style="width: auto;" class="emby-toggle-label">
                             <input type="checkbox" is="emby-toggle" id="chkEnableMoviesAutoDetect" class="emby-toggle emby-toggle-focusring">
@@ -336,14 +345,24 @@
                         </label>
                         <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new movie folders in libraries.</div>
                     </div>
-
                     
+                </div>
 
+                <div class="verticalSection verticalSection-extrabottompadding">
+                    <h2>Subtitle Options</h2>
+                    <p class="benefits">Supported subtitle naming and extensions <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159160-subtitles" target="_blank">Learn more</a>.</p>
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                        <label style="width: auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkEnableSubtitleSorting" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Enable subtitle smart auto detection and sorting</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically sorts detected external subtitle files in the monitored folder.</div>
+                    </div>
                 </div>
 
                 <div class="verticalSection verticalSection-extrabottompadding">
                     <h2 class="checkboxListLabel">Source Folder Options</h2>
-                    
+
 
                     <div is="emby-collapse" title="Watch folders" class="verticalSection-extrabottompadding" style="padding: 1em 0 2em 0;">
                         <div class="collapseContent">
@@ -406,16 +425,36 @@
 
                     <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:0;">
                         <label style="width:auto;" class="emby-toggle-label">
-                            <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingItems" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Overwrite existing library files</span>
+                            <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingEpisodeItems" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Overwrite existing library episode files</span>
                         </label>
-                        <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing files in the library folders with any new versions in the watched folder.</div>
+                        <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing episode files in the library folders with any new versions in the watched folder.</div>
                     </div>
+                    
                     <br/>
-                    <div class="fldOverWriteExistingFilesKeyWords inputContainer">
-                        <input is="emby-input" id="txtOverWriteExistingFilesKeyWords" type="text" label="Overwrite existing  files in the library folders when files contain the following key words:" />
+
+                    <div class="fldOverWriteExistingEpisodeFilesKeyWords inputContainer">
+                        <input is="emby-input" id="txtOverWriteExistingEpisodeFilesKeyWords" type="text" label="Overwrite existing episode files in the library folders when files contain the following key words:" />
                         <div class="fieldDescription">Each value separated by ;</div>
                     </div>
+
+                    <br />
+
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:0;">
+                        <label style="width:auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingMovieItems" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Overwrite existing library movie files</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library folders with any new versions in the watched folder.</div>
+                    </div>
+
+                    <br />
+
+                    <div class="fldOverWriteExistingMovieFilesKeyWords inputContainer">
+                        <input is="emby-input" id="txtOverWriteExistingMovieFilesKeyWords" type="text" label="Overwrite existing movie files in the library folders when files contain the following key words:" />
+                        <div class="fieldDescription">Each value separated by ;</div>
+                    </div>
+
                 </div>
 
                 <div>

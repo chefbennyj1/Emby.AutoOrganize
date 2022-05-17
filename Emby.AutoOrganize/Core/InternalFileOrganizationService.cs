@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Data;
 using Emby.AutoOrganize.Model;
@@ -234,32 +235,16 @@ namespace Emby.AutoOrganize.Core
             return _repo.GetSmartMatch(query);
         }
 
+        public QueryResult<SmartMatchResult> GetSmartMatchInfos()
+        {
+            return _repo.GetSmartMatch(new FileOrganizationResultQuery());
+        }
+
         public ServerConfiguration GetServerConfiguration()
         {
             return _config.Configuration;
         }
-
-        //public string ParseMovieNameFromFileName(string fileName)
-        //{
-        //    var name = fileName;
-        //    var regexName = new Regex(@"(?<=[a-zA-Z0-9]{3}-).*");
-        //    var namingMatch1 = regexName.Match(fileName);
-
-        //    if (namingMatch1.Success)
-        //    {
-        //        name = namingMatch1.Value;
-        //    }
-
-
-
-        //    return name;
-        //}
-        public string GetVideoEncodingType(string fileName)
-        {
-            var streamEncodingRegex = new Regex(@"(x264|h264|H264|X264|xvid|xvidvd)([ _\,\.\(\)\[\]\-]|$)", RegexOptions.IgnoreCase);
-            var encodingMatch = streamEncodingRegex.Match(fileName);
-            return encodingMatch.Success ? encodingMatch.Groups[1].Value : string.Empty;
-        }
+        
         public FileOrganizerType GetFileOrganizerType(string fileName)
         {
             if (_libraryManager.IsSubtitleFile(fileName.AsSpan()))
@@ -287,10 +272,7 @@ namespace Emby.AutoOrganize.Core
             return testTvShow.Matches(fileName).Count >= 1 ? FileOrganizerType.Episode : FileOrganizerType.Unknown;
         } 
 
-        public QueryResult<SmartMatchResult> GetSmartMatchInfos()
-        {
-            return _repo.GetSmartMatch(new FileOrganizationResultQuery());
-        }
+        
 
         public void DeleteSmartMatchEntry(string id, string matchString)
         {

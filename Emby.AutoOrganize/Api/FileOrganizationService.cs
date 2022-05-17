@@ -33,6 +33,12 @@ namespace Emby.AutoOrganize.Api
 
         [ApiMember(Name = "Type", Description = "Optional. The type of media to put in the response", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
         public string Type { get; set; }
+
+        [ApiMember(Name = "Ascending", Description = "Optional. Direction of the data", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "GET")]
+        public bool Ascending { get; set; }
+
+        [ApiMember(Name = "SortBy", Description = "Optional. Sorting of the data", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        public string SortBy { get; set; }
     }
 
     [Route("/Library/FileOrganizations", "DELETE", Summary = "Clears the activity log")]
@@ -139,7 +145,7 @@ namespace Emby.AutoOrganize.Api
     }
 
     [Route("/Library/FileOrganizations/SmartMatches", "GET", Summary = "Gets smart match entries")]
-    public class GetSmartMatchInfos : IReturn<QueryResult<SmartMatchInfo>>
+    public class GetSmartMatchInfos : IReturn<SmartMatchResult>
     {
         /// <summary>
         /// Skips over a given number of items within the results. Use for paging.
@@ -186,7 +192,9 @@ namespace Emby.AutoOrganize.Api
             {
                 Limit = request.Limit,
                 StartIndex = request.StartIndex,
-                Type = !string.IsNullOrEmpty(request.Type) ? request.Type : "All"
+                Type = !string.IsNullOrEmpty(request.Type) ? request.Type : "All",
+                DataOrderDirection = request.Ascending ? "ASC" : "DESC",
+                SortBy = !string.IsNullOrEmpty(request.SortBy) ? request.SortBy : "OrganizationDate"
             });
 
             

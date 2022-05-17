@@ -44,8 +44,9 @@ namespace Emby.AutoOrganize.Model
         /// Gets or sets the extracted Resolution.
         /// </summary>
         /// <value>The extracted Resolution.</value>
-        public string ExtractedResolution { get; set; }
-        /// <summary>
+        public Resolution ExtractedResolution { get; set; }
+        
+         /// <summary>
         /// Gets or sets the extracted Edition.
         /// </summary>
         public string ExtractedEdition { get; set; } = string.Empty;
@@ -120,13 +121,32 @@ namespace Emby.AutoOrganize.Model
           
         public List<string> ExternalSubtitlePaths { get; set; }
 
-        public string VideoStreamEncoding { get; set; }
+        public string SourceQuality { get; set; }
 
-        public string PrimaryImageUrl { get; set; }
+        public List<string> VideoStreamCodecs { get; set; }
+
+        public List<string> AudioStreamCodecs { get; set; }
+
+        public List<string> Subtitles { get; set; }
+
+        public long ExistingInternalId{ get; set; }
+
+
         public FileOrganizationResult()
         {
             DuplicatePaths = new List<string>();
             ExternalSubtitlePaths = new List<string>();
+            AudioStreamCodecs = new List<string>();
+            VideoStreamCodecs = new List<string>();
+            Subtitles = new List<string>();
+            
         }
+    }
+
+    public class Resolution
+    {
+        public string Name { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
     }
 }

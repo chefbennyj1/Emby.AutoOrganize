@@ -139,7 +139,7 @@
 
             
             //Don't add the production year if the name contains it already. 
-            if (s.Name.includes(s.ProductionYear)) {
+            if (s.Name.includes(`(${s.ProductionYear})`)) {
                 return '<option data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + '</option>';
             }
             return '<option data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + (s.ProductionYear ? ` (${s.ProductionYear})` : "") + '</option>';
@@ -162,10 +162,18 @@
                 };
 
                 if ((chosenType == 'Movie' && virtualFolder.CollectionType == 'movies') ||
-                    (chosenType == 'Series' && virtualFolder.CollectionType == 'tvshows')) {
+                    (chosenType == 'Series' && virtualFolder.CollectionType == 'tvshows') ||
+                    virtualFolder.Name == "Mixed content") {
                     virtualFolderLocations.push(location);
                 }
+
             }
+
+            if (chosenType === 'Movie' || chosenType === 'Series') {
+                virtualFolderLocations.sort();
+                virtualFolderLocations.reverse();
+            }
+            
         }
 
         virtualFolderLocationsCount = virtualFolderLocations.length;
@@ -257,46 +265,54 @@
     function submitMediaForm(dlg, item) {
                   
         console.table(item);
-        var baseItemSelect = dlg.querySelector('#selectBaseItems');
+        var baseItemSelect    = dlg.querySelector('#selectBaseItems');
         var mediaFolderSelect = dlg.querySelector('#selectRootFolder');
-
-        var resultId = dlg.querySelector('#hfResultId').value;
-
-        var mediaId = baseItemSelect.value;
+        var resultId          = dlg.querySelector('#hfResultId').value;
+        var mediaId           = baseItemSelect.options[baseItemSelect.selectedIndex].value;
 
         
-        var newMediaName = null;
-        var newMediaYear = null;
+        //var newMediaName = null;
+        //var newMediaYear = null;
 
         if (mediaId == "##NEW##" && currentNewItem != null) {
-            mediaId = null;
-            newMediaName = currentNewItem.Name;
-            newMediaYear = currentNewItem.ProductionYear;
+            mediaId = ""; //Empty
+            //newMediaName = currentNewItem.Name;
+            //newMediaYear = currentNewItem.ProductionYear;
         }
 
         var options = {
-            CreateNewDestination: false,
-            TargetFolder: mediaFolderSelect.selectedIndex > 0 ? mediaFolderSelect.value : "",
-            RequestToMoveFile: true,
-            Name: newMediaName ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.name,
-            Year: newMediaYear ?? baseItemSelect.options[baseItemSelect.selectedIndex].dataset.year,
-            ProviderIds: currentNewItem ? currentNewItem.ProviderIds : []
+            CreateNewDestination : false,
+            TargetFolder         : mediaFolderSelect.options[mediaFolderSelect.selectedIndex].value,
+            RequestToMoveFile    : true,
+            Name                 : baseItemSelect.options[baseItemSelect.selectedIndex].dataset.name,
+            Year                 : baseItemSelect.options[baseItemSelect.selectedIndex].dataset.year,
+            ProviderIds          : currentNewItem ? currentNewItem.ProviderIds : []
         }
 
         switch (chosenType) {
             case "Series":
+
                 options.SeriesId            = mediaId;
                 options.SeasonNumber        = dlg.querySelector('#txtSeason').value;
                 options.EpisodeNumber       = dlg.querySelector('#txtEpisode').value;
                 options.EndingEpisodeNumber = dlg.querySelector('#txtEndingEpisode').value;
                 options.RememberCorrection  = dlg.querySelector('#chkRememberCorrection').checked;
                 
-                
                 break;
+
             case "Movie":
+
                 options.MovieId             = mediaId;
+
                 break;
         }
+
+        if (options.TargetFolder == "") {
+            Dashboard.alert({
+                title: "Auto Organize",
+                message:"Target folder can not be empty."
+            });
+        };
 
         var message = "";
        
@@ -392,19 +408,22 @@
                 if (newItem != null) {
                     currentNewItem = newItem;
 
-                    //var mediasHtml = '';
-
                     if (selectBaseItems.options.length > 0) {
                         const itemToSelect = [...selectBaseItems.options].filter(o => normalizeString(o.dataset.name) == normalizeString(newItem.Name) && o.dataset.year == newItem.ProductionYear);
                         if (itemToSelect.length) {
                             selectBaseItems.value = itemToSelect[0].value;
                         } else {
-                            selectBaseItems.innerHTML += '<option selected data-name="' + currentNewItem.Name + '" data-year="' + currentNewItem.ProductionYear + '" value="##NEW##">' + currentNewItem.Name + ' (' + currentNewItem.ProductionYear + ')</option>'
+                            //Don't add the production year if the name contains it already. 
+                            if (currentNewItem.Name.includes(`(${currentNewItem.ProductionYear})`)) {
+                                selectBaseItems.innerHTML += '<option selected data-name="' + currentNewItem.Name + '" data-year="' + currentNewItem.ProductionYear + '" value="##NEW##">' + currentNewItem.Name + '</option>';
+                            } else {
+                                selectBaseItems.innerHTML += '<option selected data-name="' + currentNewItem.Name + '" data-year="' + currentNewItem.ProductionYear + '" value="##NEW##">' + currentNewItem.Name + (currentNewItem.ProductionYear ? ` (${currentNewItem.ProductionYear})` : "") + '</option>';
+                            }
+                           
+                            
                         }
                     }
-
-                    //mediasHtml = mediasHtml + '<option selected value="##NEW##">' + currentNewItem.Name + '</option>';
-                    //dlg.querySelector('#selectBaseItems').innerHTML = mediasHtml;
+                     
                     selectedMediasChanged(dlg);
                 }
             });
@@ -418,12 +437,10 @@
 
         
         if (mediasId.value == "##NEW##" || mediasId.selectedIndex > 0) {
-            dlg.querySelector('.selectRootFolderContainer').classList.remove('hide');
-            dlg.querySelector('#selectRootFolder').setAttribute('required', 'required');
+            mediaFolderSelect.classList.remove('hide');
         }
         else {
             mediaFolderSelect.classList.add('hide');
-            dlg.querySelector('#selectRootFolder').removeAttribute('required');
         }
     }
 

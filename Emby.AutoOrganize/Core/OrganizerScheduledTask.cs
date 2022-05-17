@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core.WatchedFolderOrganization;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Configuration;
@@ -61,7 +62,7 @@ namespace Emby.AutoOrganize.Core
             try
             {
                 await new WatchedFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor,
-                        fileOrganizationService, _config, _providerManager).Organize(options, cancellationToken, progress).ConfigureAwait(false);
+                        fileOrganizationService, _config, _providerManager).Organize(options, cancellationToken, progress);//.ConfigureAwait(false);
             }
             catch
             {
