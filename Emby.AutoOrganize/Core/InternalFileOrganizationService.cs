@@ -205,6 +205,11 @@ namespace Emby.AutoOrganize.Core
 
         public void PerformOrganization(EpisodeFileOrganizationRequest request)
         {
+            if (string.IsNullOrEmpty(request.TargetFolder))
+            {
+                _logger.Warn("Target folder can not be empty...");
+                return;
+            }
             var organizer = new EpisodeOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();

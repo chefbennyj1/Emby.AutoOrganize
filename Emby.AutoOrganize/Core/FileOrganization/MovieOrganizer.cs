@@ -49,7 +49,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             //Instance            = this;
         }
 
-        //private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Movie;
+       
 
         public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {                
@@ -89,7 +89,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Type = FileOrganizerType.Movie,
                     FileSize = FileSystem.GetFileInfo(path).Length,
                     SourceQuality = RegexExtensions.GetSourceQuality(Path.GetFileName(path)),
-                    ExtractedResolution =  new Resolution()
+                    ExtractedResolution = new Resolution()
                 };
 
                 
@@ -224,12 +224,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //Try the parent folder for proper naming that emby will understand.
                 if (extractedMovieNameFromFile.Contains("-") || string.IsNullOrEmpty(extractedMovieNameFromFile))
                 {
-                    Log.Info($"Movie name  contains dash. Checking parent folder for naming..");
+                    Log.Info($"Movie name  contains dash. Checking parent folder for naming...");
                     //Split the file path by the Separator
                     var paths = path.Split(FileSystem.DirectorySeparatorChar);
 
+                    var parentFolderName = paths[paths.Count() - 2];
+
                     //Check the file's Parent folder for some kind of proper naming
-                    var  movieInfoFromParentFolderName = LibraryManager.ParseName(paths[paths.Count() - 2].AsSpan());
+                    var  movieInfoFromParentFolderName = LibraryManager.ParseName(parentFolderName.AsSpan());
 
                     var extractedMovieNameFromParentFolder = movieInfoFromParentFolderName.Name;
                     var extractedMovieYearFromParentFolder = movieInfoFromParentFolderName.Year;
@@ -253,6 +255,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         Log.Info("Parsed movie name from parent folder successful...");
                         movieName = movieInfoFromParentFolderName.Name;
                         movieYear = movieInfoFromParentFolderName.Year;
+
+                        //We'll update the Edition Information here again, because the parent folder most likely contains the proper data we need to identify the movie.
+                        result.ExtractedEdition = RegexExtensions.GetReleaseEditionFromFileName(parentFolderName);
+                        result.SourceQuality = RegexExtensions.GetSourceQuality(parentFolderName);
+
                     }
                 }
 
@@ -273,11 +280,17 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //Clean up the movie name that the Library Manager parsed, it will still contain unwanted character
                 movieName = RegexExtensions.NormalizeMediaItemName(movieName);
 
+                //Some movie naming places the Edition information before the year.
+                //Emby must look at the Year to decide where the name ends when using LibraryManager.ParseName() method.
+                //This means that the edition information gets parsed with the name.
+                //We'll strip it here if it there.
+                movieName = movieName.Replace(result.ExtractedEdition, string.Empty).Trim();
+
                 Log.Info($"Extracted information from {path}. Movie {movieName}, Year {(movieYear.HasValue ? movieYear.Value.ToString() : " Can not parse year")}");
 
                 result.ExtractedName = movieName;
                 result.ExtractedYear = movieYear;
-                result.ExtractedEdition = RegexExtensions.GetReleaseEditionFromFileName(path);
+               
 
                 OrganizationService.SaveResult(result, cancellationToken);
 
@@ -1148,8 +1161,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
         private string GetMovieFileName(string sourcePath, FileOrganizationResult result, AutoOrganizeOptions options)
         {
-            var movieName = FileSystem.GetValidFilename(result.ExtractedName).Trim();
-            var productionYear = result.ExtractedYear.ToString() ?? "";
+            var movieName       = FileSystem.GetValidFilename(result.ExtractedName).Trim();
+            var productionYear  = result.ExtractedYear.ToString() ?? "";
+            var edition         = result.ExtractedEdition ?? "";
+            var resolution      = result.ExtractedResolution.Name;
+            var sourceExtension = (Path.GetExtension(sourcePath) ?? string.Empty).TrimStart('.');
 
             var pattern = options.MoviePattern;
 
@@ -1159,14 +1175,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return null;
             } 
 
-            var sourceExtension = (Path.GetExtension(sourcePath) ?? string.Empty).TrimStart('.');
+           
             var patternResult = pattern.Replace("%mn", movieName)
                 .Replace("%m.n", movieName.Replace(" ", "."))
                 .Replace("%m_n", movieName.Replace(" ", "_"))
                 .Replace("%my", productionYear)
-                .Replace("%res", GetStreamResolutionFromFileName(Path.GetFileName(sourcePath)))
+                .Replace("%res", resolution)
                 .Replace("%ext", sourceExtension)
-                .Replace("%e", RegexExtensions.GetReleaseEditionFromFileName(Path.GetFileName(sourcePath)))
+                .Replace("%e", edition)
                 .Replace("%fn", Path.GetFileNameWithoutExtension(sourcePath));
 
             // Finally, call GetValidFilename again in case user customized the movie expression with any invalid filename characters

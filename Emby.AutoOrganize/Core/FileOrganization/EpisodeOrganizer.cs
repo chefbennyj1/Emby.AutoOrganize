@@ -410,14 +410,17 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var result = OrganizationService.GetResult(request.ResultId);
 
             //We have to check if the user select the same destination we already calculated for them... that could happen apparently.
-            if(result.TargetPath.Substring(0, request.TargetFolder.Length) == request.TargetFolder)
-            {
-                PerformFileSorting(options, result, cancellationToken);
-                if (!request.RememberCorrection) return;
-                Log.Info($"Adding {result.ExtractedName} to Smart List");
-                SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(result.OriginalPath), request.Name, result, cancellationToken);
-                return;
-            }
+            //if(result.TargetPath.Substring(0, request.TargetFolder.Length) == request.TargetFolder)
+            //{
+            //    result.ExtractedName = request.Name;
+            //    result.ExtractedYear = request.Year;
+                
+            //    //PerformFileSorting(options, result, cancellationToken);
+            //    //if (!request.RememberCorrection) return;
+            //    //Log.Info($"Adding {result.ExtractedName} to Smart List");
+            //    //SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(result.OriginalPath), request.Name, result, cancellationToken);
+            //    //return;
+            //}
 
 
 
@@ -1374,9 +1377,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 if (smartMatch.TotalRecordCount == 0) return null;
 
-                var nameToCompare = FileSystem.GetFileNameWithoutExtension(result.OriginalPath);
                 
-                var info = smartMatch.Items.FirstOrDefault(smartMatchInfo => smartMatchInfo.MatchStrings.Any(match => RegexExtensions.NormalizeSearchStringComparison(match).Contains(RegexExtensions.NormalizeSearchStringComparison(nameToCompare))));
+                
+                var info = smartMatch.Items.FirstOrDefault(smartMatchInfo => smartMatchInfo.MatchStrings.Any(match => LibraryManager.ParseName(match.AsSpan()).Name.ContainsIgnoreCase(seriesName)));
 
                 if (info == null)
                 {

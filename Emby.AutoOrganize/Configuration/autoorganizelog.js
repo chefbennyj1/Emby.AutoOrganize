@@ -224,7 +224,7 @@
         html += '</div>';
 
         html += '<div class="formDialogContent" style="text-align:center; display:flex; justify-content:center;align-items:center">';
-        html += '<svg style="width: 55px;height: 55px;top: 19%;position: absolute;" viewBox="0 0 24 24"><path fill="var(--theme-primary-color)" d="M21 11.1V8C21 6.9 20.1 6 19 6H11L9 4H3C1.9 4 1 4.9 1 6V18C1 19.1 1.9 20 3 20H10.2C11.4 21.8 13.6 23 16 23C19.9 23 23 19.9 23 16C23 14.1 22.2 12.4 21 11.1M9.3 18H3V8H19V9.7C18.1 9.2 17.1 9 16 9C12.1 9 9 12.1 9 16C9 16.7 9.1 17.4 9.3 18M16 21C13.2 21 11 18.8 11 16S13.2 11 16 11 21 13.2 21 16 18.8 21 16 21M17 14H15V12H17V14M17 20H15V15H17V20Z"></path></svg>';
+        html += '<svg style="width: 55px;height: 55px;top: 19%;position: absolute;" viewBox="0 0 24 24"><path fill="var(--focus-background)" d="M21 11.1V8C21 6.9 20.1 6 19 6H11L9 4H3C1.9 4 1 4.9 1 6V18C1 19.1 1.9 20 3 20H10.2C11.4 21.8 13.6 23 16 23C19.9 23 23 19.9 23 16C23 14.1 22.2 12.4 21 11.1M9.3 18H3V8H19V9.7C18.1 9.2 17.1 9 16 9C12.1 9 9 12.1 9 16C9 16.7 9.1 17.4 9.3 18M16 21C13.2 21 11 18.8 11 16S13.2 11 16 11 21 13.2 21 16 18.8 21 16 21M17 14H15V12H17V14M17 20H15V15H17V20Z"></path></svg>';
         var message = globalize.translate("MessageFollowingFileWillBeMovedFrom") + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + globalize.translate("MessageDestinationTo") + '<br/><br/>' + item.TargetPath;
         if (item.DuplicatePaths.length) {
             message += '<br/><br/>' + 'The following duplicates will be deleted:';
@@ -420,14 +420,14 @@
         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
         html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button" title="Organize" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-        html += '<path  d="' + processBtn.path + '"/>';
+        html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
         html += '</svg>';
         html += '</button>';
 
         var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
         html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button" title="Delete" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-        html += '<path d="' + deleteBtn.path + '"/>';
+        html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
         html += '</svg>';
         html += '</button>';
         html += '</td>';
@@ -767,15 +767,15 @@
         switch (btn_icon) {
             case 'IdentifyBtn': return {
                 path: "M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H13C12.59,21.75 12.2,21.44 11.86,21.1C11.53,20.77 11.25,20.4 11,20H6V4H13V9H18V10.18C18.71,10.34 19.39,10.61 20,11V8L14,2M20.31,18.9C21.64,16.79 21,14 18.91,12.68C16.8,11.35 14,12 12.69,14.08C11.35,16.19 12,18.97 14.09,20.3C15.55,21.23 17.41,21.23 18.88,20.32L22,23.39L23.39,22L20.31,18.9M16.5,19A2.5,2.5 0 0,1 14,16.5A2.5,2.5 0 0,1 16.5,14A2.5,2.5 0 0,1 19,16.5A2.5,2.5 0 0,1 16.5,19Z",
-                color: ''
+                color: 'var(--focus-background)'
             }
             case 'DeleteBtn': return {
                 path: "M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z",
-                color: ' '
+                color: 'var(--focus-background) '
             };
             case 'ProcessBtn': return {
                 path: "M4 7C4 4.79 7.58 3 12 3S20 4.79 20 7 16.42 11 12 11 4 9.21 4 7M19.72 13.05C19.9 12.71 20 12.36 20 12V9C20 11.21 16.42 13 12 13S4 11.21 4 9V12C4 14.21 7.58 16 12 16C12.65 16 13.28 15.96 13.88 15.89C14.93 14.16 16.83 13 19 13C19.24 13 19.5 13 19.72 13.05M13.1 17.96C12.74 18 12.37 18 12 18C7.58 18 4 16.21 4 14V17C4 19.21 7.58 21 12 21C12.46 21 12.9 21 13.33 20.94C13.12 20.33 13 19.68 13 19C13 18.64 13.04 18.3 13.1 17.96M23 19L20 16V18H16V20H20V22L23 19Z",
-                color: ''
+                color: 'var(--focus-background)'
             }
         }
     }
@@ -1025,7 +1025,7 @@
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
                         html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="Identify" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                        html += '<path d="' + identifyBtn.path + '"/>';
+                        html += '<path fill="var(--focus-background)" d="' + identifyBtn.path + '"/>';
                         html += '</svg>';
                         html += '</button>';
                     }
@@ -1042,7 +1042,7 @@
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
                         html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button" title="Organize" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                        html += '<path d="' + processBtn.path + '"/>';
+                        html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
                         html += '</svg>';
                         html += '</button>';
                     }
@@ -1052,13 +1052,14 @@
                 var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
                 html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="Delete" style="background-color:transparent">';
                 html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                html += '<path d="' + deleteBtn.path + '"/>';
+                html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
                 html += '</svg>';
                 html += '</button>';
                 html += '</td>';
 
             }
             
+            html += '<td class="detailTableBodyCell organizerButtonCell" style="whitespace:no-wrap;"></td>';
         }
 
         return html;
