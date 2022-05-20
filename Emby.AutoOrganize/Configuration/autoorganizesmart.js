@@ -120,8 +120,8 @@
             if (infos && infos.length) {
                 infos = infos.sort(function(a, b) {
 
-                    a = a.OrganizerType + " " + (a.DisplayName || a.ItemName);
-                    b = b.OrganizerType + " " + (b.DisplayName || b.ItemName);
+                    a = a.OrganizerType + " " + (a.Name);
+                    b = b.OrganizerType + " " + (b.Name);
 
                     if (a === b) {
                         return 0;
@@ -149,7 +149,7 @@
                 //html += '<div style="">';
                 //html += '<img src="' + ApiClient.getUrl("Items/" + info.Id + "/Images/Logo?maxWidth=300") + '" />';
                 //html += '</div>';
-                html += '<div is="emby-collapse" title="' + (info.DisplayName || info.ItemName) + '">';
+                html += '<div is="emby-collapse" title="' + (info.Name) + '">';
                 html += '<div class="collapseContent">';
                 html += '<div style="">';
                 html += getHtmlFromMatchStrings(info, i);

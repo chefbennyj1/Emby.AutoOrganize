@@ -134,6 +134,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                                 if (!string.IsNullOrEmpty(stream.codec_name) && !result.AudioStreamCodecs.Any())
                                 {
                                     result.AudioStreamCodecs.Add(stream.codec_name);
+                                    result.AudioStreamCodecs.Add(stream.channels == 6 ? "5.1" : stream.channels.ToString());
                                 }
 
                                 break;
@@ -196,6 +197,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 return result;
             }
+
+            //If we have the proper data to sort the file, and the user has requested it. Sort it!
+            if (!string.IsNullOrEmpty(result.TargetPath) && requestToMoveFile)
+            {
+                PerformFileSorting(options, result, cancellationToken);
+                return result;
+            }
+
 
             try
             {
@@ -294,7 +303,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = msg;
                         Log.Warn(msg);
-                        //OrganizationService.RemoveFromInprogressList(result);
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return result;
@@ -343,7 +351,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     Log.Warn(msg);
-                    //OrganizationService.RemoveFromInprogressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return result;
@@ -645,6 +652,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         foreach (var movie in movies)
                         {
                             message += $"\n {movie.Name}";
+                            
                             movie.GetMediaStreams().ForEach(s => message += " " + s.DisplayTitle);
                         }
 
@@ -656,7 +664,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             Log.Info(msg);
                             result.Status = FileSortingStatus.NewResolution;
                             result.StatusMessage = msg;
-                            //OrganizationService.RemoveFromInprogressList(result);
+                            result.ExistingInternalId = movies[0].InternalId;
                             OrganizationService.SaveResult(result, cancellationToken);
                             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                             return;
@@ -669,6 +677,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             msg = $"File '{sourcePath}' already exists: '{result.TargetPath}', stopping organization";
                             Log.Info(msg);
                             result.Status = FileSortingStatus.SkippedExisting;
+                            result.ExistingInternalId = LibraryManager.GetItemsResult(new InternalItemsQuery() { Path = result.TargetPath }).Items[0].InternalId;
                             result.StatusMessage = msg;
                             OrganizationService.SaveResult(result, cancellationToken);
                             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
@@ -679,6 +688,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         Log.Info(msg);
                         result.Status = FileSortingStatus.NewEdition;
                         result.StatusMessage = msg;
+                        result.ExistingInternalId = movies[0].InternalId;
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
@@ -697,6 +707,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         Log.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
+                        result.ExistingInternalId = LibraryManager.GetItemsResult(new InternalItemsQuery() { Path = result.TargetPath }).Items[0].InternalId;
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
@@ -708,6 +719,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         Log.Info(msg);
                         result.Status = FileSortingStatus.NewEdition;
                         result.StatusMessage = msg;
+                        result.ExistingInternalId = LibraryManager.GetItemsResult(new InternalItemsQuery() { Path = result.TargetPath }).Items[0].InternalId;
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
@@ -740,6 +752,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Log.Info(msg);
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
+                    result.ExistingInternalId = LibraryManager.GetItemsResult(new InternalItemsQuery() { Path = result.TargetPath }).Items[0].InternalId;
                     OrganizationService.RemoveFromInprogressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
@@ -801,7 +814,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             var videoStream = movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video);
             
-            return videoStream?.Width == sourceFileResolution.Width || !videoStream.DisplayTitle.ContainsIgnoreCase(sourceFileResolution.Name);
+            return videoStream?.Width == sourceFileResolution.Width || videoStream.DisplayTitle.ContainsIgnoreCase(sourceFileResolution.Name);
         }
 
         
@@ -809,6 +822,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             Log.Info("Processing " + result.TargetPath);
             result.Status = FileSortingStatus.Processing;
+            result.StatusMessage = "";
             result.FileSize = FileSystem.GetFileInfo(result.OriginalPath).Length; //Update the file size so it will show the actual size of the file here. It may have been copying before.
             Log.Info($"Auto organize adding {result.TargetPath} to inprogress list");
             OrganizationService.SaveResult(result, cancellationToken);
@@ -833,7 +847,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var targetAlreadyExists = FileSystem.FileExists(result.TargetPath) || FileSystem.DirectoryExists(Path.GetDirectoryName(result.TargetPath));
 
 
-            if (targetAlreadyExists) //(targetAlreadyExists && options.OverwriteExistingFiles && requestToMoveFile.Value)
+            if (FileSystem.FileExists(result.TargetPath)) //(targetAlreadyExists && options.OverwriteExistingFiles && requestToMoveFile.Value)
             {
                 RemoveExistingLibraryItem(result);
             }
@@ -1069,11 +1083,15 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             
             try
             {
-                FileSystem.DeleteFile(itemToRemove);
+                if (!string.IsNullOrEmpty(itemToRemove))
+                {
+                    FileSystem.DeleteFile(itemToRemove);
+                }
+               
             }
             catch (Exception ex)
             {
-                Log.ErrorException("Error deleting {0}", ex, itemToRemove);
+                Log.Warn("Error deleting {0}", ex, itemToRemove);
             }
         }
         private Movie GetMatchingMovie(string movieName, int? movieYear, FileOrganizationResult result)

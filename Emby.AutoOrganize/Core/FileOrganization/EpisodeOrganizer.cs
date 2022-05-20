@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Model;
@@ -217,13 +216,20 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return result;
             }
 
-            //If a target folder has been calculated just return the result.
+            //If a target folder has been calculated and the user has multiple locations for the series (Status: Waiting), just return the result. The user will have to organize with corrections.
             if (!string.IsNullOrEmpty(result.TargetPath) && result.Status == FileSortingStatus.Waiting)
             {
                 return result;
             }
 
             //Looks lke we can access the file path.
+
+            //If we have the proper data to sort the file, and the user has requested it. Sort it!
+            if (!string.IsNullOrEmpty(result.TargetPath) && requestToMoveFile)
+            {
+                PerformFileSorting(options, result, cancellationToken);
+                return result;
+            }
 
             try
             {
@@ -266,12 +272,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (episodeInfo.IsByDate || (seasonNumber.HasValue && episodeNumber.HasValue))
                     {
-                        //if (episodeInfo.IsByDate)
-                        //{
-                        //    Log.Debug($"Extracted information from {path}. Series name {seriesName}, Date { ( premiereDate.HasValue ? premiereDate.Value.ToString("dd/MM/YYYY") : "no date avaiable")}");
-                        //}
-                        //else
-                        //{
                         Log.Info($"Extracted information from {path}. Series name {seriesName}, {(seasonNumber.HasValue ? $": Season { seasonNumber.Value }," : " Can not determine season number,")} {(episodeNumber.HasValue ? $" Episode {episodeNumber.Value}." : " Can not determine episode number.")}");
 
                         var endingEpisodeNumber = episodeInfo.EndingEpisodeNumber;
@@ -409,6 +409,18 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             var result = OrganizationService.GetResult(request.ResultId);
 
+            //We have to check if the user select the same destination we already calculated for them... that could happen apparently.
+            if(result.TargetPath.Substring(0, request.TargetFolder.Length) == request.TargetFolder)
+            {
+                PerformFileSorting(options, result, cancellationToken);
+                if (!request.RememberCorrection) return;
+                Log.Info($"Adding {result.ExtractedName} to Smart List");
+                SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(result.OriginalPath), request.Name, result, cancellationToken);
+                return;
+            }
+
+
+
             //Update the result with possible missing information from the request.
             if (!result.ExtractedEpisodeNumber.HasValue && request.EpisodeNumber.HasValue)
             {
@@ -420,13 +432,12 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.ExtractedSeasonNumber = request.SeasonNumber.Value;
             }
 
-            //Grab a copy of the original extracted name so we can save it for smart lists before we upadate it to the actual name sent from the UI
-            var originalSeriesFileName = result.ExtractedName;
-
-
+            
             //Update the name it should be correct at this point
             result.ExtractedName = request.Name;
 
+
+            
            
             if (request.CreateNewDestination || 
                 string.IsNullOrEmpty(result.TargetPath) || !string.IsNullOrEmpty(result.TargetPath) &&  
@@ -478,6 +489,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     try
                     {
                         episode = await GetEpisodeRemoteProviderData(series, request.SeasonNumber, request.EpisodeNumber, request.EndingEpisodeNumber, null, cancellationToken);
+                        
                     }
                     catch (Exception ex)
                     {
@@ -496,6 +508,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         return;
                     }
 
+                    result.ExtractedEpisodeName = episode.Name;
                     episodeFileName = GetEpisodeFileName(result, request.Name, request.SeasonNumber, request.EpisodeNumber, request.EndingEpisodeNumber, episode.Name, options);
                     
                 } 
@@ -517,6 +530,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 
                 var path = Path.Combine(request.TargetFolder, Path.Combine(seriesFolderName, seasonFolderName, episodeFileName));
 
+                
                 result.TargetPath = path;
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
@@ -538,7 +552,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (series != null)
                 {
                     Log.Info($"Adding {result.ExtractedName} to Smart List");
-                    SaveSmartMatchString(originalSeriesFileName, series, result, cancellationToken);
+                    SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(result.OriginalPath), series.Name, result, cancellationToken);
                 }
                 else
                 {
@@ -623,14 +637,15 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //    series = (Series)LibraryManager.GetItemById(request.SeriesId);
                 //}
 
-                if (request.RememberCorrection)
-                {
-                    Log.Info($"Adding {result.ExtractedName} to Smart List");
-                    SaveSmartMatchString(result.ExtractedName, series, result, cancellationToken);
+                //if (request.RememberCorrection)
+                //{
+                //    Log.Info($"Adding {result.ExtractedName} to Smart List");
+                //    SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(result.OriginalPath), series, result, cancellationToken);
 
-                }
+                //}
 
-                var overwriteFile = request.RequestToMoveFile ?? false; 
+                //This will always be true because the user has chosen the proper provider data from the fileorganizer. We'll force the sort.
+                const bool overwriteFile = true; 
 
                 OrganizeEpisode(overwriteFile, series, request.SeasonNumber,
                     request.EpisodeNumber, request.EndingEpisodeNumber, null, options, request.RememberCorrection, result, cancellationToken);
@@ -656,9 +671,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private async void OrganizeEpisode(bool overwriteFile, Series series, int? seasonNumber, int? episodeNumber, int? endingEpisodeNumber, DateTime? premiereDate, AutoOrganizeOptions options, bool rememberCorrection, FileOrganizationResult result, CancellationToken cancellationToken)
         {
             var sourcePath = result.OriginalPath;
+
             var episode = GetMatchingEpisode(series, seasonNumber, episodeNumber, endingEpisodeNumber, result, premiereDate, cancellationToken);
 
-            if (episode is null)
+            if (episode is null) 
             {
                 try
                 {
@@ -684,7 +700,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             
             var season = episode.Season ?? GetMatchingSeason(series, result, options);
             
-
+            
             var episodeFileName = GetEpisodeFileName(result, series.Name, season.IndexNumber, episode.IndexNumber, episode.IndexNumberEnd, episode.Name, options);
             episode.Path = Path.Combine(season.Path, episodeFileName);
 
@@ -701,6 +717,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
 
             result.TargetPath = episode.Path;
+            result.ExtractedEpisodeName = episode.Name;
             //OrganizationService.SaveResult(result, cancellationToken);
 
             Log.Info($"Episode Target Path : {result.TargetPath}");
@@ -708,9 +725,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             
             Log.Info("Beginning Episode Organization");
             Log.Info("Sorting file {0} into series {1}", sourcePath, series.Name);
-
             
-            var originalExtractedSeriesString = result.ExtractedName;
 
             bool isNew = string.IsNullOrWhiteSpace(result.Id);
 
@@ -719,11 +734,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 OrganizationService.SaveResult(result, cancellationToken);
             }
 
-            //if (!OrganizationService.AddToInProgressList(result, isNew))
-            //{
-            //    Log.Info("File is currently processed otherwise, Please try again later.");
-                
-            //}
 
 
 
@@ -761,7 +771,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (rememberCorrection)
                     {
-                        SaveSmartMatchString(originalExtractedSeriesString, series, result, cancellationToken);
+                        SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
                     }
                     return;
                 }
@@ -771,7 +781,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //1. Overwrite existing files option is unchecked - The key words input is empty - the file already exists in the library - no files will be overwritten - mark as existing - stop organization.
                 //2. Overwrite existing files option is checked - Doesn't matter about key words - the file already exists in the library - any file will overwrite the library item.
                 //3. Overwrite existing files option is unchecked - Key words inputs have values - the file already exists in the library - only items with key words in the file name will overwrite the library item.
-                //4. The file doesn't exist in the library - is new - auto sorting is turned on -  sort it!
+                //4. a)  The file doesn't exist in the library - is a new episode for an existing series - auto sorting is turned on - Sort episodes for existing series only is turned on - sort it!
+                //   b)  The file doesn't exist in the library - is a new episode for a new series - auto sorting is turned on - Sort episodes for existing series only is turned off - Mark the file as NewMedia
                 //5. The file doesn't exist in the library - is new - auto sorting is turned off - Mark the file as NewMedia
 
                 //1.
@@ -783,7 +794,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
                     OrganizationService.SaveResult(result, cancellationToken);
-                    //OrganizationService.RemoveFromInprogressList(result);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
                    
@@ -798,7 +808,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (rememberCorrection)
                     {
-                        SaveSmartMatchString(originalExtractedSeriesString, series, result, cancellationToken);
+                        SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
                     }
                     return;
                 }
@@ -814,7 +824,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                         if (rememberCorrection)
                         {
-                            SaveSmartMatchString(originalExtractedSeriesString, series, result, cancellationToken);
+                            SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
                         }
                         return;
                     }
@@ -835,11 +845,22 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //4.
                 if (!fileExists && options.AutoDetectSeries)
                 {
+                    if (IsNewSeries(series) && options.SortExistingSeriesOnly)
+                    {
+                        var msg = $"Auto detect disabled for new series. File '{sourcePath}' will wait for user interaction. Stopping organization";
+                        Log.Info(msg);
+                        result.Status = FileSortingStatus.NewMedia;
+                        result.StatusMessage = msg;
+                        OrganizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                        return;
+                    }
+                     
                     PerformFileSorting(options, result, cancellationToken);
 
                     if (rememberCorrection)
                     {
-                        SaveSmartMatchString(originalExtractedSeriesString, series, result, cancellationToken);
+                        SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
                     }
 
                     return;
@@ -908,7 +929,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
         }
 
-        private void SaveSmartMatchString(string matchString, Series series, FileOrganizationResult result, CancellationToken cancellationToken)
+        private void SaveSmartMatchString(string matchString, string seriesName, FileOrganizationResult result, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(matchString) || matchString.Length < 3)
             {
@@ -916,16 +937,17 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return;
             }
 
-            var info = OrganizationService.GetSmartMatchInfos().Items.FirstOrDefault(i => string.Equals(i.ItemName, series.Name, StringComparison.OrdinalIgnoreCase));
+            var smartInfo = OrganizationService.GetSmartMatchInfos();
+            
+            var info = smartInfo.Items.FirstOrDefault(i => string.Equals(i.Name, seriesName, StringComparison.OrdinalIgnoreCase));
 
             if (info == null)
             {
                 info = new SmartMatchResult
                 {
-                    ItemName = series.Name,
+                    Name = seriesName,
                     OrganizerType = FileOrganizerType.Episode,
-                    DisplayName = series.Name,
-                    Id = series.Name.GetMD5().ToString("N")
+                    Id = seriesName.GetMD5().ToString("N")
                 };
             }
 
@@ -934,7 +956,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 info.MatchStrings.Add(matchString);
                 OrganizationService.SaveResult(info, cancellationToken);
             }
-            Log.Info($"Match string saved {info.ItemName} - {matchString}");
+
+            Log.Info($"Match string saved {info.Name} - {matchString}");
         }
 
         private void DeleteLibraryFile(string path, bool renameRelatedFiles, string targetPath)
@@ -1034,6 +1057,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             Log.Info("Processing " + result.TargetPath);
             result.Status = FileSortingStatus.Processing;
+            result.StatusMessage = "";
             result.FileSize = FileSystem.GetFileInfo(result.OriginalPath).Length; //Update the file size so it will show the actual size of the file here. It may have been copying before.
             Log.Info($"Auto organize adding {result.TargetPath} to inprogress list");
             OrganizationService.SaveResult(result, cancellationToken);
@@ -1337,7 +1361,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 Log.Info($"Parsing Smart List Info to find series name: {seriesName}");
                 
-                QueryResult<SmartMatchResult> smartMatch = null;
+                var smartMatch = new QueryResult<SmartMatchResult>();
 
                 try
                 {
@@ -1348,27 +1372,24 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 }
 
-                if (smartMatch == null)
-                {
-                    Log.Info("New Series Detected...");
-                    return null;
-                }
+                if (smartMatch.TotalRecordCount == 0) return null;
+
+                var nameToCompare = FileSystem.GetFileNameWithoutExtension(result.OriginalPath);
                 
-                var info = smartMatch.Items.FirstOrDefault(smartMatchInfo => smartMatchInfo.MatchStrings.Any(match => RegexExtensions.NormalizeSearchStringComparison(match).Contains(RegexExtensions.NormalizeSearchStringComparison(result.ExtractedName))));
+                var info = smartMatch.Items.FirstOrDefault(smartMatchInfo => smartMatchInfo.MatchStrings.Any(match => RegexExtensions.NormalizeSearchStringComparison(match).Contains(RegexExtensions.NormalizeSearchStringComparison(nameToCompare))));
 
                 if (info == null)
                 {
                     return null;
                 }
 
-                Log.Info($"Smart List entry found for {result.ExtractedName}: {(info.DisplayName ?? info.ItemName)}");
+                Log.Info($"Smart List entry found for {result.ExtractedName}: {(info.Name)}");
 
                 series = LibraryManager.GetItemList(new InternalItemsQuery
                 {
                     IncludeItemTypes = new[] { nameof(Series) },
                     Recursive = true,
-                    //AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
-                    Name = info.ItemName,
+                    Name = info.Name,
                     DtoOptions = new DtoOptions(true)
                 });
 
@@ -1468,7 +1489,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         }
         private async Task<Series> GetSeriesRemoteProviderData(string seriesName, int? seriesYear, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
-            //if (!options.AutoDetectSeries) return null;
+            
             
             string metadataLanguage = null;
             string metadataCountryCode = null;
@@ -1682,29 +1703,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return false;
         }
         
-        private bool IsSameEpisode(string sourcePath, string newPath)
-        {
-            try
-            {
-                var sourceFileInfo = FileSystem.GetFileInfo(sourcePath);
-                var destinationFileInfo = FileSystem.GetFileInfo(newPath);
-
-                if (sourceFileInfo.Length == destinationFileInfo.Length)
-                {
-                    return true;
-                }
-            }
-            catch (FileNotFoundException)
-            {
-                return false;
-            }
-            catch (IOException)
-            {
-                return false;
-            }
-
-            return false;
-        }
+        
         
         private static bool IsCopying(string source, IFileSystem fileSystem)
         {

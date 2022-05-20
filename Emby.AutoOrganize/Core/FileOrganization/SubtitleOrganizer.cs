@@ -17,6 +17,7 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Events;
+using MediaBrowser.Model.Extensions;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 
@@ -85,7 +86,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (movieSubtitleInfo != null)
                     {
-                        companion = dbResults.Items.FirstOrDefault(item => RegexExtensions.NormalizeSearchStringComparison(item.ExtractedName) == RegexExtensions.NormalizeSearchStringComparison(movieSubtitleInfo.Name));
+                        companion = dbResults.Items.FirstOrDefault(item => RegexExtensions.NormalizeSearchStringComparison(item.ExtractedName).ContainsIgnoreCase(RegexExtensions.NormalizeSearchStringComparison(movieSubtitleInfo.Name)));
 
                         //The result is no longer in the database table, try to find it in the library
                         if (companion is null)
@@ -125,7 +126,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     
                     
                     companion = dbResults.Items.FirstOrDefault(item =>
-                        RegexExtensions.NormalizeSearchStringComparison(item.ExtractedName) == RegexExtensions.NormalizeSearchStringComparison(episodeSubtitleInfo.SeriesName) &&
+                        RegexExtensions.NormalizeSearchStringComparison(item.ExtractedName).ContainsIgnoreCase(RegexExtensions.NormalizeSearchStringComparison(episodeSubtitleInfo.SeriesName)) &&
                         item.ExtractedEpisodeNumber == episodeSubtitleInfo.EpisodeNumber && item.ExtractedSeasonNumber == episodeSubtitleInfo.SeasonNumber);
 
                     //The result is no longer in the database table, try to find it in the library

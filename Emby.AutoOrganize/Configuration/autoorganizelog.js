@@ -181,12 +181,11 @@
     
     function showCorrectionPopup(page, item) {
 
-        require([Dashboard.getConfigurationResourceUrl('FileOrganizerJs')], function (fileorganizer) {
+        require([Dashboard.getConfigurationResourceUrl('FileOrganizerJs')], async function (fileorganizer) {
 
-            fileorganizer.show(item).then(function () {
+            await fileorganizer.show(item).then(function () {
                 reloadItems(page, false);
-            },
-                function () { /* Do nothing on reject */ });
+            }, function () { /* Do nothing on reject */ });
         });
     }
 
@@ -273,7 +272,6 @@
                 ApiClient.performOrganization(item.Id, options).then(function () {
                     reloadItems(view, false);
                 }, reloadItems(view, false));
-
                 dialogHelper.close(dlg);
             });
        
@@ -295,6 +293,12 @@
         
         var libraryItem = libraryResult.Items[0];
         if (!libraryItem) return;
+
+
+        var libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
+        var sourceResolution = parseInt(item.ExtractedResolution.Name.replace('p', ''));
+
+
         var dlg = dialogHelper.createDialog({
             size: "small",
             removeOnClose: !1,
@@ -331,6 +335,7 @@
         html += '<th class="detailTableHeaderCell" data-priority="3">File Size</th>'
         html += '<th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>'
         html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1"></th> '   //Quality is up or down
         html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
         html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
         html += '<th class="detailTableHeaderCell" data-priority="1">Subtitles</th>'
@@ -340,7 +345,7 @@
         html += '<tbody class="resultBody">';
 
         //Source Folder Item
-        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" style="color: var(--theme-primary-text);">';
+        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
         
         html += '<td class="detailTableBodyCell fileCell">';
         html += 'Source Folder'
@@ -370,6 +375,18 @@
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
         html += '</td>';
 
+        //Quality is up or down
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+
+        if (sourceResolution > libraryItemResolution) {
+            html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
+        } else {
+            html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
+        }
+        html += '</svg>';  
+        html += '</td>';
+
         //Codec
         html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
         if (item.VideoStreamCodecs.length) {
@@ -380,7 +397,11 @@
         //Audio
         html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
         if (item.AudioStreamCodecs.length) {
-            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[0].toLocaleUpperCase() + '</span>';
+            for(var i = 0; item.AudioStreamCodecs.length - 1; i++)
+            {
+                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[i].toLocaleUpperCase() + '</span>';
+            }
+            
         }
         html += '</td>';
         
@@ -397,16 +418,16 @@
         //Action
         html += '<td class="detailTableBodyCell fileCell" data-title="Action">';
         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
-        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button fab" title="Organize" style="background-color:transparent">';
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button" title="Organize" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-        html += '<path fill="' + processBtn.color + '" d="' + processBtn.path + '"/>';
+        html += '<path  d="' + processBtn.path + '"/>';
         html += '</svg>';
         html += '</button>';
 
         var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button fab" title="Delete" style="background-color:transparent">';
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button" title="Delete" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-        html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
+        html += '<path d="' + deleteBtn.path + '"/>';
         html += '</svg>';
         html += '</button>';
         html += '</td>';
@@ -415,7 +436,7 @@
 
 
         //Library Item
-        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" style="color: var(--theme-primary-text);">';
+        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
         
         html += '<td class="detailTableBodyCell fileCell">';
         html += 'Library'
@@ -443,6 +464,18 @@
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0]  + '</span>';  
         html += '</td>';
 
+        //Quality is up or down
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+
+        if (libraryItemResolution > sourceResolution) {
+            html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
+        } else {
+            html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
+        }
+        html += '</svg>';  
+        html += '</td>';
+
         //Codec
         html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase() + '</span>'; 
@@ -456,7 +489,7 @@
         //Internal Subtitle
         html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
         var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
-        var subtitleLabel = subtitles ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
+        var subtitleLabel = subtitles && !subtitles.IsExternal ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
         html += '</td>';
 
@@ -734,15 +767,15 @@
         switch (btn_icon) {
             case 'IdentifyBtn': return {
                 path: "M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H13C12.59,21.75 12.2,21.44 11.86,21.1C11.53,20.77 11.25,20.4 11,20H6V4H13V9H18V10.18C18.71,10.34 19.39,10.61 20,11V8L14,2M20.31,18.9C21.64,16.79 21,14 18.91,12.68C16.8,11.35 14,12 12.69,14.08C11.35,16.19 12,18.97 14.09,20.3C15.55,21.23 17.41,21.23 18.88,20.32L22,23.39L23.39,22L20.31,18.9M16.5,19A2.5,2.5 0 0,1 14,16.5A2.5,2.5 0 0,1 16.5,14A2.5,2.5 0 0,1 19,16.5A2.5,2.5 0 0,1 16.5,19Z",
-                color: 'var(--theme-text-color)'
+                color: ''
             }
             case 'DeleteBtn': return {
                 path: "M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z",
-                color: 'var(--theme-text-color)'
+                color: ' '
             };
             case 'ProcessBtn': return {
                 path: "M4 7C4 4.79 7.58 3 12 3S20 4.79 20 7 16.42 11 12 11 4 9.21 4 7M19.72 13.05C19.9 12.71 20 12.36 20 12V9C20 11.21 16.42 13 12 13S4 11.21 4 9V12C4 14.21 7.58 16 12 16C12.65 16 13.28 15.96 13.88 15.89C14.93 14.16 16.83 13 19 13C19.24 13 19.5 13 19.72 13.05M13.1 17.96C12.74 18 12.37 18 12 18C7.58 18 4 16.21 4 14V17C4 19.21 7.58 21 12 21C12.46 21 12.9 21 13.33 20.94C13.12 20.33 13 19.68 13 19C13 18.64 13.04 18.3 13.1 17.96M23 19L20 16V18H16V20H20V22L23 19Z",
-                color: 'var(--theme-text-color)'
+                color: ''
             }
         }
     }
@@ -762,7 +795,7 @@
             case 'SkippedExisting': return {
                 path: "M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z",
                 color: "goldenrod",
-                text: "Attention - Existing Item"
+                text: "Existing Item"
             };
             case 'Processing': return {
                 path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
@@ -777,12 +810,12 @@
             case "NewResolution": return {
                 path: "M12 5.5L10 8H14L12 5.5M18 10V14L20.5 12L18 10M6 10L3.5 12L6 14V10M14 16H10L12 18.5L14 16M21 3H3C1.9 3 1 3.9 1 5V19C1 20.1 1.9 21 3 21H21C22.1 21 23 20.1 23 19V5C23 3.9 22.1 3 21 3M21 19H3V5H21V19Z",
                 color: "var(--theme-accent-text-color)",
-                text: "New Resolution Available"
+                text: "New Resolution"
             }
             case "NotEnoughDiskSpace": return {
                 path: "",
                 color: "orangered",
-                text: "Attention - Not Enough Disk Space!"
+                text: "Not Enough Disk Space!"
             }
              case "InUse": return {
                 path: "M22 12C22 6.46 17.54 2 12 2C10.83 2 9.7 2.19 8.62 2.56L9.32 4.5C10.17 4.16 11.06 3.97 12 3.97C16.41 3.97 20.03 7.59 20.03 12C20.03 16.41 16.41 20.03 12 20.03C7.59 20.03 3.97 16.41 3.97 12C3.97 11.06 4.16 10.12 4.5 9.28L2.56 8.62C2.19 9.7 2 10.83 2 12C2 17.54 6.46 22 12 22C17.54 22 22 17.54 22 12M5.47 7C4.68 7 3.97 6.32 3.97 5.47C3.97 4.68 4.68 3.97 5.47 3.97C6.32 3.97 7 4.68 7 5.47C7 6.32 6.32 7 5.47 7M9 9H11V15H9M13 9H15V15H13",
@@ -802,7 +835,7 @@
             case "NewEdition": return {
                 path : "M19.65 6.5L16.91 2.96L20.84 2.18L21.62 6.1L19.65 6.5M16.71 7.07L13.97 3.54L12 3.93L14.75 7.46L16.71 7.07M19 13C20.1 13 21.12 13.3 22 13.81V10H2V20C2 21.11 2.9 22 4 22H13.81C13.3 21.12 13 20.1 13 19C13 15.69 15.69 13 19 13M11.81 8.05L9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05M4.16 5.5L3.18 5.69C2.1 5.91 1.4 6.96 1.61 8.04L2 10L6.9 9.03L4.16 5.5M20 18V15H18V18H15V20H18V23H20V20H23V18H20Z",
                 color: "var(--theme-accent-text-color)",
-                text: "New Edition Available"
+                text: "New Edition"
             };
         }
     }
@@ -897,7 +930,7 @@
 
         //Quality
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += '<span style="color: white;background-color: var(--theme-primary-color); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "")  + '</span>';  
+        html += '<span style="color: white;background-color: var(--theme-accent-text-color); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "")  + '</span>';  
         html += '</td>';
 
         //Codec
@@ -966,7 +999,7 @@
 
         //Source file path
         html += '<td data-title="Source" class="detailTableBodyCell fileCell">';
-        html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + ';" href="#" class="button-link btnShowStatusMessage">';
+        html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + '; display: initial" href="#" class="button-link btnShowStatusMessage">';
         html += item.OriginalFileName;
         html += '</a>';
         html += '</td>';
@@ -990,9 +1023,9 @@
                     //Allow the user to identify the item.
                     if (item.Status === "Failure" || (item.Status === "Waiting" && !item.TargetPath)) {
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
-                        html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button fab" title="Identify" style="background-color:transparent">';
+                        html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="Identify" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                        html += '<path fill="' + identifyBtn.color + '" d="' + identifyBtn.path + '"/>';
+                        html += '<path d="' + identifyBtn.path + '"/>';
                         html += '</svg>';
                         html += '</button>';
                     }
@@ -1007,9 +1040,9 @@
                         item.Status === "NewEdition") {
 
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
-                        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button fab" title="Organize" style="background-color:transparent">';
+                        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button" title="Organize" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                        html += '<path fill="' + processBtn.color + '" d="' + processBtn.path + '"/>';
+                        html += '<path d="' + processBtn.path + '"/>';
                         html += '</svg>';
                         html += '</button>';
                     }
@@ -1017,9 +1050,9 @@
 
                 //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
                 var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-                html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button fab" title="Delete" style="background-color:transparent">';
+                html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="Delete" style="background-color:transparent">';
                 html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
+                html += '<path d="' + deleteBtn.path + '"/>';
                 html += '</svg>';
                 html += '</button>';
                 html += '</td>';

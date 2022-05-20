@@ -192,9 +192,7 @@
 
         view.querySelector('#chkEnableSubtitleSorting').checked = config.AutoDetectSubtitles;
 
-        //view.querySelector('#txtWatchFolder').value = config.WatchLocations[0] || '';
-
-        //view.querySelector('.watchFolderListContainer').innerHTML = getWatchedLocationListItemHtml(config.WatchLocations)
+       
         var watchLocationList = view.querySelector('.watchFolderListContainer');
         watchLocationList.innerHTML = getWatchedLocationListItemHtml(config.WatchLocations);
         var removeButtons = watchLocationList.querySelectorAll('Button');
@@ -211,6 +209,8 @@
         view.querySelector('#txtIgnoreFileNameContains').value = config.IgnoredFileNameContains.join(';');
 
         view.querySelector('#chkEnableSeriesAutoDetect').checked = config.AutoDetectSeries;
+
+        view.querySelector('#chkSortExistingSeriesOnly').checked = config.SortExistingSeriesOnly;
 
         view.querySelector('#txtSeriesPattern').value = config.SeriesFolderPattern;
 
@@ -264,6 +264,13 @@
             config.MultiEpisodeNamePattern = view.querySelector('#txtMultiEpisodePattern').value;
 
             config.AutoDetectSeries = view.querySelector('#chkEnableSeriesAutoDetect').checked;
+
+            //Only set this value to it checked state if the use has enabled auto sorting
+            if (config.AutoDetectSeries) {
+                config.SortExistingSeriesOnly = view.querySelector('#chkSortExistingSeriesOnly').checked;
+            } else {
+                config.SortExistingSeriesOnly = false;
+            }
 
             config.AutoDetectSubtitles = view.querySelector('#chkEnableSubtitleSorting').checked;
 
@@ -473,23 +480,29 @@
         //    }
         //}
 
+        function toggleSortExistingSeriesOnly() {
+            if (view.querySelector('#chkEnableSeriesAutoDetect').checked) {
+                view.querySelector('.fldSortExistingSeriesOnly').classList.remove('hide');
+            } else {
+                view.querySelector('.fldSortExistingSeriesOnly').classList.add('hide');
+            }
+        }
+
         function toggleOverwriteExistingEpisodeItemKeyWords() {
             if (!view.querySelector('#chkOverwriteExistingEpisodeItems').checked) {
                 view.querySelector('.fldOverWriteExistingEpisodeFilesKeyWords').classList.remove('hide');
-                //view.querySelector('#selectSeriesFolder').setAttribute('required', 'required');
             } else {
                 view.querySelector('.fldOverWriteExistingEpisodeFilesKeyWords').classList.add('hide');
-                //view.querySelector('#selectSeriesFolder').removeAttribute('required');
             }
         }
 
         function toggleOverwriteExistingMovieItemKeyWords() {
             if (!view.querySelector('#chkOverwriteExistingMovieItems').checked) {
                 view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.remove('hide');
-                //view.querySelector('#selectSeriesFolder').setAttribute('required', 'required');
+               
             } else {
                 view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.add('hide');
-                //view.querySelector('#selectSeriesFolder').removeAttribute('required');
+                
             }
         }
 
@@ -642,11 +655,10 @@
         view.querySelector('#txtMoviePattern').addEventListener('change', updateMoviePatternHelp);
         view.querySelector('#txtMoviePattern').addEventListener('keyup', updateMoviePatternHelp);
 
-        //view.querySelector('#chkEnableMoviesAutoDetect').addEventListener('change', () => {
-        //    //toggleMovieLocation();
-        //    onSubmit(view);
-            
-        //});
+        view.querySelector('#chkEnableSeriesAutoDetect').addEventListener('change', () => {
+            toggleSortExistingSeriesOnly();
+
+        });
 
         view.querySelector('#chkSubMovieFolders').addEventListener('click', () => {
             toggleMovieFolderPattern();
@@ -683,7 +695,7 @@
             populateMovieLocation(config);
             //toggleMovieLocation();
             toggleMovieFolderPattern();
-            
+            toggleSortExistingSeriesOnly();
         });
     };
 });

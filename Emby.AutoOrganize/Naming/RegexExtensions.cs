@@ -15,7 +15,7 @@ namespace Emby.AutoOrganize.Naming
 
         public static string NormalizeMediaItemName(string input)
         {
-            return Regex.Replace(input, @"[^A-Za-z0-9\s+()]", " ", RegexOptions.IgnoreCase);
+            return Regex.Replace(input, @"[^A-Za-z0-9\s+()]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
         }
 
         public static string NormalizeSearchStringComparison(string input)
@@ -27,10 +27,9 @@ namespace Emby.AutoOrganize.Naming
         {
             var namingOptions = new NamingOptions();
             var pattern = $"(?i)({string.Join("|", namingOptions.VideoReleaseEditionFlags)})";
-            var input = Regex.Replace(sourceFileName, @"(@|&|'|:|\(|\)|<|>|#|\.|,|_)", " ", RegexOptions.IgnoreCase).ToLowerInvariant();
-            //var input = sourceFileName.Replace(".", " ").Replace("_", " ");
+            var input   = Regex.Replace(sourceFileName, @"(@|&|'|:|\(|\)|<|>|#|\.|,|_)", " ", RegexOptions.IgnoreCase).ToLowerInvariant();
             var results = Regex.Matches(input, pattern, RegexOptions.IgnoreCase);
-            var result =  results.Count > 0 ? results[0].Value : "Theatrical";
+            var result  = results.Count > 0 ? results[0].Value : "Theatrical";
             return namingOptions.VideoReleaseEditionFlags.FirstOrDefault(flag => flag.ToLowerInvariant().Contains(result.ToLowerInvariant()));
         }
 

@@ -33,43 +33,43 @@
         });
     };
 
-    ApiClient.getSmartMatchInfos = function (options) {
+    //ApiClient.getSmartMatchInfos = function (options) {
 
-        options = options || {};
+    //    options = options || {};
 
-        var url = this.getUrl("Library/FileOrganizations/SmartMatches", options);
+    //    var url = this.getUrl("Library/FileOrganizations/SmartMatches", options);
 
-        return this.ajax({
-            type: "GET",
-            url: url,
-            dataType: "json"
-        });
-    };
+    //    return this.ajax({
+    //        type: "GET",
+    //        url: url,
+    //        dataType: "json"
+    //    });
+    //};
 
-    ApiClient.deleteSmartMatchEntries = function (entries) {
+    //ApiClient.deleteSmartMatchEntries = function (entries) {
 
-        var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
+    //    var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
 
-        var postData = {
-            Entries: entries
-        };
+    //    var postData = {
+    //        Entries: entries
+    //    };
 
-        return this.ajax({
+    //    return this.ajax({
 
-            type: "POST",
-            url: url,
-            data: JSON.stringify(postData),
-            contentType: "application/json"
-        });
-    };
+    //        type: "POST",
+    //        url: url,
+    //        data: JSON.stringify(postData),
+    //        contentType: "application/json"
+    //    });
+    //};
      
 
     var chosenType;
     var extractedName;
     var extractedYear;
     var currentNewItem;
-    var existingMediasHtml;
-    var virtualFolderLocationsCount = 0;
+    //var existingMediasHtml;
+    //var virtualFolderLocationsCount = 0;
 
     function normalizeString(input) {
         if (input === "") return input;
@@ -176,7 +176,7 @@
             
         }
 
-        virtualFolderLocationsCount = virtualFolderLocations.length;
+        //virtualFolderLocationsCount = virtualFolderLocations.length;
 
         var mediasFolderHtml = virtualFolderLocations.map(function (s) {
             return '<option value="' + s.value + '">' + s.display + '</option>';
@@ -353,31 +353,31 @@
 
         require(['confirm'], function (confirm) {
 
-            confirm(message, options.Name + (options.Year ? ' (' + options.Year + ')' : '')).then(function () {
+            confirm(message, options.Name + (options.Year ? ' (' + options.Year + ')' : '')).then(async function () {
                 
                 switch (chosenType) {
                     case "Movie":                         
 
-                        ApiClient.performMovieOrganization(resultId, options).then(function () {
+                        await ApiClient.performMovieOrganization(resultId, options).then(function () {
 
                             dlg.submitted = true;
                             dialogHelper.close(dlg);
 
                         });
-                        dlg.submitted = true;
-                        dialogHelper.close(dlg);
+                        //dlg.submitted = true;
+                        //dialogHelper.close(dlg);
                         break;
 
                     case "Series":
                         
-                        ApiClient.performEpisodeOrganization(resultId, options).then(function () {
+                        await ApiClient.performEpisodeOrganization(resultId, options).then(function () {
 
                             dlg.submitted = true;
                             dialogHelper.close(dlg);
                             
                         });
-                        dlg.submitted = true;
-                        dialogHelper.close(dlg);
+                        //dlg.submitted = true;
+                        //dialogHelper.close(dlg);
                         break;
                 }
             });
@@ -490,7 +490,7 @@
                 extractedName = null;
                 extractedYear = null;
                 currentNewItem = null;
-                existingMediasHtml = null;
+                /*existingMediasHtml = null;*/
 
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', Dashboard.getConfigurationResourceUrl('FileOrganizerHtml'), true);

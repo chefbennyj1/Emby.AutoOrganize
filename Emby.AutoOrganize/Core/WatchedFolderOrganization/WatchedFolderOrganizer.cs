@@ -41,7 +41,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
             try
             {
-                //TODO: Add subtitles to the possibilities to sort. Currently it is IsVideoFile which will stop the subtitle from being picked up by the monitor.
+                
                 return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && 
                        fileInfo.Length >= minFileBytes && 
                        !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList())|| 
