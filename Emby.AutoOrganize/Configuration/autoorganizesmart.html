@@ -3,9 +3,32 @@
     <div>
         <div class="content-primary">
 
+
+            <div class="readOnlyContent" style="padding-bottom:2em">
+                <div is="emby-collapse" title="Smart Matches">
+                    <div class="collapseContent divMatchInfos">
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="verticalSection">
+                <div class="sectionTitleContainer sectionTitleContainer-cards">
+                    <h2 class="sectionTitle sectionTitle-cards">
+                        <span>Custom Smart Match</span>
+                    </h2>
+                    <button is="emby-button" type="button" class="raised raised-mini btnCreateCustomSmartListEntry submit sectionTitleButton emby-button emby-button-backdropfilter raised-backdropfilter" style="margin-left:1em;">
+                        <i class="md-icon button-icon button-icon button-icon-left"></i>
+                        <span>Create</span>
+                    </button>
+                </div>
+            </div>
+
             <div class="readOnlyContent">
-                <p>Smart Matches</p>
-                <div class="divMatchInfos"></div>
+                <div is="emby-collapse" title="Custom Smart Matches">
+                    <div class="collapseContent divCustomMatchInfos">
+                    </div>
+                </div>
             </div>
         </div>
     </div>

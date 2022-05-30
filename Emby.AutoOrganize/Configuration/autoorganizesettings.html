@@ -7,355 +7,375 @@
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Television Options</h2>
 
-                <p class="benefits">Supported television naming <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159110-tv-naming" target="_blank">Learn more</a>.</p>
-
-                <div class="fldSelectSeriesFolder selectContainer">
-                    <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:" required="required"></select>
-                    <div class="fieldDescription">New series folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span></div>
-                </div>
-
-                <!--Series-->
-                <div is="emby-collapse" title="Series directory pattern">
-                    <div class="collapseContent">
-                        <br />
-                        <div class="inputContainer">
-                            <input is="emby-input" id="txtSeriesPattern" type="text" label="Series pattern:" required />
-                            <div class="fieldDescription seriesPatternDescription"></div>
-                        </div>
-
-                        <br />
-                        <p>Supported Patterns</p>
-
-                        <table id="series-table" class="ui-responsive">
-                            <thead>
-                                <tr>
-                                    <th>Term</th>
-                                    <th>Pattern</th>
-                                    <th>Result</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Series name</td>
-                                    <td>%sn</td>
-                                    <td>Series name</td>
-                                </tr>
-                                <tr>
-                                    <td>Series name</td>
-                                    <td>%s.n</td>
-                                    <td>Series.name</td>
-                                </tr>
-                                <tr>
-                                    <td>Series name</td>
-                                    <td>%s_n</td>
-                                    <td>Series_name</td>
-                                </tr>
-                                <tr>
-                                    <td>Series year</td>
-                                    <td>%sy</td>
-                                    <td>2017</td>
-                                </tr>
-                                <tr>
-                                    <td>Original Directory Path</td>
-                                    <td>%fn</td>
-                                    <td>Series name (2017)</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!--Season-->
-                <div is="emby-collapse" title="Season directory pattern">
-                    <div class="collapseContent">
-                        <br />
-                        <div class="inputContainer">
-                            <input is="emby-input" id="txtSeasonFolderPattern" type="text" label="Season folder pattern:" required />
-                            <div class="fieldDescription seasonFolderFieldDescription"></div>
-                        </div>
-
-                        <div class="inputContainer">
-                            <input is="emby-input" id="txtSeasonZeroName" type="text" label="Season zero folder name:" required />
-                            <div class="fieldDescription"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!--Episodes-->
-                <div is="emby-collapse" title="Episode file pattern">
-                    <div class="collapseContent">
-                        <br />
-                        <div class="inputContainer">
-                            <input is="emby-input" id="txtEpisodePattern" type="text" label="Episode pattern:" required />
-                            <div class="fieldDescription episodePatternDescription"></div>
-                        </div>
-                        <div class="inputContainer">
-                            <input is="emby-input" id="txtMultiEpisodePattern" type="text" label="Mutli-episode pattern:" required />
-                            <div class="fieldDescription multiEpisodePatternDescription"></div>
-                        </div>
-
-                        <br />
-                        <p>Supported Patterns</p>
-
-                        <table id="episode-table" class="ui-responsive">
-                            <thead>
-                                <tr>
-                                    <th>Term</th>
-                                    <th>Pattern</th>
-                                    <th>Result</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Series name</td>
-                                    <td>%sn</td>
-                                    <td>Series name</td>
-                                </tr>
-                                <tr>
-                                    <td>Series name</td>
-                                    <td>%s.n</td>
-                                    <td>Series.name</td>
-                                </tr>
-                                <tr>
-                                    <td>Series name</td>
-                                    <td>%s_n</td>
-                                    <td>Series_name</td>
-                                </tr>
-                                <tr>
-                                    <td>Season number</td>
-                                    <td>%s</td>
-                                    <td>1</td>
-                                </tr>
-                                <tr>
-                                    <td>Season number</td>
-                                    <td>%0s</td>
-                                    <td>01</td>
-                                </tr>
-                                <tr>
-                                    <td>Episode number</td>
-                                    <td>%e</td>
-                                    <td>4</td>
-                                </tr>
-                                <tr>
-                                    <td>Episode number</td>
-                                    <td>%0e</td>
-                                    <td>04</td>
-                                </tr>
-                                <tr>
-                                    <td>Ending episode number</td>
-                                    <td>%ed</td>
-                                    <td>5</td>
-                                </tr>
-                                <tr>
-                                    <td>Ending episode number</td>
-                                    <td>%0ed</td>
-                                    <td>05</td>
-                                </tr>
-                                <tr>
-                                    <td>Episode name</td>
-                                    <td>%en</td>
-                                    <td>Episode name</td>
-                                </tr>
-                                <tr>
-                                    <td>Episode name</td>
-                                    <td>%e.n</td>
-                                    <td>Episode.name</td>
-                                </tr>
-                                <tr>
-                                    <td>Episode name</td>
-                                    <td>%e_n</td>
-                                    <td>Episode_name</td>
-                                </tr>
-                                <tr>
-                                    <td>File extension</td>
-                                    <td>%ext</td>
-                                    <td>mkv</td>
-                                </tr>
-                                <tr>
-                                    <td>Original File Name</td>
-                                    <td>%fn</td>
-                                    <td>filename</td>
-                                </tr>
-                                <tr>
-                                    <td>Resolution</td>
-                                    <td>%res</td>
-                                    <td>1080p</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
                 <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                     <label style="width: auto;" class="emby-toggle-label">
-                        <input type="checkbox" is="emby-toggle" id="chkEnableSeriesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                        <span class="toggleLabel">Enable television smart auto detection and library creation</span>
+                        <input type="checkbox" is="emby-toggle" id="chkEnableTelevisionOptions" class="emby-toggle emby-toggle-focusring">
+                        <span class="toggleLabel">Enable television management</span>
                     </label>
-                    <div class="fieldDescription toggleFieldDescription">Smart organization automatically, and detects and sorts new episode files.</div>
+                    <div class="fieldDescription toggleFieldDescription">Recognize TV Show files in the monitored folder.</div>
                 </div>
+                <div class="televisionOptions hide">
 
-                <div class="fldSortExistingSeriesOnly checkboxContainer checkboxContainer-withDescription hide" style="margin-top: 1em; margin-left:3.5em">
-                    <label class="emby-checkbox-label">
-                        <input is="emby-checkbox" type="checkbox" id="chkSortExistingSeriesOnly" class="emby-checkbox">
-                        <span class="checkboxLabel">Auto sort episode for existing series only.</span>
-                    </label>
-                    <div class="fieldDescription checkboxFieldDescription">
-                        Auto sort new episode into series that already exist in the library. New Series will not be created in the library.
+                    <p class="benefits">Supported television naming <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159110-tv-naming" target="_blank">Learn more</a>.</p>
+
+                    <div class="fldSelectSeriesFolder selectContainer">
+                        <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:" required="required"></select>
+                        <div class="fieldDescription">New series folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span></div>
                     </div>
-                </div>
 
+                    <!--Series-->
+                    <div is="emby-collapse" title="Series directory pattern">
+                        <div class="collapseContent">
+                            <br />
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtSeriesPattern" type="text" label="Series pattern:" required />
+                                <div class="fieldDescription seriesPatternDescription"></div>
+                            </div>
+
+                            <br />
+                            <p>Supported Patterns</p>
+
+                            <table id="series-table" class="ui-responsive">
+                                <thead>
+                                    <tr>
+                                        <th>Term</th>
+                                        <th>Pattern</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Series name</td>
+                                        <td>%sn</td>
+                                        <td>Series name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Series name</td>
+                                        <td>%s.n</td>
+                                        <td>Series.name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Series name</td>
+                                        <td>%s_n</td>
+                                        <td>Series_name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Series year</td>
+                                        <td>%sy</td>
+                                        <td>2017</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Original Directory Path</td>
+                                        <td>%fn</td>
+                                        <td>Series name (2017)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!--Season-->
+                    <div is="emby-collapse" title="Season directory pattern">
+                        <div class="collapseContent">
+                            <br />
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtSeasonFolderPattern" type="text" label="Season folder pattern:" required />
+                                <div class="fieldDescription seasonFolderFieldDescription"></div>
+                            </div>
+
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtSeasonZeroName" type="text" label="Season zero folder name:" required />
+                                <div class="fieldDescription"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Episodes-->
+                    <div is="emby-collapse" title="Episode file pattern">
+                        <div class="collapseContent">
+                            <br />
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtEpisodePattern" type="text" label="Episode pattern:" required />
+                                <div class="fieldDescription episodePatternDescription"></div>
+                            </div>
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtMultiEpisodePattern" type="text" label="Mutli-episode pattern:" required />
+                                <div class="fieldDescription multiEpisodePatternDescription"></div>
+                            </div>
+
+                            <br />
+                            <p>Supported Patterns</p>
+
+                            <table id="episode-table" class="ui-responsive">
+                                <thead>
+                                    <tr>
+                                        <th>Term</th>
+                                        <th>Pattern</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Series name</td>
+                                        <td>%sn</td>
+                                        <td>Series name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Series name</td>
+                                        <td>%s.n</td>
+                                        <td>Series.name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Series name</td>
+                                        <td>%s_n</td>
+                                        <td>Series_name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Season number</td>
+                                        <td>%s</td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Season number</td>
+                                        <td>%0s</td>
+                                        <td>01</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Episode number</td>
+                                        <td>%e</td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Episode number</td>
+                                        <td>%0e</td>
+                                        <td>04</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Ending episode number</td>
+                                        <td>%ed</td>
+                                        <td>5</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Ending episode number</td>
+                                        <td>%0ed</td>
+                                        <td>05</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Episode name</td>
+                                        <td>%en</td>
+                                        <td>Episode name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Episode name</td>
+                                        <td>%e.n</td>
+                                        <td>Episode.name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Episode name</td>
+                                        <td>%e_n</td>
+                                        <td>Episode_name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>File extension</td>
+                                        <td>%ext</td>
+                                        <td>mkv</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Original File Name</td>
+                                        <td>%fn</td>
+                                        <td>filename</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Resolution</td>
+                                        <td>%res</td>
+                                        <td>1080p</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                        <label style="width: auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkEnableSeriesAutoDetect" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Enable television smart auto detection and library creation</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically, and detects and sorts new episode files.</div>
+                    </div>
+
+                    <div class="fldSortExistingSeriesOnly checkboxContainer checkboxContainer-withDescription hide" style="margin-top: 1em; margin-left:3.5em">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="chkSortExistingSeriesOnly" class="emby-checkbox">
+                            <span class="checkboxLabel">Auto sort episode for existing series only.</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Auto sort new episode into series that already exist in the library. New Series will not be created in the library.
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Movie Options</h2>
 
-                <p class="benefits">Supported movie naming <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming" target="_blank">Learn more</a>.</p>
-
-                <div class="fldSelectMovieFolder selectContainer">
-                    <select id="selectMovieFolder" is="emby-select" label="Default Movie library:" required="required"></select>
-                    <div class="fieldDescription">New movie folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span></div>
-                </div>
-
-                <div class="fldSubMovieFolder checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
-                    <label style="width:auto;" class="emby-toggle-label">
-                        <input type="checkbox" is="emby-toggle" id="chkSubMovieFolders" class="emby-toggle emby-toggle-focusring">
-                        <span class="toggleLabel">Create sub-directory per Movie</span>
-                    </label>
-                    <div class="fieldDescription toggleFieldDescription">Identified movies are placed in a folder with a movie folder pattern identified below.<br />Default: On. Adheres to Emby's basic file system naming structure. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming" target="_blank">Learn more</a>.</div>
-                </div>
-
-                <div is="emby-collapse" class="hide fldSelectMovieFolderPattern" title="Movie folder pattern">
-                    <div class="collapseContent">
-
-                        <div class="inputContainer">
-                            <input is="emby-input" id="txtMovieFolderPattern" type="text" label="Movie folder pattern:" required />
-                            <div class="fieldDescription movieFolderPatternDescription"></div>
-                        </div>
-
-                        <br />
-                        <p>Supported Patterns</p>
-
-                        <table id="movie-folder-table" class="ui-responsive">
-                            <thead>
-                                <tr>
-                                    <th>Term</th>
-                                    <th>Pattern</th>
-                                    <th>Result</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Movie name</td>
-                                    <td>%mn</td>
-                                    <td>Movie name</td>
-                                </tr>
-                                <tr>
-                                    <td>Movie name</td>
-                                    <td>%m.n</td>
-                                    <td>Movie.name</td>
-                                </tr>
-                                <tr>
-                                    <td>Movie name</td>
-                                    <td>%m_n</td>
-                                    <td>Movie_name</td>
-                                </tr>
-                                <tr>
-                                    <td>Production year</td>
-                                    <td>%my</td>
-                                    <td>2017</td>
-                                </tr>
-                                <tr>
-                                    <td>File extension</td>
-                                    <td>%ext</td>
-                                    <td>mkv</td>
-                                </tr>
-                                <tr>
-                                    <td>Original File Name</td>
-                                    <td>%fn</td>
-                                    <td>filename</td>
-                                </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div is="emby-collapse" title="Movie file pattern">
-                    <div class="collapseContent">
-                        <br />
-                        <div class="inputContainer">
-                            <input is="emby-input" id="txtMoviePattern" type="text" label="Movie pattern:" required />
-                            <div class="fieldDescription moviePatternDescription"></div>
-                        </div>
-
-                        <br />
-                        <p>Supported Patterns</p>
-
-                        <table id="movie-name-table" class="ui-responsive">
-                            <thead>
-                                <tr>
-                                    <th>Term</th>
-                                    <th>Pattern</th>
-                                    <th>Result</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Movie name</td>
-                                    <td>%mn</td>
-                                    <td>Movie name</td>
-                                </tr>
-                                <tr>
-                                    <td>Movie name</td>
-                                    <td>%m.n</td>
-                                    <td>Movie.name</td>
-                                </tr>
-                                <tr>
-                                    <td>Movie name</td>
-                                    <td>%m_n</td>
-                                    <td>Movie_name</td>
-                                </tr>
-                                <tr>
-                                    <td>Production year</td>
-                                    <td>%my</td>
-                                    <td>2017</td>
-                                </tr>
-                                <tr>
-                                    <td>File resolution</td>
-                                    <td>%res</td>
-                                    <td>1080p</td>
-                                </tr>
-                                <tr>
-                                    <td>Movie edition</td>
-                                    <td>%e</td>
-                                    <td>Directors Cut</td>
-                                </tr>
-                                <tr>
-                                    <td>File extension</td>
-                                    <td>%ext</td>
-                                    <td>mkv</td>
-                                </tr>
-                                <tr>
-                                    <td>Original File Name</td>
-                                    <td>%fn</td>
-                                    <td>filename</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <p class="benefits">In order to benefit from multi-version movie items, the folder and file names must adhere to emby muti-version naming requirements. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102" target="_blank">Learn more</a>.</p>
-
-                    </div>
-                </div>
-
-
                 <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                     <label style="width: auto;" class="emby-toggle-label">
-                        <input type="checkbox" is="emby-toggle" id="chkEnableMoviesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                        <span class="toggleLabel">Enable movie smart auto detection and library creation</span>
+                        <input type="checkbox" is="emby-toggle" id="chkEnableMovieOptions" class="emby-toggle emby-toggle-focusring">
+                        <span class="toggleLabel">Enable movie management</span>
                     </label>
-                    <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new movie folders in libraries.</div>
+                    <div class="fieldDescription toggleFieldDescription">Recognize Movie files in the watched folder.</div>
                 </div>
 
+                <div class="movieOptions hide">
+                    <p class="benefits">Supported movie naming <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming" target="_blank">Learn more</a>.</p>
+
+                    <div class="fldSelectMovieFolder selectContainer">
+                        <select id="selectMovieFolder" is="emby-select" label="Default Movie library:" required="required"></select>
+                        <div class="fieldDescription">New movie folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span></div>
+                    </div>
+
+                    <div class="fldSubMovieFolder checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                        <label style="width:auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkSubMovieFolders" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Create sub-directory per Movie</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">Identified movies are placed in a folder with a movie folder pattern identified below.<br />Default: On. Adheres to Emby's basic file system naming structure. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming" target="_blank">Learn more</a>.</div>
+                    </div>
+
+                    <div is="emby-collapse" class="hide fldSelectMovieFolderPattern" title="Movie folder pattern">
+                        <div class="collapseContent">
+
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtMovieFolderPattern" type="text" label="Movie folder pattern:" required />
+                                <div class="fieldDescription movieFolderPatternDescription"></div>
+                            </div>
+
+                            <br />
+                            <p>Supported Patterns</p>
+
+                            <table id="movie-folder-table" class="ui-responsive">
+                                <thead>
+                                    <tr>
+                                        <th>Term</th>
+                                        <th>Pattern</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Movie name</td>
+                                        <td>%mn</td>
+                                        <td>Movie name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Movie name</td>
+                                        <td>%m.n</td>
+                                        <td>Movie.name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Movie name</td>
+                                        <td>%m_n</td>
+                                        <td>Movie_name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Production year</td>
+                                        <td>%my</td>
+                                        <td>2017</td>
+                                    </tr>
+                                    <tr>
+                                        <td>File extension</td>
+                                        <td>%ext</td>
+                                        <td>mkv</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Original File Name</td>
+                                        <td>%fn</td>
+                                        <td>filename</td>
+                                    </tr>
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div is="emby-collapse" title="Movie file pattern">
+                        <div class="collapseContent">
+                            <br />
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtMoviePattern" type="text" label="Movie pattern:" required />
+                                <div class="fieldDescription moviePatternDescription"></div>
+                            </div>
+
+                            <br />
+                            <p>Supported Patterns</p>
+
+                            <table id="movie-name-table" class="ui-responsive">
+                                <thead>
+                                    <tr>
+                                        <th>Term</th>
+                                        <th>Pattern</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Movie name</td>
+                                        <td>%mn</td>
+                                        <td>Movie name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Movie name</td>
+                                        <td>%m.n</td>
+                                        <td>Movie.name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Movie name</td>
+                                        <td>%m_n</td>
+                                        <td>Movie_name</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Production year</td>
+                                        <td>%my</td>
+                                        <td>2017</td>
+                                    </tr>
+                                    <tr>
+                                        <td>File resolution</td>
+                                        <td>%res</td>
+                                        <td>1080p</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Movie edition</td>
+                                        <td>%e</td>
+                                        <td>Directors Cut</td>
+                                    </tr>
+                                    <tr>
+                                        <td>File extension</td>
+                                        <td>%ext</td>
+                                        <td>mkv</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Original File Name</td>
+                                        <td>%fn</td>
+                                        <td>filename</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p class="benefits">In order to benefit from multi-version movie items, the folder and file names must adhere to emby muti-version naming requirements. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102" target="_blank">Learn more</a>.</p>
+
+                        </div>
+                    </div>
+
+
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                        <label style="width: auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkEnableMoviesAutoDetect" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Enable movie smart auto detection and library creation</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new movie folders in libraries.</div>
+                    </div>
+
+                </div>
             </div>
 
             <div class="verticalSection verticalSection-extrabottompadding">
@@ -364,7 +384,7 @@
                 <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                     <label style="width: auto;" class="emby-toggle-label">
                         <input type="checkbox" is="emby-toggle" id="chkEnableSubtitleSorting" class="emby-toggle emby-toggle-focusring">
-                        <span class="toggleLabel">Enable subtitle smart auto detection and sorting</span>
+                        <span class="toggleLabel">Enable subtitle management</span>
                     </label>
                     <div class="fieldDescription toggleFieldDescription">Smart organization automatically sorts detected external subtitle files in the monitored folder.</div>
                 </div>

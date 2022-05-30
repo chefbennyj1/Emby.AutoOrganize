@@ -338,7 +338,7 @@
         html += '<th class="detailTableHeaderCell" data-priority="1"></th> '   //Quality is up or down
         html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
         html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
-        html += '<th class="detailTableHeaderCell" data-priority="1">Subtitles</th>'
+        //html += '<th class="detailTableHeaderCell" data-priority="1">Subtitles</th>'
         html += '<th class="detailTableHeaderCell" data-priority="1">Action</th>'
         html += '</tr>';
         html += '</thead>';
@@ -379,7 +379,10 @@
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
 
-        if (sourceResolution > libraryItemResolution) {
+        if (sourceResolution == libraryItemResolution) {
+            html += '<path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" />';
+        }
+        else if (sourceResolution > libraryItemResolution) {
             html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
         } else {
             html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
@@ -397,20 +400,21 @@
         //Audio
         html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
         if (item.AudioStreamCodecs.length) {
-            for(var i = 0; item.AudioStreamCodecs.length - 1; i++)
-            {
-                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[i].toLocaleUpperCase() + '</span>';
+            for(var i = 0; i < item.AudioStreamCodecs.length - 1; i++) {
+               
+
+                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[i] + '</span>';
             }
             
         }
         html += '</td>';
         
 
-        //Internal Subtitles
-        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
-        if (item.Subtitles.length) {
-            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[0].toLocaleUpperCase() + '</span>';
-        }
+        ////Internal Subtitles
+        //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
+        //if (item.Subtitles && item.Subtitles.length) {
+        //    html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[0].toLocaleUpperCase() + '</span>';
+        //}
         
         html += '</td>';
         
@@ -468,9 +472,13 @@
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
 
-        if (libraryItemResolution > sourceResolution) {
+        if (libraryItemResolution == sourceResolution) {
+            html += ' <path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" /> ';
+        }
+        else if (libraryItemResolution > sourceResolution) {
             html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
-        } else {
+        } 
+        else {
             html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
         }
         html += '</svg>';  
@@ -486,12 +494,12 @@
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase() + '</span>';
         html += '</td>';
 
-        //Internal Subtitle
-        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
-        var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
-        var subtitleLabel = subtitles && !subtitles.IsExternal ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
-        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
-        html += '</td>';
+        ////Internal Subtitle
+        //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
+        //var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
+        //var subtitleLabel = subtitles && !subtitles.IsExternal ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
+        //html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
+        //html += '</td>';
 
         //Action
         html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
@@ -602,13 +610,33 @@
 
                     var html = '';
 
-                    html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '" style="color: var(--theme-primary-text);">';
+                    html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' +
+                        item.Id +
+                        '" style="color: var(--theme-primary-text);">';
 
                     html += await renderItemRow(item);
 
                     html += '</tr>';
 
                     resultBody.innerHTML += html;
+
+
+                    page.querySelectorAll('.btnShowSubtitleList').forEach(btn => btn.addEventListener('click',
+                        (e) => {
+                            let id = e.target.getAttribute('data-resultid');
+                            var subtitles = currentResult.Items.filter(function (i) { return i.Id === id; })[0].Subtitles;
+                            var msg = "";
+                            subtitles.forEach(t => {
+                                msg += t + '\n';
+                            })
+                            Dashboard.alert({
+                                title: "Subtitles",
+                                message: msg
+                            });
+                        }));
+                    
+               
+                    
 
                     page.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
                         btn.addEventListener('click',
@@ -817,15 +845,15 @@
                 color: "orangered",
                 text: "Not Enough Disk Space!"
             }
-             case "InUse": return {
+            case "InUse": return {
                 path: "M22 12C22 6.46 17.54 2 12 2C10.83 2 9.7 2.19 8.62 2.56L9.32 4.5C10.17 4.16 11.06 3.97 12 3.97C16.41 3.97 20.03 7.59 20.03 12C20.03 16.41 16.41 20.03 12 20.03C7.59 20.03 3.97 16.41 3.97 12C3.97 11.06 4.16 10.12 4.5 9.28L2.56 8.62C2.19 9.7 2 10.83 2 12C2 17.54 6.46 22 12 22C17.54 22 22 17.54 22 12M5.47 7C4.68 7 3.97 6.32 3.97 5.47C3.97 4.68 4.68 3.97 5.47 3.97C6.32 3.97 7 4.68 7 5.47C7 6.32 6.32 7 5.47 7M9 9H11V15H9M13 9H15V15H13",
                 color: "goldenrod",
-                text: "Target file currently in use"
+                text: "File in use"
             }
-            case 'Waiting': return {
-                path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
+            case 'UserInputRequired': return {
+                path: "M21.7,13.35L20.7,14.35L18.65,12.3L19.65,11.3C19.86,11.09 20.21,11.09 20.42,11.3L21.7,12.58C21.91,12.79 21.91,13.14 21.7,13.35M12,18.94L18.06,12.88L20.11,14.93L14.06,21H12V18.94M12,14C7.58,14 4,15.79 4,18V20H10V18.11L14,14.11C13.34,14.03 12.67,14 12,14M12,4A4,4 0 0,0 8,8A4,4 0 0,0 12,12A4,4 0 0,0 16,8A4,4 0 0,0 12,4Z",
                 color: "goldenrod",
-                text: "Awaiting user input..."
+                text: "Pending..."
             }
             case "NewMedia": return {
                 path: "M20,4C21.11,4 22,4.89 22,6V18C22,19.11 21.11,20 20,20H4C2.89,20 2,19.11 2,18V6C2,4.89 2.89,4 4,4H20M8.5,15V9H7.25V12.5L4.75,9H3.5V15H4.75V11.5L7.3,15H8.5M13.5,10.26V9H9.5V15H13.5V13.75H11V12.64H13.5V11.38H11V10.26H13.5M20.5,14V9H19.25V13.5H18.13V10H16.88V13.5H15.75V9H14.5V14A1,1 0 0,0 15.5,15H19.5A1,1 0 0,0 20.5,14Z" ,
@@ -902,7 +930,7 @@
         html += '</td>';
 
         //Status
-        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
+        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell" style="white-space:normal;">';
         html += '<span>' + statusRenderData.text + '</span>';
         html += '</td>';
 
@@ -929,12 +957,12 @@
         html += '</td>';
 
         //Quality
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution" style="width:100px">';
         html += '<span style="color: white;background-color: var(--theme-accent-text-color); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "")  + '</span>';  
         html += '</td>';
 
         //Codec
-        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+        html += '<td class="detailTableBodyCell fileCell" data-title="Codec" style="width:120px">';
         if (item.VideoStreamCodecs.length) {
             html += '<div style="display:flex; flex-direction:row">';
             html += '<div style="display:flex; flex-direction:column">'
@@ -965,22 +993,29 @@
         html += '</td>';
 
         //Internal Subtitles
-        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
-        if (item.Subtitles.length) {
-            html += '<div style="display:flex; flex-direction:row">';
-            html += '<div style="display:flex; flex-direction:column">'
-            for(var i = 0; i <= item.Subtitles.length-1; i++) {
-                if (i > 1 && i % 2 === 0) {
-                    html += '</div>';
-                    html += '<div style="display:flex; flex-direction:column">'
-                }
-                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[i].toLocaleUpperCase() + '</span>'; 
-            }
-            html += '</div>';
-            html += '</div>';
-        }
+        //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
+        //if (item.Subtitles.length) {
+
+        //    html += '<svg style="width:24px;height:24px; cursor:pointer" viewBox="0 0 24 24" data-resultid="' + item.Id + '" class="btnShowSubtitleList">';
+        //    html += '<path fill="var(--theme-accent-text-color)" d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"  />';
+        //    html += '</svg>';
+
+            
+
+        //    //html += '<div style="display:flex; flex-direction:row">';
+        //    //html += '<div style="display:flex; flex-direction:column">'
+        //    //for(var i = 0; i <= item.Subtitles.length-1; i++) {
+        //    //    if (i > 1 && i % 2 === 0) {
+        //    //        html += '</div>';
+        //    //        html += '<div style="display:flex; flex-direction:column">'
+        //    //    }
+        //    //    html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[i].toLocaleUpperCase() + '</span>'; 
+        //    //}
+        //    //html += '</div>';
+        //    //html += '</div>';
+        //}
         
-        html += '</td>';
+        //html += '</td>';
 
         //File Size
         html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
@@ -998,19 +1033,19 @@
         html += '</td>';
 
         //Source file path
-        html += '<td data-title="Source" class="detailTableBodyCell fileCell">';
-        html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + '; display: initial" href="#" class="button-link btnShowStatusMessage">';
+        html += '<td data-title="Source" class="detailTableBodyCell fileCell" style="white-space: normal">';
+        html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + ';white-space: normal" href="#" class="button-link btnShowStatusMessage">';
         html += item.OriginalFileName;
         html += '</a>';
         html += '</td>';
 
         //Destination file path
-        html += '<td data-title="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '" class="detailTableBodyCell fileCell">';
+        html += '<td data-title="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '" class="detailTableBodyCell fileCell" style="white-space: normal">';
         html += item.TargetPath || '';
         html += '</td>';                                 
 
         //Row sorting options (action buttons)
-        html += '<td class="detailTableBodyCell" data-title="Actions" style="whitespace:no-wrap;">';
+        html += '<td class="detailTableBodyCell" data-title="Actions" style="white-space:normal;">';
         if (item.Status === "Checking" || item.Status === "InUse") {
             html += '';
         } else {
@@ -1021,7 +1056,7 @@
                     //We want to show this option if the item has been skipped because we think it already exists, or the item failed to find a match.
                     //There is a chance that the Lookup was incorrect if there was a match to an existing item.
                     //Allow the user to identify the item.
-                    if (item.Status === "Failure" || (item.Status === "Waiting" && !item.TargetPath)) {
+                    if (item.Status === "Failure" || (item.Status === "UserInputRequired")) { //&& !item.TargetPath)) {
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
                         html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="Identify" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
@@ -1035,7 +1070,7 @@
                     //The "Destination" column info will be populated.
                     if (item.Status === "NewResolution" && item.TargetPath || 
                         item.Status === "SkippedExisting" && item.TargetPath || 
-                        item.Status === "Waiting" && item.TargetPath || 
+                        //item.Status === "Waiting" && item.TargetPath || 
                         item.Status === "NewMedia" && item.TargetPath ||
                         item.Status === "NewEdition") {
 
@@ -1059,7 +1094,7 @@
 
             }
             
-            html += '<td class="detailTableBodyCell organizerButtonCell" style="whitespace:no-wrap;"></td>';
+            html += '<td class="detailTableBodyCell organizerButtonCell" style="white-space:no-wrap;"></td>';
         }
 
         return html;
@@ -1137,9 +1172,9 @@
             if (data && data.ScheduledTask.Key === 'AutoOrganize') {
                 
                 updateTaskScheduleLastRun(data);
-                var taskProgress = pageGlobal.querySelector('.organizeProgress');
-                taskProgress.classList.remove('hide');
-                animateElement(taskProgress.querySelector('svg'), "blink");
+                //var taskProgress = pageGlobal.querySelector('.organizeProgress');
+                //taskProgress.classList.remove('hide');
+                //animateElement(taskProgress.querySelector('svg'), "blink");
                 
                 //checkUpdatingTableItems(pageGlobal);
             }
@@ -1178,6 +1213,20 @@
         if (row) {
 
             row.innerHTML = await renderItemRow(item);
+
+            try {
+                row.querySelector('.btnShowSubtitleList').addEventListener('click', () => {
+                    var msg = "";
+                    item.Subtitles.forEach(t => {
+                        msg += t + '\n';
+                    })
+                    Dashboard.alert({
+                        title: "Subtitles",
+                        message: msg
+                    });
+                });
+            } catch (err) {
+            }
 
             try {
                 row.querySelector('.btnShowStatusMessage').addEventListener('click',
@@ -1364,8 +1413,8 @@
             // on here
             taskButton({
                 mode: 'on',
-                //progressElem: view.querySelector('.organizeProgress'),
-                //panel: view.querySelector('.organizeTaskPanel'),
+                progressElem: view.querySelector('.itemProgressBar'),
+                panel: view.querySelector('.organizeProgress'),
                 taskKey: 'AutoOrganize',
                 button: view.querySelector('.btnOrganize')
             });

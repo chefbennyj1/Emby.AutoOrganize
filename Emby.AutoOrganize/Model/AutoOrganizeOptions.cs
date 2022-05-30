@@ -4,9 +4,11 @@ namespace Emby.AutoOrganize.Model
     public class AutoOrganizeOptions
     {
         //public SmartMatchInfo[] SmartMatchInfos        { get; set; }
+        public bool EnableTelevisionOrganization { get; set; }
+        public bool EnableMovieOrganization { get; set; }
         public bool Converted                          { get; set; }
         public string[] WatchLocations                 { get; set; }
-        public bool AutoDetectSubtitles                { get; set; }
+        public bool EnableSubtitleOrganization                { get; set; }
         public int MinFileSizeMb                       { get; set; }
         public string[] LeftOverFileExtensionsToDelete { get; set; }
         public string SeasonFolderPattern              { get; set; }
@@ -33,6 +35,8 @@ namespace Emby.AutoOrganize.Model
         public AutoOrganizeOptions()
         {
             MinFileSizeMb = 50;
+            EnableTelevisionOrganization = false;
+            EnableMovieOrganization = false;
             //SmartMatchInfos = new SmartMatchInfo[] { };
             Converted = false;
             MovieFolderPattern = "%mn (%my)";
@@ -41,7 +45,7 @@ namespace Emby.AutoOrganize.Model
             WatchLocations = new string[] { };
             CopyOriginalFile = false;
             CreateMovieInFolder = true;
-            AutoDetectSubtitles = false;
+            EnableSubtitleOrganization = false;
             ExtendedClean = false;
             IgnoredFileNameContains = new string[] { };
             EpisodeNamePattern = "%sn - %sx%0e - %en.%ext";

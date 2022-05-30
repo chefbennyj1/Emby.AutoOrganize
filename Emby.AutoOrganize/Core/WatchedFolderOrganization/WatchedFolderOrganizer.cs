@@ -73,6 +73,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
         public async Task Organize(AutoOrganizeOptions options, CancellationToken cancellationToken, IProgress<double> progress)
         {
+            
             var libraryFolderPaths = _libraryManager.GetVirtualFolders().SelectMany(i => i.Locations).ToList();
 
             var watchLocations = options.WatchLocations.Where(i => IsValidWatchLocation(i, libraryFolderPaths)).ToList();
@@ -82,34 +83,43 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             //For each watch location
             var eligibleFiles = watchLocations.SelectMany(GetFilesToOrganize).OrderBy(_fileSystem.GetCreationTimeUtc).Where(i => EnableOrganization(i, options)).ToList();
             
+            var step = 100.0 / eligibleFiles.Count;
+            var currentProgress = 0.0;
+
+            
 
             _logger.Info($"Eligible file count {eligibleFiles.Count}");
 
             var processedFolders = new HashSet<string>();
 
-            progress.Report(10);
-
-            if (!eligibleFiles.Any())
+            
+            if (!eligibleFiles.Any() && processedFolders.Any())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                progress.Report(99);
+                progress.Report(99.0);
 
-                var deleteExtensions = options.LeftOverFileExtensionsToDelete.Select(i => i.Trim().TrimStart('.')).Where(i => !string.IsNullOrEmpty(i)).Select(i => "." + i).ToList();
-
-                // Normal Clean
-                Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
-
-                // Extended Clean
-                if (options.ExtendedClean)
+                try
                 {
-                    Clean(watchLocations, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
-                }
+                    var deleteExtensions = options.LeftOverFileExtensionsToDelete.Select(i => i.Trim().TrimStart('.'))
+                        .Where(i => !string.IsNullOrEmpty(i)).Select(i => "." + i).ToList();
 
-                progress.Report(100);
+                    // Normal Clean
+                    Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+
+                    // Extended Clean
+                    if (options.ExtendedClean)
+                    {
+                        Clean(watchLocations, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+                    }
+
+                }
+                catch{ }
+
+                progress.Report(100.0);
                 return;
             }
 
-            var numComplete = 0;
+            
 
             //Organize the subtitles last. This ensure that the media files have a home before accessing their subtitle files.
             eligibleFiles = eligibleFiles.OrderBy(f => _libraryManager.IsSubtitleFile(f.Name.AsSpan())).ToList();
@@ -119,19 +129,25 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             //    _logger.Warn("Throttling eligible files for sorting. Sorting 20 files...");
             //    eligibleFiles = eligibleFiles.Take(20).ToList();
             //}
-
+            
+            
+           
             foreach (var file in eligibleFiles)
             {
+                
+
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var fileOrganizerType = _organizationService.GetFileOrganizerType(file.Name);
 
                 if (fileOrganizerType == FileOrganizerType.Episode)
                 {
+                    if (!options.EnableTelevisionOrganization) continue;
+
                     if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
                     {
                         _logger.Warn("No Default TV Show Library has been chosen in settings. Stopping Organization...");
-                        progress.Report(100);
+                        progress.Report(100.0);
                         return;
                     }
                     var organizer = new EpisodeOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
@@ -158,10 +174,12 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
                 if (fileOrganizerType == FileOrganizerType.Movie)
                 {
+                    if(!options.EnableMovieOrganization) continue;
+
                     if (string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Movie Library has been chosen in settings. Stopping Organization...");
-                        progress.Report(100);
+                        progress.Report(100.0);
                         return;
                     }
 
@@ -198,14 +216,12 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
                 if (fileOrganizerType == FileOrganizerType.Subtitle)
                 {
-                    if (!options.AutoDetectSubtitles)
-                    {
-                        continue;
-                    }
+                    if (!options.EnableSubtitleOrganization) continue;
+                    
                     if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) || string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Libraries have been chosen in settings. Stopping Organization...");
-                        progress.Report(100);
+                        progress.Report(100.0);
                         return;
                     }
                     var subtitleOrganizer = new SubtitleOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
@@ -213,7 +229,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     {
                         if (_libraryManager.IsSubtitleFile(file.FullName.AsSpan()))
                         {
-                            var result = await subtitleOrganizer.OrganizeFile(false, file.FullName, options, cancellationToken);
+                            var result = await subtitleOrganizer.OrganizeFile(true, file.FullName, options, cancellationToken);
 
 
                         }
@@ -226,17 +242,14 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     catch (Exception ex)
                     {
                         _logger.Warn("Error organizing the subtitle file {0} - {1}", file.FullName, ex);
-                        continue;
                     }
                 }
 
-                numComplete++;
-                double percent = numComplete;
-                percent /= eligibleFiles.Count;
-
-                progress.Report(10 + 89 * percent);
+                progress.Report((currentProgress += step) - 1);
+               
             }
 
+            progress.Report(100.0);
 
         }
 

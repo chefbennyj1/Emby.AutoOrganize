@@ -7,7 +7,7 @@
         SkippedExisting,
         NewResolution,
         Processing,
-        Waiting,
+        UserInputRequired,
         NotEnoughDiskSpace,
         InUse,
         NewMedia,

@@ -174,9 +174,12 @@
 
     function loadPage(view, config) {
 
-        //view.querySelector('#chkEnableScheduledTask').checked = config.EnableScheduledTask;
+        
+        view.querySelector('#chkEnableTelevisionOptions').checked = config.EnableTelevisionOrganization;
 
-        //view.querySelector('#chkEnableTvSorting').checked = config.IsEpisodeSortingEnabled;
+        view.querySelector('#chkEnableMovieOptions').checked = config.EnableMovieOrganization;
+
+        view.querySelector('#chkEnableSubtitleSorting').checked = config.EnableSubtitleOrganization;
 
         view.querySelector('#chkOverwriteExistingEpisodeItems').checked = config.OverwriteExistingEpisodeFiles;
 
@@ -190,7 +193,7 @@
 
         view.querySelector('#txtSeasonZeroName').value = config.SeasonZeroFolderName;
 
-        view.querySelector('#chkEnableSubtitleSorting').checked = config.AutoDetectSubtitles;
+        view.querySelector('#chkEnableSubtitleSorting').checked = config.EnableSubtitleOrganization;
 
        
         var watchLocationList = view.querySelector('.watchFolderListContainer');
@@ -241,10 +244,10 @@
 
         ApiClient.getNamedConfiguration('autoorganize').then(function (config) {
 
-            //config.EnableScheduledTask = view.querySelector('#chkEnableScheduledTask').checked;
-
-            //config.IsEpisodeSortingEnabled = view.querySelector('#chkEnableTvSorting').checked;
-
+            config.EnableTelevisionOrganization = view.querySelector('#chkEnableTelevisionOptions').checked ;
+            
+            config.EnableMovieOrganization = view.querySelector('#chkEnableMovieOptions').checked;
+            
             config.AutoDetectMovie = view.querySelector('#chkEnableMoviesAutoDetect').checked;
 
             config.OverwriteExistingEpisodeFiles = view.querySelector('#chkOverwriteExistingEpisodeItems').checked;
@@ -272,7 +275,7 @@
                 config.SortExistingSeriesOnly = false;
             }
 
-            config.AutoDetectSubtitles = view.querySelector('#chkEnableSubtitleSorting').checked;
+            config.EnableSubtitleOrganization = view.querySelector('#chkEnableSubtitleSorting').checked;
 
             config.DefaultSeriesLibraryPath = view.querySelector('#selectSeriesFolder').value;
 
@@ -480,6 +483,24 @@
         //    }
         //}
 
+        function toggleTelevisionOptions()
+        {
+            if (view.querySelector('#chkEnableTelevisionOptions').checked) {
+                view.querySelector('.televisionOptions').classList.remove('hide');
+            } else {
+                view.querySelector('.televisionOptions').classList.add('hide');
+            }
+        }
+
+        function toggleMovieOptions()
+        {
+            if (view.querySelector('#chkEnableMovieOptions').checked) {
+                view.querySelector('.movieOptions').classList.remove('hide');
+            } else {
+                view.querySelector('.movieOptions').classList.add('hide');
+            }
+        }
+
         function toggleSortExistingSeriesOnly() {
             if (view.querySelector('#chkEnableSeriesAutoDetect').checked) {
                 view.querySelector('.fldSortExistingSeriesOnly').classList.remove('hide');
@@ -640,6 +661,16 @@
         //    return false;
         //});
 
+        view.querySelector('#chkEnableTelevisionOptions').addEventListener('change', () => {
+            toggleTelevisionOptions();
+            onSubmit(view);
+            return false;
+        });
+        view.querySelector('#chkEnableMovieOptions').addEventListener('change', () => {
+            toggleMovieOptions();
+            onSubmit(view);
+            return false;
+        });
         view.querySelector('#chkOverwriteExistingEpisodeItems').addEventListener('change', () => {
             toggleOverwriteExistingEpisodeItemKeyWords();
             onSubmit(view);
@@ -696,6 +727,8 @@
             //toggleMovieLocation();
             toggleMovieFolderPattern();
             toggleSortExistingSeriesOnly();
+            toggleMovieOptions();
+            toggleTelevisionOptions();
         });
     };
 });

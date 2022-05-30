@@ -175,7 +175,7 @@ namespace Emby.AutoOrganize.Core
                     break;
                 case FileOrganizerType.Movie:
                     var movieOrganizer = new MovieOrganizer(this, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
-
+                    _logger.Warn($"Beginning movie organizer... requestToMoveFile: {requestToMoveFile} ");
                     organizeResult = await movieOrganizer.OrganizeFile(requestToMoveFile, result.OriginalPath, options, CancellationToken.None);
 
                     break;

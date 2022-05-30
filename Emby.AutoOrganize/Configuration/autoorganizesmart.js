@@ -1,17 +1,17 @@
-﻿define(['loading', 'mainTabsManager', 'globalize', 'listViewStyle'],
-    function(loading, mainTabsManager, globalize) {
+﻿define(['loading', 'mainTabsManager', 'globalize', 'dialogHelper', 'formDialogStyle', 'listViewStyle', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'],
+    function (loading, mainTabsManager, globalize, dialogHelper, formDialogStyle) {
         'use strict';
 
-        ApiClient.getFileOrganizationResults = function(options) {
+        ApiClient.getFileOrganizationResults = function (options) {
 
             var url = this.getUrl("Library/FileOrganization", options || {});
 
             return this.getJSON(url);
         };
-         
-        
 
-        ApiClient.getSmartMatchInfos = function(options) {
+
+
+        ApiClient.getSmartMatchInfos = function (options) {
 
             options = options || {};
 
@@ -24,12 +24,31 @@
             });
         };
 
-        ApiClient.deleteSmartMatchEntries = function(entries) {
+        ApiClient.deleteSmartMatchEntries = function (entries) {
 
             var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
 
             var postData = {
                 Entries: entries
+            };
+
+            return this.ajax({
+                type: "POST",
+                url: url,
+                data: JSON.stringify(postData),
+                contentType: "application/json"
+            });
+        };
+
+        ApiClient.saveCustomSmartMatchEntry = function (options) {
+
+            var url = this.getUrl("Library/FileOrganizations/SmartMatches/Save");
+
+            var postData = {
+                TargetFolder: options.TargetFolder,
+                Matches: options.Matches,
+                Type: options.Type,
+                Id: options.Id || ""
             };
 
             return this.ajax({
@@ -64,16 +83,19 @@
 
             loading.show();
 
-            ApiClient.getSmartMatchInfos(query).then(function(infos) {
+            ApiClient.getSmartMatchInfos(query).then(function (result) {
 
-                    currentResult = infos;
+                if (result && result.Items.length) {
+                    currentResult = result;
 
-                    populateList(page, infos);
+                    populateList(page, result);
 
                     loading.hide();
-
+                } else {
+                    loading.hide();
+                }
                 },
-                function() {
+                function () {
 
                     loading.hide();
                 });
@@ -83,19 +105,23 @@
 
             var matchStringIndex = 0;
 
-            return info.MatchStrings.map(function(m) {
+            return info.MatchStrings.map(function (m) {
 
                 var matchStringHtml = '';
 
                 matchStringHtml += '<div class="listItem" style="border-bottom: 1px solid var(--theme-icon-focus-background)">';
 
                 matchStringHtml += '<svg style="width:24px;height:24px" viewBox="0 0 24 24"> ';
-                matchStringHtml += '<path fill="var(--theme-primary-color)" d="M12,6A6,6 0 0,1 18,12C18,14.22 16.79,16.16 15,17.2V19A1,1 0 0,1 14,20H10A1,1 0 0,1 9,19V17.2C7.21,16.16 6,14.22 6,12A6,6 0 0,1 12,6M14,21V22A1,1 0 0,1 13,23H11A1,1 0 0,1 10,22V21H14M20,11H23V13H20V11M1,11H4V13H1V11M13,1V4H11V1H13M4.92,3.5L7.05,5.64L5.63,7.05L3.5,4.93L4.92,3.5M16.95,5.63L19.07,3.5L20.5,4.93L18.37,7.05L16.95,5.63Z" />';
+                matchStringHtml += '<path fill="var(--theme-accent-text-color-lightbg)" d="M12,6A6,6 0 0,1 18,12C18,14.22 16.79,16.16 15,17.2V19A1,1 0 0,1 14,20H10A1,1 0 0,1 9,19V17.2C7.21,16.16 6,14.22 6,12A6,6 0 0,1 12,6M14,21V22A1,1 0 0,1 13,23H11A1,1 0 0,1 10,22V21H14M20,11H23V13H20V11M1,11H4V13H1V11M13,1V4H11V1H13M4.92,3.5L7.05,5.64L5.63,7.05L3.5,4.93L4.92,3.5M16.95,5.63L19.07,3.5L20.5,4.93L18.37,7.05L16.95,5.63Z" />';
                 matchStringHtml += '</svg> ';
 
                 matchStringHtml += '<div class="listItemBody">';
 
-                matchStringHtml += "<div class='listItemBodyText secondary'>" + m + "</div>";
+                matchStringHtml += "<div class='listItemBodyText secondary'>";
+
+                matchStringHtml += m;  
+                
+                matchStringHtml += "</div>";
 
                 matchStringHtml += '</div>';
 
@@ -117,8 +143,8 @@
 
             var infos = result.Items;
 
-            if (infos && infos.length) {
-                infos = infos.sort(function(a, b) {
+            if (infos) {
+                infos = infos.sort(function (a, b) {
 
                     a = a.OrganizerType + " " + (a.Name);
                     b = b.OrganizerType + " " + (b.Name);
@@ -140,109 +166,253 @@
             var html = "";
 
             if (infos.length) {
-                
+
                 html += '<div class="" style="padding:4%">';
             }
 
-            infos.forEach(info => 
-            {
-                //html += '<div style="">';
-                //html += '<img src="' + ApiClient.getUrl("Items/" + info.Id + "/Images/Logo?maxWidth=300") + '" />';
-                //html += '</div>';
-                html += '<div is="emby-collapse" title="' + (info.Name) + '">';
-                html += '<div class="collapseContent">';
-                html += '<div style="">';
-                html += getHtmlFromMatchStrings(info, i);
-                html += '</div>';
-                html += '</div>';
-                html += '</div>';
+            var matchInfos = page.querySelector('.divMatchInfos');
+            var customMatchInfos = page.querySelector('.divCustomMatchInfos');
+            infos.forEach(info => {
+                
+                if (info.IsCustomUserDefinedEntry) {
+
+                    html += '<div is="emby-collapse" title="' + (info.TargetFolder) + ' ' + info.MatchStrings.join('|') +'">';
+                    html += '<div class="collapseContent">';
+                    html += getHtmlFromMatchStrings(info, i);
+                    html += '</div>';
+                    html += '</div>';
+
+                    customMatchInfos.innerHTML += html;
+
+                } else {
+                    html += '<div is="emby-collapse" title="' + (info.Name) + '">';
+                    html += '<div class="collapseContent">';
+                    html += getHtmlFromMatchStrings(info, i);
+                    html += '</div>';
+                    html += '</div>';
+
+                    matchInfos.innerHTML += html;
+                }
+
+                
                 i++;
 
-                //html += '<div class="listItem">';
-
-                //html += '<div class="listItemIconContainer">';
-                //html += '<i class="listItemIcon md-icon">folder</i>';
-                //html += '</div>';
-
-                //html += '<div class="listItemBody">';
-                //html += "<h2 class='listItemBodyText'>" + (info.DisplayName || info.ItemName) + "</h2>";
-                //html += '</div>';
-
-                //html += '</div>';
-
-
-                //html += getHtmlFromMatchStrings(info, i);
             });
 
-         
+
             html += "</div>";
-        
+            
+           
+            
+        }
 
-        var matchInfos = page.querySelector('.divMatchInfos');
-        matchInfos.innerHTML = html;
-    }
+        async function openCustomSmartMatchDialog(view, id = "") {
+            var dlg = dialogHelper.createDialog({
+                size: "small",
+                removeOnClose: !1,
+                scrollY: !0
+            });
 
-    function getTabs() {
-        return [
-            {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
-                name: globalize.translate("HeaderActivity")
-            },
-            {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                name: globalize.translate("HeaderSettings")
-            },
-            //{
-            //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
-            //    name: 'Movie'
-            //},
-            {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
-                name: 'Smart Matches'
-            }];
-    }
+            dlg.classList.add("formDialog");
+            dlg.classList.add("ui-body-a");
+            dlg.classList.add("background-theme-a");
+            dlg.style.maxHeight = "55%";
+            dlg.style.maxWidth = "40%";
 
-    return function (view, params) {
 
-        var self = this;
 
-        var divInfos = view.querySelector('.divMatchInfos');
+            var html = '';
+            html += '<div class="formDialogHeader" style="display:flex">';
+            html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light" tabindex="-1"><i class="md-icon"></i></button><h3 class="formDialogHeaderTitle">Custom Smart Match</h3>';
+            html += '</div>';
 
-        divInfos.addEventListener('click', function (e) {
+            html += '<div class="formDialogContent" style="margin:2em;">';
+            
+            //File name contains
+            html += '<div class="inputContainer">';
+            html += '<label class="inputLabel" for="txtFileNameContains">Match names:</label><input is="emby-input" id="txtFileNameContains" required="required" type="text" label="File Name Contains:" class="emby-input">';
+            html += '<div class="fieldDescription">Each value separated by ;</div>';
+            html += '</div>';
 
-            var button = parentWithClass(e.target, 'btnDeleteMatchEntry');
+            //Type of media
+            html += '<div class="selectContainer">';
+            html += '<select is="emby-select" id="selectMediaType" data-mini="true" required="required" label="Media type">';
+            html += '<option></option>';
+            //html += '<option value="Episode">Series</option>';
+            html += '<option value="Movie">Movie</option>';
+            html += '</select>';
+            html += '</div>';
+            
+            
+            //The root/Target folder
+            html += '<div class="selectContainer">';
+            html += '<div class="selectRootFolderContainer selectContainer">';
+            html += '<select id="selectRootFolder" is="emby-select" label="Root folder:" required="required"></select>';
+            html += '</div>';
+            html += '</div>';
 
-            if (button) {
 
-                var index = parseInt(button.getAttribute('data-index'));
-                var matchIndex = parseInt(button.getAttribute('data-matchindex'));
+            html += '<div class="formDialogFooter">';
+            html += '<div style="display:flex;align-items:center;justify-content:center">';
+            html += '<button id="okButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Ok</button>';
+            html += '<button id="cancelButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Cancel</button>';
+            html += '</div>';
+            html += '</div>';
 
-                var info = currentResult.Items[index];
-                var entries = [
-                    {
-                        Name: info.Id,
-                        Value: info.MatchStrings[matchIndex]
-                    }];
 
-                ApiClient.deleteSmartMatchEntries(entries).then(function () {
+            html += '</div>';
 
-                    reloadList(view);
+            dlg.innerHTML = html;
 
-                }, Dashboard.processErrorResponse);
-            }
-        });
+            var targetFolderSelect = dlg.querySelector('#selectRootFolder');
+            var organizerTypeSelect = dlg.querySelector('#selectMediaType');
+            var fileNameContainsInput = dlg.querySelector('#txtFileNameContains');
 
-        view.addEventListener('viewshow', function (e) {
+            const virtualFolderResult = await ApiClient.getVirtualFolders();
 
-            mainTabsManager.setTabs(this, 2, getTabs);
-            loading.show();
+            organizerTypeSelect.addEventListener('change',
+                () => {
+                    if (organizerTypeSelect.value != '') {
+                        var virtualFolders = virtualFolderResult.Items; //|| result;
+                        for (var n = 0; n < virtualFolders.length; n++) {
 
-            reloadList(view);
-        });
+                            var virtualFolder = virtualFolders[n];
 
-        view.addEventListener('viewhide', function (e) {
+                            for (var i = 0; i < virtualFolder.Locations.length; i++) {
 
-            currentResult = null;
-        });
-    };
-});
+                                var location = {
+                                    value: virtualFolder.Locations[i],
+                                    display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
+                                };
+
+                                if (organizerTypeSelect.value === 'Movie' &&
+                                    virtualFolder.CollectionType === 'movies' ||
+                                    organizerTypeSelect.value === 'Series' &&
+                                    virtualFolder.CollectionType === 'tvshows' ||
+                                    virtualFolder.Name === "Mixed content") {
+                                    targetFolderSelect.innerHTML += '<option value="' + location.value + '">' + location.display + '</option>';
+                                }
+
+                            }
+                        }
+                    } else {
+                        targetFolderSelect.innerHTML = '';
+                    }
+                });
+
+
+            dlg.querySelector('.btnCloseDialog').addEventListener('click',
+                () => {
+                    dialogHelper.close(dlg);
+                });
+
+            dlg.querySelector('#cancelButton').addEventListener('click',
+                () => {
+                    dialogHelper.close(dlg);
+                })
+
+            dlg.querySelector('#okButton').addEventListener('click',
+                async () => {
+                   
+                   
+
+                    var targetFolder = targetFolderSelect.options[targetFolderSelect.selectedIndex].value;
+                    var organizerType = organizerTypeSelect.value;
+                    var keyWords = fileNameContainsInput.value.split(';');
+
+                    var options = {
+                        TargetFolder: targetFolder,
+                        Matches: keyWords,
+                        Type: organizerType,
+                        Id: id
+                    }
+
+                    await ApiClient.saveCustomSmartMatchEntry(options);
+
+                    dialogHelper.close(dlg);
+                });
+
+            
+
+            dialogHelper.open(dlg);
+        }
+
+
+        function getTabs() {
+            return [
+                {
+                    href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
+                    name: globalize.translate("HeaderActivity")
+                },
+                {
+                    href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
+                    name: globalize.translate("HeaderSettings")
+                },
+                //{
+                //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
+                //    name: 'Movie'
+                //},
+                {
+                    href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
+                    name: 'Smart Matches'
+                }];
+        }
+
+        function removeSmartMatchEntry(view, index, matchIndex) {
+            var info = currentResult.Items[index];
+            var entries = [
+                {
+                    Name: info.Id,
+                    Value: info.MatchStrings[matchIndex]
+                }];
+
+            ApiClient.deleteSmartMatchEntries(entries).then(function () {
+
+                reloadList(view);
+
+            }, Dashboard.processErrorResponse);
+        }
+        return function (view, params) {
+
+            var self = this;
+            
+            
+            var smartMatches = view.querySelector('.divMatchInfos');
+            var customSmartMatches = view.querySelector('.divCustomMatchInfos');
+            
+            smartMatches.addEventListener('click', function (e) {
+                var button = parentWithClass(e.target, 'btnDeleteMatchEntry');
+                if (button) {
+                    var index = parseInt(button.getAttribute('data-index'));
+                    var matchIndex = parseInt(button.getAttribute('data-matchindex'));
+                    removeSmartMatchEntry(view, index, matchIndex);
+                }
+            });
+
+            customSmartMatches.addEventListener('click', function (e) {
+                var button = parentWithClass(e.target, 'btnDeleteMatchEntry');
+                if (button) {
+                    var index = parseInt(button.getAttribute('data-index'));
+                    var matchIndex = parseInt(button.getAttribute('data-matchindex'));
+                    removeSmartMatchEntry(view, index, matchIndex);
+                }
+            });
+
+            view.querySelector('.btnCreateCustomSmartListEntry').addEventListener('click', async () => {
+                await openCustomSmartMatchDialog(view);
+            });
+
+            view.addEventListener('viewshow', function (e) {
+
+                mainTabsManager.setTabs(this, 2, getTabs);
+                loading.show();
+
+                reloadList(view);
+            });
+
+            view.addEventListener('viewhide', function (e) {
+
+                currentResult = null;
+            });
+        };
+    });

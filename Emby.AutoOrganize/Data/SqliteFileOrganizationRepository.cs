@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Emby.AutoOrganize.MediaInfo;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller;
 using MediaBrowser.Model.Logging;
@@ -37,7 +38,7 @@ namespace Emby.AutoOrganize.Data
 
                                 "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedEpisodeName TEXT, ExtractedResolution TEXT null, VideoStreamCodecs TEXT null, AudioStreamCodecs TEXT null, SourceQuality TEXT null, Subtitles TEXT null, ExtractedEdition TEXT null, ExternalSubtitlePaths TEXT null, DuplicatePaths TEXT int null, ExistingInternalId INT)",
                                 "create index if not exists idx_FileOrganizerResults on FileOrganizerResults(ResultId)",
-                                "create table if not exists SmartMatch (Id GUID PRIMARY KEY, Name TEXT, OrganizerType TEXT, MatchStrings TEXT null)",
+                                "create table if not exists SmartMatch (Id GUID PRIMARY KEY, Name TEXT, OrganizerType TEXT, MatchStrings TEXT null, TargetFolder TEXT null, IsCustomUserDefinedEntry TEXT null)",
                                 "create index if not exists idx_SmartMatch on SmartMatch(Id)",
                                };
 
@@ -386,7 +387,7 @@ namespace Emby.AutoOrganize.Data
                 {
                     connection.RunInTransaction(db =>
                     {
-                        var commandText = "replace into SmartMatch (Id, Name, OrganizerType, MatchStrings) values (@Id, @Name, @OrganizerType, @MatchStrings)";
+                        var commandText = "replace into SmartMatch (Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry) values (@Id, @Name, @OrganizerType, @MatchStrings, @TargetFolder, @IsCustomUserDefinedEntry)";
 
                         using (var statement = db.PrepareStatement(commandText))
                         {
@@ -394,7 +395,8 @@ namespace Emby.AutoOrganize.Data
                             statement.TryBind("@Name", result.Name);
                             statement.TryBind("@OrganizerType", result.OrganizerType.ToString());
                             statement.TryBind("@MatchStrings", _json.SerializeToString(result.MatchStrings));
-
+                            statement.TryBind("@TargetFolder", result.TargetFolder);
+                            statement.TryBind("@IsCustomUserDefinedEntry", result.IsCustomUserDefinedEntry);
                             statement.MoveNext();
                         }
                     }, TransactionMode);
@@ -473,7 +475,7 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    using (var statement = connection.PrepareStatement("SELECT Id, Name, OrganizerType, MatchStrings from SmartMatch where Id=@Id"))
+                    using (var statement = connection.PrepareStatement("SELECT Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry from SmartMatch where Id=@Id"))
                     {
                         statement.TryBind("@Id", id.ToGuidBlob());
 
@@ -499,7 +501,7 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    var commandText = "SELECT Id, Name, OrganizerType, MatchStrings from SmartMatch";
+                    var commandText = "SELECT Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry from SmartMatch";
 
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
@@ -558,6 +560,18 @@ namespace Emby.AutoOrganize.Data
             if (!reader.IsDBNull(index))
             {
                 result.MatchStrings = _json.DeserializeFromString<List<string>>(reader.GetString(index));
+            }
+
+            index++;
+            if (!reader.IsDBNull(index))
+            {
+                result.TargetFolder = reader.GetString(index);
+            }
+
+            index++;
+            if (!reader.IsDBNull(index))
+            {
+                result.IsCustomUserDefinedEntry = reader.GetBoolean(index);
             }
 
             return result;

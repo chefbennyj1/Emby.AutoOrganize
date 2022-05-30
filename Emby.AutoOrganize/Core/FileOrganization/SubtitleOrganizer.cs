@@ -72,8 +72,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var language              = RegexExtensions.ParseSubtitleLanguage(path).TrimEnd('.');
 
             FileOrganizationResult companion = null;
+            
+            var dbResult = OrganizationService.GetResultBySourcePath(path);
+            var result = dbResult ?? new FileOrganizationResult { OriginalPath = path };
 
-            var result = new FileOrganizationResult { OriginalPath = path };
 
             switch (subtitleOrganizerType)
             {
@@ -82,16 +84,20 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     return result;
 
                 case FileOrganizerType.Movie:
-                    var movieSubtitleInfo = LibraryManager.ParseName(path.AsSpan());
+                    var movieSubtitleInfo =
+                        LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(path.AsSpan()));
 
                     if (movieSubtitleInfo != null)
                     {
-                        companion = dbResults.Items.FirstOrDefault(item => RegexExtensions.NormalizeSearchStringComparison(item.ExtractedName).ContainsIgnoreCase(RegexExtensions.NormalizeSearchStringComparison(movieSubtitleInfo.Name)));
+                        companion = dbResults.Items.FirstOrDefault(item =>
+                            LibraryManager
+                                .ParseName(FileSystem.GetFileNameWithoutExtension(item.OriginalFileName.AsSpan())).Name
+                                .ContainsIgnoreCase(movieSubtitleInfo.Name));
 
                         //The result is no longer in the database table, try to find it in the library
                         if (companion is null)
                         {
-                            var movie = GetMatchingMovie(movieSubtitleInfo.Name, movieSubtitleInfo.Year);
+                            var movie = GetMatchingMovie(Regex.Replace(movieSubtitleInfo.Name, @"[^A-Za-z0-9\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim(), movieSubtitleInfo.Year);
                             if (movie is null)
                             {
                                 Log.Warn($"Unable to find matching movie for {path}");
@@ -113,7 +119,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         return result;
                     }
 
-                   
+
 
                     break;
 
@@ -123,18 +129,22 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     var resolver = new EpisodeResolver(namingOptions);
 
                     var episodeSubtitleInfo = resolver.Resolve(path, false) ?? new Naming.TV.EpisodeInfo();
-                    
-                    
+
+
                     companion = dbResults.Items.FirstOrDefault(item =>
-                        RegexExtensions.NormalizeSearchStringComparison(item.ExtractedName).ContainsIgnoreCase(RegexExtensions.NormalizeSearchStringComparison(episodeSubtitleInfo.SeriesName)) &&
-                        item.ExtractedEpisodeNumber == episodeSubtitleInfo.EpisodeNumber && item.ExtractedSeasonNumber == episodeSubtitleInfo.SeasonNumber);
+                        RegexExtensions.NormalizeString(item.ExtractedName)
+                            .ContainsIgnoreCase(
+                                RegexExtensions.NormalizeString(episodeSubtitleInfo.SeriesName)) &&
+                        item.ExtractedEpisodeNumber == episodeSubtitleInfo.EpisodeNumber &&
+                        item.ExtractedSeasonNumber == episodeSubtitleInfo.SeasonNumber);
 
                     //The result is no longer in the database table, try to find it in the library
                     if (companion is null)
                     {
                         if (episodeSubtitleInfo.EpisodeNumber.HasValue && episodeSubtitleInfo.SeasonNumber.HasValue)
                         {
-                            var episode = GetMatchingEpisode(episodeSubtitleInfo.SeriesName, episodeSubtitleInfo.EpisodeNumber.Value, episodeSubtitleInfo.SeasonNumber.Value);
+                            var episode = GetMatchingEpisode(episodeSubtitleInfo.SeriesName,
+                                episodeSubtitleInfo.EpisodeNumber.Value, episodeSubtitleInfo.SeasonNumber.Value);
 
                             if (episode is null)
                             {
@@ -145,38 +155,43 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             targetDirectory = Path.GetDirectoryName(episode.Path);
                             fileName = Path.GetFileNameWithoutExtension(episode.Path);
 
-                        } else
+                        }
+                        else
                         {
                             //returning empty result. No sorting today!
                             Log.Warn($"Unable to sort subtitle file {path}");
                             return result;
                         }
-                        
+
                     }
                     else
                     {
-                        
+
                         targetDirectory = Path.GetDirectoryName(companion.TargetPath);
                         fileName = Path.GetFileNameWithoutExtension(companion.TargetPath);
                     }
 
-                    if (!string.IsNullOrEmpty(targetDirectory) && !string.IsNullOrEmpty(fileName))
-                    {
-                        
-                        //The full path we are going to send the subtitle file to, including the name, and it's extension.
-                        result.TargetPath = Path.Combine(targetDirectory, (fileName + language + extension));
-                        Log.Info($"Subtitle result Target path is: { result.TargetPath }");
-                        //Add the path to the companion if it exists. It's so we can show it in the UI
-                        if (companion != null)
-                        {
-                            companion.ExternalSubtitlePaths.Add(result.TargetPath);
-                            OrganizationService.SaveResult(companion, cancellationToken);
-                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(companion), Log); //Update the UI
-                        }
-                    }
-                    
                     break;
             }
+
+            if (!string.IsNullOrEmpty(targetDirectory) && !string.IsNullOrEmpty(fileName))
+            {
+                        
+                //The full path we are going to send the subtitle file to, including the name, and it's extension.
+                result.TargetPath = Path.Combine(targetDirectory, (fileName + language + extension));
+                Log.Info($"Subtitle result Target path is: { result.TargetPath }");
+                
+                //Add the path to the companion if it exists. It's so we can show it in the UI
+                if (companion != null)
+                {
+                    companion.ExternalSubtitlePaths.Add(result.TargetPath);
+                    OrganizationService.SaveResult(companion, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(companion), Log); //Update the UI
+                }
+            }
+                    
+                   
+            
             
             PerformFileSorting(options, result, cancellationToken);
 
@@ -191,7 +206,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return;
             }
 
-            LibraryMonitor.ReportFileSystemChangeBeginning(result.TargetPath);
+            //LibraryMonitor.ReportFileSystemChangeBeginning(result.TargetPath);
             try
             {
                 Log.Info($"Copying Subtitle File: {result.TargetPath}");
@@ -202,7 +217,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 Log.Warn(ex.Message);
             }
 
-            LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
+            //LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
 
             try
             {

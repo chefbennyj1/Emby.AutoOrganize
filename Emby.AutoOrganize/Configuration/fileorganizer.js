@@ -155,15 +155,16 @@
 
             var virtualFolder = virtualFolders[n];
 
-            for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
+            for (var i = 0; i < virtualFolder.Locations.length; i++) {
+                
                 var location = {
                     value: virtualFolder.Locations[i],
                     display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
                 };
 
-                if ((chosenType == 'Movie' && virtualFolder.CollectionType == 'movies') ||
-                    (chosenType == 'Series' && virtualFolder.CollectionType == 'tvshows') ||
-                    virtualFolder.Name == "Mixed content") {
+                if (chosenType === 'Movie' && virtualFolder.CollectionType === 'movies'   || 
+                    chosenType === 'Series' && virtualFolder.CollectionType === 'tvshows' ||
+                    virtualFolder.Name === "Mixed content") {
                     virtualFolderLocations.push(location);
                 }
 
@@ -177,6 +178,9 @@
         }
 
         //virtualFolderLocationsCount = virtualFolderLocations.length;
+
+        console.table(virtualFolderLocations);
+
 
         var mediasFolderHtml = virtualFolderLocations.map(function (s) {
             return '<option value="' + s.value + '">' + s.display + '</option>';
@@ -206,7 +210,7 @@
             baseItemsSelect.value = libraryItemId || "";
         }
 
-        if (item.Status !== "Waiting" && libraryItem) {
+        if (item.Status !== "UserInputRequired" && libraryItem) {
             if (virtualFolderLocations) {
                 let itemLocationFolder = virtualFolderLocations.filter(l => libraryItem.Path.substring(0, l.value.length) === l.value)
                 rootFolderSelect.value = itemLocationFolder[0].value || "";
@@ -545,9 +549,9 @@
                         showNewMediaDialog(dlg);
                     });
 
-                    dlg.querySelector('#selectBaseItems').addEventListener('change', function (e) {
+                    dlg.querySelector('#selectBaseItems').addEventListener('change', async function (e) {
 
-                        selectedMediasChanged(dlg);
+                        await selectedMediasChanged(dlg);
                     });
 
                     dlg.querySelector('#selectMediaType').addEventListener('change', async  () => {

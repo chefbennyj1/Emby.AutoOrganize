@@ -73,7 +73,7 @@ namespace Emby.AutoOrganize
             FileOrganizationService.LogReset      += _organizationService_LogReset;
             TaskManager.TaskExecuting             += _taskManager_TaskExecuting;
             TaskManager.TaskCompleted             += _taskManager_TaskCompleted;
-
+            
             
             
             // Convert Config
@@ -92,6 +92,7 @@ namespace Emby.AutoOrganize
         private void _taskManager_TaskExecuting(object sender, GenericEventArgs<IScheduledTaskWorker> e)
         {
             SessionManager.SendMessageToAdminSessions("TaskData", e.Argument, CancellationToken.None);
+            
         }
 
         private IFileOrganizationRepository GetRepository()

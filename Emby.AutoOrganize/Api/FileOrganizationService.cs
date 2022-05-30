@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
+using MediaBrowser.Common.Extensions;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Dto;
@@ -169,7 +172,22 @@ namespace Emby.AutoOrganize.Api
         public List<NameValuePair> Entries { get; set; }
     }
 
-    
+    [Route("/Library/FileOrganizations/SmartMatches/Save", "POST", Summary = "Save a custom smart match entry")]
+    public class SaveCustomSmartMatch
+    {
+        [ApiMember(Name = "TargetPath", Description = "SmartMatch TargetFolder", IsRequired = true, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public string TargetFolder { get; set; }
+
+        [ApiMember(Name = "Entries", Description = "SmartMatch Entry", IsRequired = true, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public List<string> Matches { get; set; }
+
+        [ApiMember(Name = "Type", Description = "Organization Type", IsRequired = true, DataType = "FileOrganizerType", ParameterType = "query", Verb = "POST")]
+        public FileOrganizerType Type { get; set; }
+
+        [ApiMember(Name = "Id", Description = "SmartMatch Id", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public string Id { get; set; }
+
+    }
 
     [Authenticated(Roles = "Admin")]
     public class FileOrganizationService : IService, IRequiresRequest
@@ -311,6 +329,32 @@ namespace Emby.AutoOrganize.Api
             }
         }
 
+        public void Post(SaveCustomSmartMatch request)
+        {
+            SmartMatchResult result = null;
+            var smartInfo = InternalFileOrganizationService.GetSmartMatchInfos();
+            if (!string.IsNullOrEmpty(request.Id))
+            {
+                
+                result = smartInfo.Items.FirstOrDefault(s => s.Id == request.Id);
+            }
+
+            if (result is null)
+            {
+                result = new SmartMatchResult
+                {
+                    Id = $"custom_smart_match { smartInfo.TotalRecordCount + 1 }".GetMD5().ToString("N"),
+                    OrganizerType = request.Type,
+                    IsCustomUserDefinedEntry = true,
+                };
+            }
+
+            result.TargetFolder = request.TargetFolder;
+            result.MatchStrings = request.Matches;
+
+            InternalFileOrganizationService.SaveResult(result, CancellationToken.None);
+
+        }
        
     }
 }

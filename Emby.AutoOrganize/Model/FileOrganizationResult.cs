@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using Emby.AutoOrganize.Data;
+using Emby.AutoOrganize.MediaInfo;
 
 namespace Emby.AutoOrganize.Model
 {
@@ -144,10 +146,10 @@ namespace Emby.AutoOrganize.Model
         }
     }
 
-    public class Resolution
-    {
-        public string Name { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
-    }
+    //public class Resolution
+    //{
+    //    public string Name { get; set; }
+    //    public int Width { get; set; }
+    //    public int Height { get; set; }
+    //}
 }

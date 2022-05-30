@@ -29,14 +29,14 @@ namespace Emby.AutoOrganize
         public Stream GetThumbImage()
         {
             var type = GetType();
-            return type.Assembly.GetManifestResourceStream(type.Namespace + ".thumb.jpg");
+            return type.Assembly.GetManifestResourceStream(type.Namespace + ".thumb.gif");
         }
 
         public ImageFormat ThumbImageFormat
         {
             get
             {
-                return ImageFormat.Jpg;
+                return ImageFormat.Gif;
             }
         }
 
@@ -95,11 +95,11 @@ namespace Emby.AutoOrganize
                     Name = "FileOrganizerHtml",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.fileorganizer.template.html"
                 },
-                new PluginPageInfo
-                {
-                Name = "Chart.js",
-                EmbeddedResourcePath = GetType().Namespace + ".Configuration.Chart.js"
-                }
+                //new PluginPageInfo
+                //{
+                //Name = "Chart.js",
+                //EmbeddedResourcePath = GetType().Namespace + ".Configuration.Chart.js"
+                //}
             };
         }
     }

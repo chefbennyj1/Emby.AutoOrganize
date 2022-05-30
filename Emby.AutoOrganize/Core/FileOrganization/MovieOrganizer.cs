@@ -1,5 +1,4 @@
 ﻿using Emby.AutoOrganize.Model;
-using Emby.AutoOrganize.Naming.Common;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
@@ -12,11 +11,13 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.MediaInfo;
 using Emby.AutoOrganize.Naming;
 using MediaBrowser.Model.Extensions;
 using MediaBrowser.Model.Providers;
@@ -109,82 +110,13 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (!result.AudioStreamCodecs.Any() || !result.VideoStreamCodecs.Any() || !result.Subtitles.Any())
             {
-                FileInternalMetadata metadata = null;
-                try
-                {
-                    metadata = await Ffprobe.Ffprobe.Instance.GetFileInternalMetadata(path, Log);
-                } 
-                catch (Exception)
-                {
-                    result.Status = FileSortingStatus.InUse;
-                    result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                    Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
-                
-                    OrganizationService.SaveResult(result, cancellationToken);
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
-                    return result;
-                }
-                if (metadata != null)
-                {
-                    foreach (var stream in metadata.streams)
-                    {
-                        switch (stream.codec_type)
-                        {
-                            case "audio":
-                                if (!string.IsNullOrEmpty(stream.codec_name) && !result.AudioStreamCodecs.Any())
-                                {
-                                    result.AudioStreamCodecs.Add(stream.codec_name);
-                                    result.AudioStreamCodecs.Add(stream.channels == 6 ? "5.1" : stream.channels.ToString());
-                                }
+                var mediaInfoProvider = new MediaInfoProvider();
+                var mediaInfo = await mediaInfoProvider.GetMediaInfo(result.OriginalPath);
 
-                                break;
-                            case "video":
-                            {
-                                if (!string.IsNullOrEmpty(stream.codec_long_name) && !result.VideoStreamCodecs.Any())
-                                {
-                                    var codecs = stream.codec_long_name.Split('/');
-                                    foreach (var codec in codecs.Take(3))
-                                    {
-                                        if (codec.Trim().Split(' ').Length > 1)
-                                        {
-                                            result.VideoStreamCodecs.Add(codec.Trim().Split(' ')[0]);
-                                            continue;
-                                        }
-
-                                        result.VideoStreamCodecs.Add(codec.Trim());
-                                    }
-                                }
-
-                                if (string.IsNullOrEmpty(result.ExtractedResolution.Name))
-                                {
-                                    if (stream.width != 0 && stream.height != 0)
-                                    {
-                                        result.ExtractedResolution = new Resolution()
-                                        {
-                                            Name = GetResolutionFromMetadata(stream.width, stream.height),
-                                            Width = stream.width,
-                                            Height = stream.height
-                                        };
-
-                                    }
-                                }
-                                break;
-                            }
-                            case "subtitle":
-                                
-                                if (stream.tags != null && !result.Subtitles.Any())
-                                {
-                                    var language = stream.tags.title ?? stream.tags.language;
-                                    if (!string.IsNullOrEmpty(language))
-                                    {
-                                        result.Subtitles.Add(language);
-                                    }
-                                }
-
-                                break;
-                        }
-                    }
-                }
+                result.AudioStreamCodecs = mediaInfo.AudioStreamCodecs;
+                result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
+                result.Subtitles = mediaInfo.Subtitles;
+                result.ExtractedResolution = mediaInfo.Resolution;
 
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
@@ -212,33 +144,35 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 var movieName = string.Empty;
                 int? movieYear = null;
 
-                //Parse the file name for data
-                var movieInfoFromFileName = LibraryManager.ParseName(Path.GetFileName(path).AsSpan());
-                
-                //Possible name of the movie 
-                var extractedMovieNameFromFile = movieInfoFromFileName.Name;
+                //Parse the file name for naming info
+                var movieInfoFromFile = LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(path).AsSpan());
+               
+                movieName = movieInfoFromFile.Name;
+                movieYear = movieInfoFromFile.Year;
                 
                 //Movie name could be null or empty
-                //Or it could contain a dash.
-                //If the movie name contains a dash, this is a typical naming convention, and it may not be possible to parse an actual name for the file.
-                //Try the parent folder for proper naming that emby will understand.
-                if (extractedMovieNameFromFile.Contains("-") || string.IsNullOrEmpty(extractedMovieNameFromFile))
+                //Or it could contain a dash. ex: "exq-MovieName.2022.1080p.etc.ext"
+                //If the movie name contains a dash (this is a typical naming convention from online resources), it may not be possible to parse an actual name for the file.
+                //Try the parent folder for proper naming so emby will understand.
+                if (movieName.Substring(0, movieName.Length / 2).Contains("-") || string.IsNullOrEmpty(movieName))
                 {
-                    Log.Info($"Movie name  contains dash. Checking parent folder for naming...");
+                    Log.Info("Checking parent folder for movie naming...");
+
                     //Split the file path by the Separator
                     var paths = path.Split(FileSystem.DirectorySeparatorChar);
 
+                    //our parent folder
                     var parentFolderName = paths[paths.Count() - 2];
 
-                    //Check the file's Parent folder for some kind of proper naming
-                    var  movieInfoFromParentFolderName = LibraryManager.ParseName(parentFolderName.AsSpan());
+                    //Parse the Parent folder for some kind of proper naming
+                    var movieInfoFromParentFolder = LibraryManager.ParseName(parentFolderName.AsSpan());
 
-                    var extractedMovieNameFromParentFolder = movieInfoFromParentFolderName.Name;
-                    var extractedMovieYearFromParentFolder = movieInfoFromParentFolderName.Year;
 
+                    //Check those values...
                     //Both attempts to read a movie name from the file and parent folder has no results
                     //User will have to sort with corrections.
-                    if (string.IsNullOrEmpty(extractedMovieNameFromFile) && string.IsNullOrEmpty(extractedMovieNameFromParentFolder))
+                    if (string.IsNullOrEmpty(movieInfoFromFile.Name) &&
+                        string.IsNullOrEmpty(movieInfoFromParentFolder.Name))
                     {
                         var msg = $"Unable to determine movie name from {path}";
                         result.Status = FileSortingStatus.Failure;
@@ -250,41 +184,79 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     }
 
                     //We found everything we need.
-                    if (!string.IsNullOrEmpty(extractedMovieNameFromParentFolder) && extractedMovieYearFromParentFolder.HasValue)
+                    if (!string.IsNullOrEmpty(movieInfoFromParentFolder.Name) && movieInfoFromParentFolder.Year.HasValue)
                     {
                         Log.Info("Parsed movie name from parent folder successful...");
-                        movieName = movieInfoFromParentFolderName.Name;
-                        movieYear = movieInfoFromParentFolderName.Year;
+                        movieName = movieInfoFromParentFolder.Name;
+                        movieYear = movieInfoFromParentFolder.Year;
 
                         //We'll update the Edition Information here again, because the parent folder most likely contains the proper data we need to identify the movie.
                         result.ExtractedEdition = RegexExtensions.GetReleaseEditionFromFileName(parentFolderName);
                         result.SourceQuality = RegexExtensions.GetSourceQuality(parentFolderName);
 
                     }
+                    //We'll reset, and try again with the file name
+                    else
+                    {
+                        movieName = string.Empty;
+                    }
+
                 }
 
-                
-                //We tried the parent folder for naming, but got nothing.
-                //Use the name which may contains a dash.
-                //Use Regex to select everything after the dash.
+                //We tried the parent folder for naming, but got nothing...
+                //Use the file name which may contains a dash. ex: exq-Movie.Name.2022.1080p.etc.ext
+                //Use Regex to select everything after the first dash.
+                //This isn't great, but we'll also keep an eye out for movies that have strings which contain "-Man" or "-man".
+                //It may seem specific, however modern/contemporary movies (Hero movies) may contain a dash, and need to be excluded from this check. 
+                //So, we're taking that into consideration. 
                 if (string.IsNullOrEmpty(movieName))
                 {
-                    movieName = CleanMovieFileName(extractedMovieNameFromFile);
+                    var regexName = new Regex(@"(?<=[a-zA-Z0-9{0,5}]-(\b(?![Mm]an)\b))(?:.*)");
+                    var namingMatch = regexName.Match(FileSystem.GetFileNameWithoutExtension(path));
+
+                    if (namingMatch.Success)
+                    {
+                        movieName = namingMatch.Value;
+                    }
                 }
 
                 if (!movieYear.HasValue)
                 {
-                    movieYear = CleanMovieYear(FileSystem.GetFileNameWithoutExtension(path));
+                    var regexDate = new Regex(@"(19|20|21)\d{2}");
+                    var yearMatch = regexDate.Match(FileSystem.GetFileNameWithoutExtension(path));
+
+                    if (int.TryParse(yearMatch.Value, out var year))
+                    {
+                        movieYear = year;
+                    }
+                }
+
+
+
+                //Some movie naming places the Edition information before the year. ex: "MovieName.UNCUT.2022.1080p.etc.ext"
+                //Emby must look at the Year to decide the name, when using LibraryManager.ParseName() method.
+                //This results in the edition information gets parsed with the name.
+                //
+                //result => "MovieName UNCUT"
+                //
+                //We'll strip it here,  We only want the "MovieName".
+                movieName = movieName.Replace(result.ExtractedEdition, string.Empty).Trim();
+                
+
+                //...And sometimes Emby LibraryManager.ParseName() method will Parse the Year in the name as well.
+                //
+                //result =>  "MovieName (2022)"
+                //
+                //We'll have to strip the year next. We only want the "MovieName".
+                if (movieYear.HasValue)
+                {
+                    movieName = movieName.Replace($"({movieYear.Value})", string.Empty).Trim();
                 }
 
                 //Clean up the movie name that the Library Manager parsed, it will still contain unwanted character
-                movieName = RegexExtensions.NormalizeMediaItemName(movieName);
+                movieName = Regex.Replace(movieName, @"[^A-Za-z0-9\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                movieName = new CultureInfo("en-US", false).TextInfo.ToTitleCase(movieName.Trim());
 
-                //Some movie naming places the Edition information before the year.
-                //Emby must look at the Year to decide where the name ends when using LibraryManager.ParseName() method.
-                //This means that the edition information gets parsed with the name.
-                //We'll strip it here if it there.
-                movieName = movieName.Replace(result.ExtractedEdition, string.Empty).Trim();
 
                 Log.Info($"Extracted information from {path}. Movie {movieName}, Year {(movieYear.HasValue ? movieYear.Value.ToString() : " Can not parse year")}");
 
@@ -335,8 +307,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                     
-                //Oh so we don't have a name or a year... most likely a year is missing. We'll need that to sort the file - it's an option the user has for naming.
-
+                //We don't have a name or a year... most likely a year is missing. We'll need that to sort the file - it's an option the user has for naming.
+                
                 //Maybe the movie already part of the library... ...
                 var movie = GetMatchingMovie(result.ExtractedName, movieYear, result);
             
@@ -347,7 +319,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     //Ask the metadata providers for it...
                     try
                     {
-                        movie = await GetMovieRemoteProviderData(result.ExtractedName, movieYear, result, options, cancellationToken);//.ConfigureAwait(false);
+                        movie = await GetMovieRemoteProviderData(result, options, cancellationToken);//.ConfigureAwait(false);
                     }
                     catch(Exception)
                     {
@@ -652,11 +624,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         DtoOptions = new DtoOptions(true),
                     });
 
-                    var movies = moviesResult.Items.Where(m => RegexExtensions.NormalizeSearchStringComparison(m.Name) == RegexExtensions.NormalizeSearchStringComparison(result.ExtractedName)).ToList();
+                    var movies = moviesResult.Items.Where(m => RegexExtensions.NormalizeString(m.Name) == RegexExtensions.NormalizeString(result.ExtractedName)).ToList();
 
                     if (!movies.Any()) //hail mary comparison for movie name
                     {
-                        movies = moviesResult.Items.Where(m => RegexExtensions.NormalizeSearchStringComparison(m.Name).ContainsIgnoreCase(RegexExtensions.NormalizeSearchStringComparison(result.ExtractedName))).ToList();
+                        movies = moviesResult.Items.Where(m => RegexExtensions.NormalizeString(m.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(result.ExtractedName))).ToList();
                     }
 
                     if (movies.Any()) //<-- Found the movie, and possibly several versions/resolutions of it.
@@ -984,24 +956,24 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
         }
 
-        private async Task<Movie> GetMovieRemoteProviderData(string movieName, int? movieYear, FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
+        private async Task<Movie> GetMovieRemoteProviderData(FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             //if (!options.AutoDetectMovie) return null;
 
-            var parsedName = LibraryManager.ParseName(movieName.AsSpan());
+            //var parsedName = LibraryManager.ParseName(movieName.AsSpan());
 
-            var yearInName = parsedName.Year;
-            var nameWithoutYear = parsedName.Name;
+            //var yearInName = parsedName.Year;
+            //var nameWithoutYear = parsedName.Name;
 
-            if (string.IsNullOrWhiteSpace(nameWithoutYear))
-            {
-                nameWithoutYear = movieName;
-            }
+            //if (string.IsNullOrWhiteSpace(nameWithoutYear))
+            //{
+            //    nameWithoutYear = movieName;
+            //}
 
-            if (!yearInName.HasValue)
-            {
-                yearInName = movieYear;
-            }
+            //if (!yearInName.HasValue)
+            //{
+            //    yearInName = movieYear;
+            //}
 
             string metadataLanguage = null;
             string metadataCountryCode = null;
@@ -1029,12 +1001,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             var movieInfo = new MovieInfo
             {
-                Name = nameWithoutYear,
-                Year = yearInName,
+                Name = result.ExtractedName,
                 MetadataCountryCode = metadataCountryCode,
                 MetadataLanguage = metadataLanguage
             };
-
+            
             IEnumerable<RemoteSearchResult> searchResults = null;
             try
             {
@@ -1042,7 +1013,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     new RemoteSearchQuery<MovieInfo>
                     {
                         SearchInfo = movieInfo,
-                        //IncludeDisabledProviders = true
+                        IncludeDisabledProviders = true
 
                     }, targetFolder, cancellationToken);
             }
@@ -1055,7 +1026,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (searchResults != null)
             {
-                finalResult = searchResults.FirstOrDefault(m => RegexExtensions.NormalizeSearchStringComparison(m.Name) == RegexExtensions.NormalizeSearchStringComparison(movieInfo.Name));
+                var remoteSearchResults = searchResults.ToList();
+                Log.Info($"Movie Provider Results found: {remoteSearchResults.Count()} results for {result.ExtractedName}.");
+                Log.Info($"Compare Result {RegexExtensions.NormalizeString(result.ExtractedName)} and {RegexExtensions.NormalizeString(remoteSearchResults.ToList()[0].Name)}");
+                finalResult = remoteSearchResults.FirstOrDefault(m => RegexExtensions.NormalizeString(m.Name) == RegexExtensions.NormalizeString(result.ExtractedName));
             }
 
             if (finalResult == null) return null;
@@ -1063,13 +1037,18 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             // We are in the good position, we can create the item
             var organizationRequest = new MovieFileOrganizationRequest
             {
-                Name = finalResult.Name,
+                Name = RegexExtensions.NormalizeString(finalResult.Name) != RegexExtensions.NormalizeString(result.ExtractedName) ? result.ExtractedName : finalResult.Name, //<== This should keep the name in different languages
                 ProviderIds  = finalResult.ProviderIds,
                 Year = finalResult.ProductionYear,
                 TargetFolder = options.DefaultMovieLibraryPath,
                         
             };
-            
+
+            //Got the year we needed! Update the result in the DB.
+            result.ExtractedYear = finalResult.ProductionYear;
+            OrganizationService.SaveResult(result, cancellationToken);
+
+
             return CreateNewMovie(organizationRequest, targetFolder.Path, result, options, cancellationToken);
 
         }
@@ -1078,7 +1057,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             var existingItems = LibraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] {nameof(Movie)},
+                IncludeItemTypes = new[] { nameof(Movie) },
                 Recursive = true,
                 DtoOptions = new DtoOptions(true),
                 SearchTerm = result.ExtractedName,
@@ -1136,11 +1115,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             var movieItems = movieResult.ToList();
             
-            var movies = movieItems.Where(m => RegexExtensions.NormalizeSearchStringComparison(m.Name) == RegexExtensions.NormalizeSearchStringComparison(nameWithoutYear)).ToList();
+            var movies = movieItems.Where(m => RegexExtensions.NormalizeString(m.Name) == RegexExtensions.NormalizeString(nameWithoutYear)).ToList();
 
             if (!movies.Any())
             {
-                movies = movieItems.Where(m => RegexExtensions.NormalizeSearchStringComparison(m.Name).ContainsIgnoreCase(RegexExtensions.NormalizeSearchStringComparison(nameWithoutYear))).ToList();
+                movies = movieItems.Where(m => RegexExtensions.NormalizeString(m.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(nameWithoutYear))).ToList();
             }
 
             if (!movies.Any())
@@ -1161,7 +1140,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
         private string GetMovieFileName(string sourcePath, FileOrganizationResult result, AutoOrganizeOptions options)
         {
-            var movieName       = FileSystem.GetValidFilename(result.ExtractedName).Trim();
+            var textInfo        = new CultureInfo("en-US", false).TextInfo;
+            var movieName       = textInfo.ToTitleCase(FileSystem.GetValidFilename(result.ExtractedName).Trim()); //Make sure the name is:  "Title Case"
             var productionYear  = result.ExtractedYear.ToString() ?? "";
             var edition         = result.ExtractedEdition ?? "";
             var resolution      = result.ExtractedResolution.Name;
@@ -1191,10 +1171,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
         private string GetMovieFolderName(FileOrganizationResult result, AutoOrganizeOptions options)
         {
-            var movieName = FileSystem.GetValidFilename(result.ExtractedName).Trim();
-            var productionYear = result.ExtractedYear.ToString() ?? "";
-            
-            var pattern = options.MovieFolderPattern;
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+
+            var movieName       = textInfo.ToTitleCase(FileSystem.GetValidFilename(result.ExtractedName).Trim()); //Make sure the name is:  "Title Case"
+            var productionYear  = result.ExtractedYear.ToString() ?? "";
+            var pattern         = options.MovieFolderPattern;
 
             if (string.IsNullOrWhiteSpace(pattern))
             {
@@ -1206,7 +1187,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 .Replace("%m.n", movieName.Replace(" ", "."))
                 .Replace("%m_n", movieName.Replace(" ", "_"))
                 .Replace("%my", productionYear)
-                .Replace("%res", GetStreamResolutionFromFileName(Path.GetFileName(result.OriginalPath)))
+                .Replace("%res", result.ExtractedResolution.Name)
                 .Replace("%e", RegexExtensions.GetReleaseEditionFromFileName(Path.GetFileName(result.OriginalPath)))
                 .Replace("%fn", Path.GetFileNameWithoutExtension(result.OriginalPath));
 
@@ -1214,58 +1195,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return FileSystem.GetValidFilename(patternResult).Trim();
         }
 
-        private bool IsSameMovie(string sourcePath, string newPath)
-        {
-            try
-            {
-                var sourceFileInfo = FileSystem.GetFileInfo(sourcePath);
-                var destinationFileInfo = FileSystem.GetFileInfo(newPath);
-                   
-                if (sourceFileInfo.Length == destinationFileInfo.Length && sourceFileInfo.Extension == destinationFileInfo.Extension)
-                {
-                    return true;
-                }
-            }
-            catch (FileNotFoundException)
-            {
-                return false;
-            }
-            catch (IOException)
-            {
-                return false;
-            }
-
-            return false;
-        }
-
-        private int? CleanMovieYear(string fileName)
-        {
-            var regexDate = new Regex(@"(19|20|21)\d{2}");
-            var yearMatch = regexDate.Match(fileName);
-            
-            if (!yearMatch.Success) return null;
-            
-            if(int.TryParse(yearMatch.Value, out var year))
-            {
-                return year;
-            }
-            return null;
-        }
-        private string CleanMovieFileName(string fileName)
-        {
-            var name = fileName;
-            var regexName = new Regex(@"(?<=[a-zA-Z0-9]{0,5}-(\b(?![Mm]an)\b))(?:.*)");
-            var namingMatch1 = regexName.Match(fileName);
-
-            if (namingMatch1.Success)
-            {
-                name = namingMatch1.Value;
-            }
-
-
-
-            return name;
-        }
         
 
         private static bool IsCopying(string source, IFileSystem fileSystem)
@@ -1291,45 +1220,47 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return false;
         }
 
-        //private string GetReleaseEditionFromFileName(string sourceFileName)
+        
+
+        //private static string GetStreamResolutionFromFileName(string sourceFileName)
         //{
         //    var namingOptions = new NamingOptions();
-        //    var pattern = $"{string.Join("|", namingOptions.VideoReleaseEditionFlags)}";
-        //    var input = Regex.Replace(sourceFileName, @"(@|&|'|:|\(|\)|<|>|#|\.|,)", " ", RegexOptions.IgnoreCase).ToLowerInvariant();
-        //    //var input = sourceFileName.Replace(".", " ").Replace("_", " ");
-        //    var results = Regex.Matches(input, pattern, RegexOptions.IgnoreCase);
-        //    return results.Count > 0 ? results[0].Value : "Theatrical";
+            
+        //    foreach(var resolution in namingOptions.VideoResolutionFlags)
+        //    {
+        //        if(sourceFileName.Contains(resolution))
+        //        {
+        //            return resolution;
+
+        //        }
+        //    }
+        //    return string.Empty;
+            
         //}
 
-        private static string GetStreamResolutionFromFileName(string sourceFileName)
-        {
-            var namingOptions = new NamingOptions();
+        //private string GetResolutionFromMetadata(Model.Stream stream)
+        //{
+        //    var width = stream.width;
+        //    var height = stream.height;
             
-            foreach(var resolution in namingOptions.VideoResolutionFlags)
-            {
-                if(sourceFileName.Contains(resolution))
-                {
-                    return resolution;
+        //    var diagonal = Math.Round(Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height,2)), 2);
 
-                }
-            }
-            return string.Empty;
-            
-        }
+        //    if (stream.profile == "High")
+        //    {
+        //        if (diagonal <= 800) return "480p"; //4:3
+        //        if (diagonal > 800 && diagonal <= 1468.6) return "720p"; //16:9
+        //        if (diagonal > 1468.6 && diagonal <= 2315.32) return "1080p"; //16:9 or 1:1.77
+        //        if (diagonal > 2315.32 && diagonal <= 2937.21) return "1440p"; //16:9
+        //        if (diagonal > 2937.21 && diagonal <= 4405.81) return "2160p"; //1:1.9 - 4K
+        //        if (diagonal > 4405.81 && diagonal <= 8811.63) return "4320p"; //16∶9 - 8K
+        //    }
+        //    else
+        //    {
+        //        return "SD";
+        //    }
 
-        private string GetResolutionFromMetadata(int width, int height)
-        {
-            var diagonal = Math.Round(Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height,2)), 2);
-
-            if (diagonal <= 800) return "480p"; //4:3
-            if (diagonal > 800 && diagonal <= 1468.6) return "720p"; //16:9
-            if (diagonal > 1468.6 && diagonal <=  2315.32) return "1080p"; //16:9 or 1:1.77
-            if (diagonal >  2315.32 && diagonal <= 2937.21) return "1440p"; //16:9
-            if (diagonal >  2937.21 && diagonal <= 4405.81) return "2160p"; //1:1.9 - 4K
-            if (diagonal > 4405.81 && diagonal <= 8811.63) return "4320p"; //16∶9 - 8K
-
-            return "Unknown";
-        }
+        //    return "Unknown";
+        //}
 
         //private string NormalizeString(string value)
         //{

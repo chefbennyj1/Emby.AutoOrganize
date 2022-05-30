@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Data;
+using Emby.AutoOrganize.MediaInfo;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Naming;
 using Emby.AutoOrganize.Naming.Common;
@@ -125,85 +128,16 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             
             if (!result.AudioStreamCodecs.Any() || !result.VideoStreamCodecs.Any() || !result.Subtitles.Any())
             {
-                FileInternalMetadata metadata = null;
-                try
-                {
-                    metadata = await Ffprobe.Ffprobe.Instance.GetFileInternalMetadata(path, Log);
-                } 
-                catch (Exception)
-                {
-                    result.Status = FileSortingStatus.InUse;
-                    result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                    Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
-                
-                    OrganizationService.SaveResult(result, cancellationToken);
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
-                    return result;
-                }
-                
-                
-                if (metadata != null)
-                {
-                    foreach (var stream in metadata.streams)
-                    {
-                        switch (stream.codec_type)
-                        {
-                            case "audio":
-                                if (!string.IsNullOrEmpty(stream.codec_name) && !result.AudioStreamCodecs.Any())
-                                {
-                                    result.AudioStreamCodecs.Add(stream.codec_name);
-                                }
 
-                                break;
-                            case "video":
-                            {
-                                if (!string.IsNullOrEmpty(stream.codec_long_name) && !result.VideoStreamCodecs.Any())
-                                {
-                                    var codecs = stream.codec_long_name.Split('/');
-                                    foreach (var codec in codecs.Take(3))
-                                    {
-                                        if (codec.Trim().Split(' ').Length > 1)
-                                        {
-                                            result.VideoStreamCodecs.Add(codec.Trim().Split(' ')[0]);
-                                            continue;
-                                        }
+                var mediaInfoProvider = new MediaInfoProvider();
+                var mediaInfo = await mediaInfoProvider.GetMediaInfo(result.OriginalPath);
 
-                                        result.VideoStreamCodecs.Add(codec.Trim());
-                                    }
-                                }
+                result.AudioStreamCodecs = mediaInfo.AudioStreamCodecs;
+                result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
+                result.Subtitles = mediaInfo.Subtitles;
+                result.ExtractedResolution = mediaInfo.Resolution;
 
-                                if (string.IsNullOrEmpty(result.ExtractedResolution.Name))
-                                {
-                                    if (stream.width != 0 && stream.height != 0)
-                                    {
-                                        result.ExtractedResolution = new Resolution()
-                                        {
-                                            Name = GetResolutionFromMetadata(stream.width, stream.height),
-                                            Width = stream.width,
-                                            Height = stream.height
-                                        };
 
-                                    }
-                                }
-                                break;
-                            }
-                            case "subtitle":
-                                
-                                if (stream.tags != null && !result.Subtitles.Any())
-                                {
-                                    var language = stream.tags.title ?? stream.tags.language;
-                                    if (!string.IsNullOrEmpty(language))
-                                    {
-                                        result.Subtitles.Add(language);
-                                    }
-                                }
-
-                                break;
-                        }
-                    }
-                }
-
-                Log.Info($"Metadata extraction successful for {path}");
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 
@@ -216,8 +150,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return result;
             }
 
-            //If a target folder has been calculated and the user has multiple locations for the series (Status: Waiting), just return the result. The user will have to organize with corrections.
-            if (!string.IsNullOrEmpty(result.TargetPath) && result.Status == FileSortingStatus.Waiting)
+            //If a target folder has been calculated and the user has multiple locations for the series (Status: UserInputRequired), just return the result. The user will have to organize with corrections.
+            if (!string.IsNullOrEmpty(result.TargetPath) && result.Status == FileSortingStatus.UserInputRequired)
             {
                 return result;
             }
@@ -258,7 +192,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (!string.IsNullOrEmpty(seriesName))
                 {
 
-                    seriesName = RegexExtensions.NormalizeMediaItemName(seriesName);
+                    seriesName = Regex.Replace(seriesName, @"[^A-Za-z0-9\s+()]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                    seriesName = new CultureInfo("en-US", false).TextInfo.ToTitleCase(seriesName.Trim());
 
                     var seasonNumber = episodeInfo.SeasonNumber;
 
@@ -294,6 +229,23 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                         }
 
+                        //If finding a matching series in the library  was unsuccessful
+                        //If the extracted series name has 3 or less characters, the user should create a smart list match for the item.
+                        //ex. SNL = Saturday Night Live.
+                        //We should not attempt to sort this item.
+                        //We will mark the item as new media.
+                        if (series == null && seriesName.Length <= 3)
+                        {
+                            result.Status = FileSortingStatus.UserInputRequired;
+                            var msg = $"A Smart Match should be created for {seriesName}. Please Organize with corrections to create the Smart Match entry.";
+                            result.StatusMessage = msg;
+                            Log.Warn(msg);
+                            OrganizationService.SaveResult(result, cancellationToken);
+                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                            return result;
+                        }
+
+
                         if (series == null)
                         {
                             try
@@ -317,7 +269,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             return result;
                         }
 
-                        if (result.Status == FileSortingStatus.Waiting) //Series spans multiple folders. 
+                        if (result.Status == FileSortingStatus.UserInputRequired) //Series spans multiple folders. 
                         {
                             //We've set the message already when we tried to find Matching series, and found multiple matches.
                             //Just return the result
@@ -367,7 +319,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             
             catch (Exception ex)
             {
-                if (result.Status != FileSortingStatus.Waiting) //Waiting when the series spans multiple locations, and we need user input.
+                if (result.Status != FileSortingStatus.UserInputRequired) //Waiting when the series spans multiple locations, and we need user input.
                 {
                     //otherwise fail.
                     result.Status = FileSortingStatus.Failure;
@@ -408,13 +360,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         public async void OrganizeWithCorrection(EpisodeFileOrganizationRequest request, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             var result = OrganizationService.GetResult(request.ResultId);
+            
 
             //We have to check if the user select the same destination we already calculated for them... that could happen apparently.
-            //if(result.TargetPath.Substring(0, request.TargetFolder.Length) == request.TargetFolder)
+            //if (result.TargetPath.Substring(0, request.TargetFolder.Length) == request.TargetFolder)
             //{
             //    result.ExtractedName = request.Name;
             //    result.ExtractedYear = request.Year;
-                
+
             //    //PerformFileSorting(options, result, cancellationToken);
             //    //if (!request.RememberCorrection) return;
             //    //Log.Info($"Adding {result.ExtractedName} to Smart List");
@@ -425,14 +378,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
 
             //Update the result with possible missing information from the request.
-            if (!result.ExtractedEpisodeNumber.HasValue && request.EpisodeNumber.HasValue)
+            if (!result.ExtractedEpisodeNumber.HasValue || result.ExtractedEpisodeNumber != request.EpisodeNumber)
             {
-                result.ExtractedEpisodeNumber = request.EpisodeNumber.Value;
+                if (request.EpisodeNumber.HasValue) result.ExtractedEpisodeNumber = request.EpisodeNumber.Value;
             }
 
-            if (!result.ExtractedSeasonNumber.HasValue && request.SeasonNumber.HasValue)
+            if (!result.ExtractedSeasonNumber.HasValue || result.ExtractedSeasonNumber != request.SeasonNumber)
             {
-                result.ExtractedSeasonNumber = request.SeasonNumber.Value;
+                if (request.SeasonNumber.HasValue) result.ExtractedSeasonNumber = request.SeasonNumber.Value;
             }
 
             
@@ -544,25 +497,16 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 if (!request.RememberCorrection) return;
 
-                //var seriesQuery = LibraryManager.GetItemsResult(new InternalItemsQuery()
-                //{
-                //    IncludeItemTypes = new []{ nameof(Series) },
-                //    Recursive = true
-                //});
-
-                //var series = seriesQuery.Items.Cast<Series>().FirstOrDefault(s => RegexExtensions.NormalizeString(s.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(request.Name)));
-
                 if (series != null)
                 {
                     Log.Info($"Adding {result.ExtractedName} to Smart List");
-                    SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(result.OriginalPath), series.Name, result, cancellationToken);
+                    SaveSmartMatchString(LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(result.OriginalPath).AsSpan()).Name, series.Name, cancellationToken);
                 }
                 else
                 {
                     Log.Info($"Series does not yet exist in the library. Can not add {result.ExtractedName} to Smart List. Try again later.");
                     
                 }
-
 
                 return;
             }
@@ -571,7 +515,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             try
             {
                 Series series = null;
-
+                //User choose an existing series in the UI.
                 if (!string.IsNullOrEmpty(request.SeriesId))
                 {
                     series = (Series)LibraryManager.GetItemById(request.SeriesId);
@@ -611,41 +555,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     series = CreateNewSeries(request, targetFolder, null, options);
                 }
                 
-                
-                //if (request.ProviderIds.Count > 0)
-                //{
-                //    //This is a new series to be created using the default library path from the settings
-                //    if (!string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
-                //    {
-                //        targetFolder = LibraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
-                //    }
-                //    else
-                //    {
-                //        result.Status = FileSortingStatus.Failure;
-                //        var msg = "Auto Organize settings: default library not set for TV Shows.";
-                //        result.StatusMessage = msg;
-                //        Log.Warn(msg);
-                //        OrganizationService.SaveResult(result, cancellationToken);
-                //        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                //        return;
-                //    }
-
-                //    series =  GetMatchingSeries(request.Name, request.Year, null, cancellationToken) ??
-                //              CreateNewSeries(request, targetFolder, null, options, cancellationToken);
-                //}
-
-                //if (series == null)
-                //{
-                //    // Existing Series
-                //    series = (Series)LibraryManager.GetItemById(request.SeriesId);
-                //}
-
-                //if (request.RememberCorrection)
-                //{
-                //    Log.Info($"Adding {result.ExtractedName} to Smart List");
-                //    SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(result.OriginalPath), series, result, cancellationToken);
-
-                //}
+               
 
                 //This will always be true because the user has chosen the proper provider data from the fileorganizer. We'll force the sort.
                 const bool overwriteFile = true; 
@@ -657,7 +567,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
             catch (Exception ex)
             {
-                if (result.Status == FileSortingStatus.Waiting)
+                if (result.Status == FileSortingStatus.UserInputRequired)
                 {
                     return;
                 }
@@ -774,7 +684,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (rememberCorrection)
                     {
-                        SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
+                        SaveSmartMatchString(LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(result.OriginalPath).AsSpan()).Name, series.Name, cancellationToken);
                     }
                     return;
                 }
@@ -811,7 +721,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (rememberCorrection)
                     {
-                        SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
+                        SaveSmartMatchString(LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(result.OriginalPath).AsSpan()).Name, series.Name, cancellationToken);
                     }
                     return;
                 }
@@ -827,7 +737,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                         if (rememberCorrection)
                         {
-                            SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
+                            SaveSmartMatchString(LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(result.OriginalPath).AsSpan()).Name, series.Name, cancellationToken);
                         }
                         return;
                     }
@@ -863,7 +773,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (rememberCorrection)
                     {
-                        SaveSmartMatchString(FileSystem.GetFileNameWithoutExtension(sourcePath), series.Name, result, cancellationToken);
+                        SaveSmartMatchString(LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(result.OriginalPath).AsSpan()).Name, series.Name, cancellationToken);
                     }
 
                     return;
@@ -932,7 +842,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             }
         }
 
-        private void SaveSmartMatchString(string matchString, string seriesName, FileOrganizationResult result, CancellationToken cancellationToken)
+        private void SaveSmartMatchString(string matchString, string seriesName, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(matchString) || matchString.Length < 3)
             {
@@ -953,6 +863,12 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Id = seriesName.GetMD5().ToString("N")
                 };
             }
+
+            //The LibraryManager.ParseName() method could parse season and episode data with the Name
+            //Remove Season and Episode info from matchString. 
+            matchString = Regex.Replace(matchString,
+                @"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:[Ss](\d{1,2}x[Ee]\d{1,2}))|(?:([Ss](\d{1,2})))",
+                string.Empty);
 
             if (!info.MatchStrings.Contains(matchString, StringComparer.OrdinalIgnoreCase))
             {
@@ -1344,17 +1260,18 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 IncludeItemTypes = new[] { nameof(Series) },
                 Recursive = true,
                 DtoOptions = new DtoOptions(true),
+                IsVirtualItem = false,
                 Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
 
             });
 
             if (series.Any())
             {
-                resultSeries = series.Where(s => RegexExtensions.NormalizeSearchStringComparison(s.Name) == (RegexExtensions.NormalizeSearchStringComparison(seriesName))).ToList();
+                resultSeries = series.Where(s => RegexExtensions.NormalizeString(s.Name) == (RegexExtensions.NormalizeString(seriesName))).ToList();
                 
                 if (!resultSeries.Any())
                 {
-                    resultSeries = series.Where(s => RegexExtensions.NormalizeSearchStringComparison(s.Name).ContainsIgnoreCase(RegexExtensions.NormalizeSearchStringComparison(seriesName))).ToList();
+                    resultSeries = series.Where(s => RegexExtensions.NormalizeString(s.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName))).ToList();
                 }
             }
             
@@ -1393,6 +1310,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     IncludeItemTypes = new[] { nameof(Series) },
                     Recursive = true,
                     Name = info.Name,
+                    IsVirtualItem = false,
                     DtoOptions = new DtoOptions(true)
                 });
 
@@ -1402,7 +1320,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
             }
 
-            if (resultSeries.Count == 1)
+            var distinctPaths = resultSeries.Select(s => new { s.Path }).Distinct().ToList(); //Apparently we could have a result twice with same paths... (virtual item?? - or maybe corrupted DB??)
+
+            if (distinctPaths.Count == 1)
             {
                 result.ExtractedName = resultSeries[0].Name;
                 OrganizationService.SaveResult(result, cancellationToken);
@@ -1410,11 +1330,16 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return resultSeries.Cast<Series>().FirstOrDefault();
             }
 
-            if (resultSeries.Count > 1)
+            if (distinctPaths.Count > 1)
             {
+
                 //Mark the result as having more then one location in the library. Needs user input, set it to "Waiting"
-                result.Status = FileSortingStatus.Waiting;
-                const string msg = "Item has more then one possible destination folders. Waiting to sort file...";
+                result.Status = FileSortingStatus.UserInputRequired;
+                var msg = "Item has more then one possible destination folders. Waiting to sort file...\n";
+                foreach (var entry in resultSeries)
+                {
+                    msg += $"Location: {entry.Path}\n";
+                }
                 result.StatusMessage = msg;
                 Log.Warn(msg);
                 OrganizationService.SaveResult(result, cancellationToken);
@@ -1519,7 +1444,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 Name = seriesName,
                 MetadataCountryCode = metadataCountryCode ?? "",
-                MetadataLanguage = metadataLanguage ?? ""
+                MetadataLanguage = metadataLanguage ?? "",
+                
             };
 
             if (seriesYear.HasValue) seriesInfo.Year = seriesYear.Value;
@@ -1545,7 +1471,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (searchResults != null)
             {
-                finalResult = searchResults.FirstOrDefault(result => RegexExtensions.NormalizeSearchStringComparison(result.Name).Contains(RegexExtensions.NormalizeSearchStringComparison(seriesName)));
+                var remoteSearchResults = searchResults.ToList();
+                Log.Info($"Provider results for {seriesName} has {remoteSearchResults.Count()} results");
+                finalResult = remoteSearchResults.FirstOrDefault(result => RegexExtensions.NormalizeString(result.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName)));
             }
             
             if (finalResult != null)
@@ -1734,19 +1662,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         }
 
         
-        private string GetResolutionFromMetadata(int width, int height)
-        {
-            var diagonal = Math.Round(Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height,2)), 2);
-
-            if (diagonal <= 800) return "480p"; //4:3
-            if (diagonal > 800 && diagonal <= 1468.6) return "720p"; //16:9
-            if (diagonal > 1468.6 && diagonal <=  2315.32) return "1080p"; //16:9 or 1:1.77
-            if (diagonal >  2315.32 && diagonal <= 2937.21) return "1440p"; //16:9
-            if (diagonal >  2937.21 && diagonal <= 4405.81) return "2160p"; //1:1.9 - 4K
-            if (diagonal > 4405.81 && diagonal <= 8811.63) return "4320p"; //16∶9 - 8K
-
-            return "Unknown";
-        }
+        
         //private string NormalizeString(string value)
         //{
         //    return Regex.Replace(value, @"(\s+|@|&|'|:|\(|\)|<|>|#|-|\.|\band\b|,)", string.Empty, RegexOptions.IgnoreCase).ToLowerInvariant();
