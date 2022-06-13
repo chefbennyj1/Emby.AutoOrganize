@@ -1,4 +1,4 @@
-﻿define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize) {
+define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -487,8 +487,10 @@
         {
             if (view.querySelector('#chkEnableTelevisionOptions').checked) {
                 view.querySelector('.televisionOptions').classList.remove('hide');
+                view.querySelector('#selectSeriesFolder').required = true;
             } else {
                 view.querySelector('.televisionOptions').classList.add('hide');
+                view.querySelector('#selectSeriesFolder').required = false;
             }
         }
 
@@ -496,8 +498,10 @@
         {
             if (view.querySelector('#chkEnableMovieOptions').checked) {
                 view.querySelector('.movieOptions').classList.remove('hide');
+                view.querySelector('#selectMovieFolder').required = true;
             } else {
                 view.querySelector('.movieOptions').classList.add('hide');
+                view.querySelector('#selectMovieFolder').required = false;
             }
         }
 

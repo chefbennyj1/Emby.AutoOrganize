@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -218,7 +218,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 {
                     if (!options.EnableSubtitleOrganization) continue;
                     
-                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) || string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) && string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Libraries have been chosen in settings. Stopping Organization...");
                         progress.Report(100.0);
@@ -227,11 +227,11 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     var subtitleOrganizer = new SubtitleOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
                     try
                     {
+                        //TODO: need to check for different languages
+                        // TODO: need to account for extra types SDH (HEARING, FORCED etc)
                         if (_libraryManager.IsSubtitleFile(file.FullName.AsSpan()))
                         {
                             var result = await subtitleOrganizer.OrganizeFile(true, file.FullName, options, cancellationToken);
-
-
                         }
                     }
                     catch (OperationCanceledException)
