@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model.Organization;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -93,7 +94,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             var processedFolders = new HashSet<string>();
 
             
-            if (!eligibleFiles.Any() && processedFolders.Any())
+            if (!eligibleFiles.Any())
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 progress.Report(99.0);
@@ -113,9 +114,11 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     }
 
                 }
-                catch{ }
+                catch (Exception ex)
+                {
+                    _logger.Warn("Unable to clean watched folders: " + ex.Message);
+                }
 
-                progress.Report(100.0);
                 return;
             }
 
@@ -134,8 +137,6 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
            
             foreach (var file in eligibleFiles)
             {
-                
-
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var fileOrganizerType = _organizationService.GetFileOrganizerType(file.Name);
@@ -147,7 +148,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
                     {
                         _logger.Warn("No Default TV Show Library has been chosen in settings. Stopping Organization...");
-                        progress.Report(100.0);
+                       
                         return;
                     }
                     var organizer = new EpisodeOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
@@ -162,7 +163,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     }
                     catch (OperationCanceledException)
                     {
-                        progress.Report(100.0);
+                        
                         return;
                     }
                     catch (Exception)
@@ -179,7 +180,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     if (string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Movie Library has been chosen in settings. Stopping Organization...");
-                        progress.Report(100.0);
+                        
                         return;
                     }
 
@@ -198,7 +199,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     }
                     catch (OperationCanceledException)
                     {
-                        progress.Report(100.0);
+                        
                         return;
                     }
                     catch (Exception ex)
@@ -221,7 +222,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) || string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Libraries have been chosen in settings. Stopping Organization...");
-                        progress.Report(100.0);
+                        
                         return;
                     }
                     var subtitleOrganizer = new SubtitleOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
@@ -236,7 +237,6 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     }
                     catch (OperationCanceledException)
                     {
-                        progress.Report(100.0);
                         return;
                     }
                     catch (Exception ex)
@@ -249,7 +249,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                
             }
 
-            progress.Report(100.0);
+           
 
         }
 

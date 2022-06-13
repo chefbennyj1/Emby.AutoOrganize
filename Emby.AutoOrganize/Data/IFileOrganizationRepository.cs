@@ -1,7 +1,9 @@
 ﻿using MediaBrowser.Model.Querying;
 using System.Threading;
-using System.Threading.Tasks;
 using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model.Corrections;
+using Emby.AutoOrganize.Model.SmartLists;
+using Emby.AutoOrganize.Model.SmartMatch;
 
 namespace Emby.AutoOrganize.Data
 {
@@ -57,5 +59,15 @@ namespace Emby.AutoOrganize.Data
         void DeleteAllSmartMatch();
 
         QueryResult<SmartMatchResult> GetSmartMatch(FileOrganizationResultQuery query);
+
+        void SaveResult(FileCorrection result, CancellationToken cancellationToken);
+
+        void DeleteFilePathCorrection(string id);
+
+        void DeleteAllFilePathCorrections();
+
+        FileCorrection GetFilePathCorrection(string id);
+
+        QueryResult<FileCorrection> GetFilePathCorrections(FileCorrectionResultQuery resultQuery);
     }
 }

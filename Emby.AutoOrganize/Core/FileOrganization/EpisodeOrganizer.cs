@@ -7,10 +7,14 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Data;
-using Emby.AutoOrganize.MediaInfo;
+using Emby.AutoOrganize.FileMetadata;
 using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model.Organization;
+using Emby.AutoOrganize.Model.SmartLists;
+using Emby.AutoOrganize.Model.SmartMatch;
 using Emby.AutoOrganize.Naming;
 using Emby.AutoOrganize.Naming.Common;
+using Emby.AutoOrganize.Naming.TV;
 using Emby.Naming.TV;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Common.Extensions;
@@ -129,8 +133,20 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             if (!result.AudioStreamCodecs.Any() || !result.VideoStreamCodecs.Any() || !result.Subtitles.Any())
             {
 
-                var mediaInfoProvider = new MediaInfoProvider();
-                var mediaInfo = await mediaInfoProvider.GetMediaInfo(result.OriginalPath);
+                var mediaInfo = new MediaInfo();
+                try
+                {
+                    mediaInfo = await mediaInfo.GetMediaInfo(result.OriginalPath);
+                }
+                catch
+                {
+                    result.Status = FileSortingStatus.InUse;
+                    result.StatusMessage = "Path is locked by other processes. Please try again later.";
+                    Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+                    return result; 
+                }
 
                 result.AudioStreamCodecs = mediaInfo.AudioStreamCodecs;
                 result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
@@ -192,7 +208,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (!string.IsNullOrEmpty(seriesName))
                 {
 
-                    seriesName = Regex.Replace(seriesName, @"[^A-Za-z0-9\s+()]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                    seriesName = Regex.Replace(seriesName, @"[^A-Za-z0-9\s+()]|[0-9]{3,4}[Pp]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
                     seriesName = new CultureInfo("en-US", false).TextInfo.ToTitleCase(seriesName.Trim());
 
                     var seasonNumber = episodeInfo.SeasonNumber;
@@ -279,7 +295,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
-
                         
                         Log.Info(requestToMoveFile ?  "User request to overwrite file" : "No overwrite file.");
                         OrganizeEpisode(requestToMoveFile, series, seasonNumber, episodeNumber, endingEpisodeNumber, premiereDate, options, false, result, cancellationToken);
@@ -377,6 +392,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
 
 
+
             //Update the result with possible missing information from the request.
             if (!result.ExtractedEpisodeNumber.HasValue || result.ExtractedEpisodeNumber != request.EpisodeNumber)
             {
@@ -388,15 +404,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (request.SeasonNumber.HasValue) result.ExtractedSeasonNumber = request.SeasonNumber.Value;
             }
 
-            
             //Update the name it should be correct at this point
             result.ExtractedName = request.Name;
-
-
             
-           
-            if (request.CreateNewDestination || 
-                string.IsNullOrEmpty(result.TargetPath) || !string.IsNullOrEmpty(result.TargetPath) &&  
+            if (request.CreateNewDestination || string.IsNullOrEmpty(result.TargetPath) || !string.IsNullOrEmpty(result.TargetPath) &&  
                 !string.IsNullOrEmpty(request.TargetFolder) && result.TargetPath.Substring(0, request.TargetFolder.Length) != request.TargetFolder)
             {
                 Log.Info("Sorting request to create a new series Destination.");
@@ -492,21 +503,22 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 Log.Info($"{result.Type} -  {result.ExtractedName} Target path: {result.TargetPath}");
                 
+                
+                if (request.RememberCorrection)
+                {
+                    if (series != null)
+                    {
+                        Log.Info($"Adding {result.ExtractedName} to Smart List");
+                        SaveSmartMatchString(LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(result.OriginalPath).AsSpan()).Name, series.Name, cancellationToken);
+                    }
+                    else
+                    {
+                        Log.Info($"Can not add {result.ExtractedName} to Smart List. Try again later.");
+                    
+                    }
+                }
 
                 PerformFileSorting(options, result, cancellationToken);
-
-                if (!request.RememberCorrection) return;
-
-                if (series != null)
-                {
-                    Log.Info($"Adding {result.ExtractedName} to Smart List");
-                    SaveSmartMatchString(LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(result.OriginalPath).AsSpan()).Name, series.Name, cancellationToken);
-                }
-                else
-                {
-                    Log.Info($"Series does not yet exist in the library. Can not add {result.ExtractedName} to Smart List. Try again later.");
-                    
-                }
 
                 return;
             }
@@ -526,7 +538,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     
                     try
                     {
-                        series = GetMatchingSeries(result.ExtractedName, result.ExtractedYear, result, cancellationToken);
+                        series = GetMatchingSeries(request.Name, request.Year, result, cancellationToken);
                     }
                     catch (Exception)
                     {
@@ -558,10 +570,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                
 
                 //This will always be true because the user has chosen the proper provider data from the fileorganizer. We'll force the sort.
-                const bool overwriteFile = true; 
+                //const bool overwriteFile = true; 
 
-                OrganizeEpisode(overwriteFile, series, request.SeasonNumber,
-                    request.EpisodeNumber, request.EndingEpisodeNumber, null, options, request.RememberCorrection, result, cancellationToken);
+                OrganizeEpisode(true, series, request.SeasonNumber, request.EpisodeNumber, request.EndingEpisodeNumber, null, options, request.RememberCorrection, result, cancellationToken);
 
                 OrganizationService.SaveResult(result, CancellationToken.None);
             }
@@ -629,6 +640,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return;
             }
 
+
             result.TargetPath = episode.Path;
             result.ExtractedEpisodeName = episode.Name;
             //OrganizationService.SaveResult(result, cancellationToken);
@@ -646,9 +658,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 OrganizationService.SaveResult(result, cancellationToken);
             }
-
-
-
 
             try
             {
@@ -867,8 +876,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             //The LibraryManager.ParseName() method could parse season and episode data with the Name
             //Remove Season and Episode info from matchString. 
             matchString = Regex.Replace(matchString,
-                @"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:[Ss](\d{1,2}x[Ee]\d{1,2}))|(?:([Ss](\d{1,2})))",
-                string.Empty);
+                @"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:[Ss](\d{1,2}x[Ee]\d{1,2}))|(?:([Ss](\d{1,2})))", string.Empty);
 
             if (!info.MatchStrings.Contains(matchString, StringComparer.OrdinalIgnoreCase))
             {
@@ -1262,17 +1270,16 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 DtoOptions = new DtoOptions(true),
                 IsVirtualItem = false,
                 Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
-
             });
 
             if (series.Any())
             {
-                resultSeries = series.Where(s => RegexExtensions.NormalizeString(s.Name) == (RegexExtensions.NormalizeString(seriesName))).ToList();
+                resultSeries = series.Where(s => string.Equals(RegexExtensions.NormalizeString(s.Name), RegexExtensions.NormalizeString(seriesName), StringComparison.InvariantCultureIgnoreCase)).ToList();
                 
-                if (!resultSeries.Any())
-                {
-                    resultSeries = series.Where(s => RegexExtensions.NormalizeString(s.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName))).ToList();
-                }
+                //if (!resultSeries.Any())
+                //{
+                //    resultSeries = series.Where(s => RegexExtensions.NormalizeString(s.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName))).ToList();
+                //}
             }
             
             
@@ -1356,12 +1363,13 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private async Task<Episode> GetEpisodeRemoteProviderData(Series series, int? seasonNumber, int? episodeNumber, int? endingEpisodeNumber, DateTime? premiereDate, CancellationToken cancellationToken)
         {
             Log.Info("Searching providers for matching episode data...");
+            var libraryOptions = LibraryManager.GetLibraryOptions(series);
             var episodeInfo = new EpisodeInfo
             {
                 IndexNumber = episodeNumber,
                 IndexNumberEnd = endingEpisodeNumber,
-                MetadataCountryCode = series.GetPreferredMetadataCountryCode(),
-                MetadataLanguage = series.GetPreferredMetadataLanguage(),
+                MetadataCountryCode = libraryOptions.MetadataCountryCode,
+                MetadataLanguage = libraryOptions.PreferredMetadataLanguage,
                 ParentIndexNumber = seasonNumber,
                 SeriesProviderIds = series.ProviderIds ?? new ProviderIdDictionary(),
             };
@@ -1417,8 +1425,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         }
         private async Task<Series> GetSeriesRemoteProviderData(string seriesName, int? seriesYear, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
-            
-            
             string metadataLanguage = null;
             string metadataCountryCode = null;
             BaseItem targetRootFolder = null;
@@ -1473,7 +1479,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 var remoteSearchResults = searchResults.ToList();
                 Log.Info($"Provider results for {seriesName} has {remoteSearchResults.Count()} results");
-                finalResult = remoteSearchResults.FirstOrDefault(result => RegexExtensions.NormalizeString(result.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName)));
+                finalResult =
+                    remoteSearchResults
+                        .FirstOrDefault(); //.FirstOrDefault(result => RegexExtensions.NormalizeString(result.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName)));
             }
             
             if (finalResult != null)

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using Emby.AutoOrganize.Data;
-using Emby.AutoOrganize.MediaInfo;
+using Emby.AutoOrganize.FileMetadata;
+using Emby.AutoOrganize.Model.Organization;
 
 namespace Emby.AutoOrganize.Model
 {
@@ -73,6 +74,7 @@ namespace Emby.AutoOrganize.Model
         /// <value>The extracted ending episode number.</value>
         public int? ExtractedEndingEpisodeNumber { get; set; }
         
+        public string ExtractedEndingEpisodeName { get; set; }
         public string ExtractedEpisodeName { get; set; }
         /// <summary>
         /// Gets or sets the target path.

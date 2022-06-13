@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Core.FileOrganization;
 using Emby.AutoOrganize.Data;
@@ -23,6 +22,9 @@ namespace Emby.AutoOrganize
         public static PluginEntryPoint Instance;
 
         public IFileOrganizationService FileOrganizationService  { get; private set; }
+        public IFileCorrectionService FileCorrectionService      { get; private set; }
+
+
         private ISessionManager SessionManager                   { get; set; }
         private ITaskManager TaskManager                         { get; set; }
         private ILogger Logger                                   { get; set; }
@@ -74,7 +76,7 @@ namespace Emby.AutoOrganize
             TaskManager.TaskExecuting             += _taskManager_TaskExecuting;
             TaskManager.TaskCompleted             += _taskManager_TaskCompleted;
             
-            
+            FileCorrectionService = new InternalFileCorrectionService(LibraryManager, FileSystem, LibraryMonitor, ConfigurationManager, Logger, Repository);
             
             // Convert Config
             //ConfigurationManager.Convert(FileOrganizationService);

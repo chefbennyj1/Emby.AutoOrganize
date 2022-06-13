@@ -1,8 +1,16 @@
-﻿define(['loading', 'mainTabsManager', 'globalize', 'dialogHelper', 'formDialogStyle', 'listViewStyle', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'],
-    function (loading, mainTabsManager, globalize, dialogHelper, formDialogStyle) {
+﻿define([
+        'loading', 'mainTabsManager', 'globalize', 'dialogHelper', 'formDialogStyle', 'listViewStyle', 'emby-input',
+        'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'
+    ],
+    function(loading, mainTabsManager, globalize, dialogHelper, formDialogStyle) {
         'use strict';
 
-        ApiClient.getFileOrganizationResults = function (options) {
+        ApiClient.getFilePathCorrections = function() {
+            var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
+            return this.getJSON(url);
+        };
+
+        ApiClient.getFileOrganizationResults = function(options) {
 
             var url = this.getUrl("Library/FileOrganization", options || {});
 
@@ -10,12 +18,11 @@
         };
 
 
+        ApiClient.getSmartMatchInfos = function() { //function (options) {
 
-        ApiClient.getSmartMatchInfos = function (options) {
+            //options = options || {};
 
-            options = options || {};
-
-            var url = this.getUrl("Library/FileOrganizations/SmartMatches", options);
+            var url = this.getUrl("Library/FileOrganizations/SmartMatches"); //, options);
 
             return this.ajax({
                 type: "GET",
@@ -24,23 +31,19 @@
             });
         };
 
-        ApiClient.deleteSmartMatchEntries = function (entries) {
+        ApiClient.deleteSmartMatchEntries = function(entry) {
 
             var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
-
-            var postData = {
-                Entries: entries
-            };
 
             return this.ajax({
                 type: "POST",
                 url: url,
-                data: JSON.stringify(postData),
+                data: JSON.stringify(entry),
                 contentType: "application/json"
             });
         };
 
-        ApiClient.saveCustomSmartMatchEntry = function (options) {
+        ApiClient.saveCustomSmartMatchEntry = function(options) {
 
             var url = this.getUrl("Library/FileOrganizations/SmartMatches/Save");
 
@@ -79,131 +82,98 @@
             return elem;
         }
 
-        function reloadList(page) {
+        async function reloadList(page) {
 
             loading.show();
 
-            ApiClient.getSmartMatchInfos(query).then(function (result) {
+            const result = await ApiClient.getSmartMatchInfos();
 
-                if (result && result.Items.length) {
-                    currentResult = result;
+            if (result) {
 
-                    populateList(page, result);
+                currentResult = result;
 
-                    loading.hide();
-                } else {
-                    loading.hide();
-                }
-                },
-                function () {
+                populateList(page, result);
+            }
 
-                    loading.hide();
-                });
+            loading.hide();
         }
 
-        function getHtmlFromMatchStrings(info, i) {
+        function getHtmlFromMatchStrings(info) {
 
-            var matchStringIndex = 0;
+            //var matchStringIndex = 0;
+            var matchStringHtml = '';
+            for (let matchStringIndex = 0; matchStringIndex < info.MatchStrings.length; matchStringIndex++) {
 
-            return info.MatchStrings.map(function (m) {
-
-                var matchStringHtml = '';
-
-                matchStringHtml += '<div class="listItem" style="border-bottom: 1px solid var(--theme-icon-focus-background)">';
-
-                matchStringHtml += '<svg style="width:24px;height:24px" viewBox="0 0 24 24"> ';
-                matchStringHtml += '<path fill="var(--theme-accent-text-color-lightbg)" d="M12,6A6,6 0 0,1 18,12C18,14.22 16.79,16.16 15,17.2V19A1,1 0 0,1 14,20H10A1,1 0 0,1 9,19V17.2C7.21,16.16 6,14.22 6,12A6,6 0 0,1 12,6M14,21V22A1,1 0 0,1 13,23H11A1,1 0 0,1 10,22V21H14M20,11H23V13H20V11M1,11H4V13H1V11M13,1V4H11V1H13M4.92,3.5L7.05,5.64L5.63,7.05L3.5,4.93L4.92,3.5M16.95,5.63L19.07,3.5L20.5,4.93L18.37,7.05L16.95,5.63Z" />';
-                matchStringHtml += '</svg> ';
+                matchStringHtml +=
+                    '<div class="listItem" style="border-bottom: 1px solid var(--theme-icon-focus-background)">';
 
                 matchStringHtml += '<div class="listItemBody">';
 
                 matchStringHtml += "<div class='listItemBodyText secondary'>";
 
-                matchStringHtml += m;  
-                
+                matchStringHtml += info.MatchStrings[matchStringIndex];
+
                 matchStringHtml += "</div>";
 
                 matchStringHtml += '</div>';
 
-                matchStringHtml += '<button type="button" is="emby-button" class="btnDeleteMatchEntry emby-button" style="padding: 0;" data-index="' +
-                    i +
-                    '" data-matchindex="' +
-                    matchStringIndex +
-                    '" title="Delete"><i class="md-icon">delete</i></button>';
+                matchStringHtml +=
+                    '<button type="button" is="emby-button" class="btnDeleteMatchEntry emby-button" style="padding: 0;" id="' +
+                    info.Id + '" data-match-string="' + info.MatchStrings[matchStringIndex] + '" title="Delete"><i class="md-icon">delete</i></button>';
 
                 matchStringHtml += '</div>';
-                matchStringIndex++;
 
-                return matchStringHtml;
+            }
 
-            }).join('');
+            return matchStringHtml;
         }
 
         function populateList(page, result) {
 
-            var infos = result.Items;
-
-            if (infos) {
-                infos = infos.sort(function (a, b) {
-
-                    a = a.OrganizerType + " " + (a.Name);
-                    b = b.OrganizerType + " " + (b.Name);
-
-                    if (a === b) {
-                        return 0;
-                    }
-
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 1;
-                });
-            }
-
-            var i = 0;
-
-            var html = "";
-
-            if (infos.length) {
-
-                html += '<div class="" style="padding:4%">';
-            }
+            var smartMatch = result.Items;
 
             var matchInfos = page.querySelector('.divMatchInfos');
             var customMatchInfos = page.querySelector('.divCustomMatchInfos');
-            infos.forEach(info => {
-                
-                if (info.IsCustomUserDefinedEntry) {
 
-                    html += '<div is="emby-collapse" title="' + (info.TargetFolder) + ' ' + info.MatchStrings.join('|') +'">';
-                    html += '<div class="collapseContent">';
-                    html += getHtmlFromMatchStrings(info, i);
-                    html += '</div>';
-                    html += '</div>';
+            matchInfos.innerHTML = '';
+            customMatchInfos.innerHTML = '';
 
-                    customMatchInfos.innerHTML += html;
+            smartMatch.forEach(match => {
+
+                if (match.IsCustomUserDefinedEntry) {
+                    var customSmartListHtml = "";
+                    customSmartListHtml += '<div class="" style="padding:4%">';
+                    customSmartListHtml += '<div>' + (match.TargetFolder) + '</div>';
+                    customSmartListHtml += getHtmlFromMatchStrings(match);
+                    customSmartListHtml += '</div>';
+                    customSmartListHtml += "</div>";
+                    customMatchInfos.innerHTML += customSmartListHtml;
 
                 } else {
-                    html += '<div is="emby-collapse" title="' + (info.Name) + '">';
-                    html += '<div class="collapseContent">';
-                    html += getHtmlFromMatchStrings(info, i);
-                    html += '</div>';
-                    html += '</div>';
 
-                    matchInfos.innerHTML += html;
+                    var smartListHtml = "";
+                    smartListHtml += '<div class="" style="padding:4%">';
+                    smartListHtml += '<div is="emby-collapse" title="' + (match.Name) + '">';
+                    smartListHtml += '<div class="collapseContent">';
+                    smartListHtml += getHtmlFromMatchStrings(match);
+                    smartListHtml += '</div>';
+                    smartListHtml += '</div>';
+                    smartListHtml += '</div>';
+                    matchInfos.innerHTML += smartListHtml;
                 }
-
-                
-                i++;
 
             });
 
+            [...page.querySelectorAll('.btnDeleteMatchEntry')].forEach(btn => {
+                btn.addEventListener('click',
+                    async (e) => {
+                        var id = e.target.closest('button').id;
+                        var matchString = e.target.closest('button').dataset.matchString;
+                        await removeSmartMatchEntry(page, id, matchString);
 
-            html += "</div>";
-            
-           
-            
+                        await reloadList(page);
+                    });
+            });
         }
 
         async function openCustomSmartMatchDialog(view, id = "") {
@@ -313,8 +283,6 @@
 
             dlg.querySelector('#okButton').addEventListener('click',
                 async () => {
-                   
-                   
 
                     var targetFolder = targetFolderSelect.options[targetFolderSelect.selectedIndex].value;
                     var organizerType = organizerTypeSelect.value;
@@ -324,10 +292,11 @@
                         TargetFolder: targetFolder,
                         Matches: keyWords,
                         Type: organizerType,
-                        Id: id
                     }
 
                     await ApiClient.saveCustomSmartMatchEntry(options);
+
+                    reloadList(view);
 
                     dialogHelper.close(dlg);
                 });
@@ -338,8 +307,9 @@
         }
 
 
+        var addCorrectionsTab = false;
         function getTabs() {
-            return [
+            var tabs = [
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
                     name: globalize.translate("HeaderActivity")
@@ -348,53 +318,61 @@
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
                     name: globalize.translate("HeaderSettings")
                 },
-                //{
-                //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
-                //    name: 'Movie'
-                //},
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
                     name: 'Smart Matches'
-                }];
+                }
+            ];
+        
+            if (addCorrectionsTab) {
+                tabs.push({
+                    href: Dashboard.getConfigurationPageUrl('AutoOrganizeCorrections'),
+                    name: 'Corrections'
+                });
+            }
+            return tabs;
         }
 
-        function removeSmartMatchEntry(view, index, matchIndex) {
-            var info = currentResult.Items[index];
-            var entries = [
-                {
-                    Name: info.Id,
-                    Value: info.MatchStrings[matchIndex]
-                }];
+        async function removeSmartMatchEntry(view, id, matchString) {
+            
+            var entry = {
+                Id: id,
+                MatchString: matchString
+            };
 
-            ApiClient.deleteSmartMatchEntries(entries).then(function () {
+            try {
 
-                reloadList(view);
+                await ApiClient.deleteSmartMatchEntries(entry);
 
-            }, Dashboard.processErrorResponse);
+            } catch (err) {}
+
+            await reloadList(view);
+
         }
+
         return function (view, params) {
 
-            var self = this;
-            
             
             var smartMatches = view.querySelector('.divMatchInfos');
             var customSmartMatches = view.querySelector('.divCustomMatchInfos');
             
-            smartMatches.addEventListener('click', function (e) {
+            smartMatches.addEventListener('click', async function (e) {
                 var button = parentWithClass(e.target, 'btnDeleteMatchEntry');
                 if (button) {
                     var index = parseInt(button.getAttribute('data-index'));
                     var matchIndex = parseInt(button.getAttribute('data-matchindex'));
-                    removeSmartMatchEntry(view, index, matchIndex);
+                    await removeSmartMatchEntry(view, index, matchIndex);
+                    
                 }
             });
 
-            customSmartMatches.addEventListener('click', function (e) {
+            customSmartMatches.addEventListener('click', async function (e) {
                 var button = parentWithClass(e.target, 'btnDeleteMatchEntry');
                 if (button) {
                     var index = parseInt(button.getAttribute('data-index'));
                     var matchIndex = parseInt(button.getAttribute('data-matchindex'));
-                    removeSmartMatchEntry(view, index, matchIndex);
+                    await removeSmartMatchEntry(view, index, matchIndex);
+                    
                 }
             });
 
@@ -402,16 +380,18 @@
                 await openCustomSmartMatchDialog(view);
             });
 
-            view.addEventListener('viewshow', function (e) {
+            view.addEventListener('viewshow', async function (e) {
 
+                const correction = await ApiClient.getFilePathCorrections();
+                addCorrectionsTab = correction.Items.length > 0;
                 mainTabsManager.setTabs(this, 2, getTabs);
                 loading.show();
 
-                reloadList(view);
+                await reloadList(view);
+
             });
 
             view.addEventListener('viewhide', function (e) {
-
                 currentResult = null;
             });
         };

@@ -17,7 +17,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Emby.AutoOrganize.MediaInfo;
+using Emby.AutoOrganize.FileMetadata;
+using Emby.AutoOrganize.Model.Organization;
 using Emby.AutoOrganize.Naming;
 using MediaBrowser.Model.Extensions;
 using MediaBrowser.Model.Providers;
@@ -110,8 +111,20 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (!result.AudioStreamCodecs.Any() || !result.VideoStreamCodecs.Any() || !result.Subtitles.Any())
             {
-                var mediaInfoProvider = new MediaInfoProvider();
-                var mediaInfo = await mediaInfoProvider.GetMediaInfo(result.OriginalPath);
+                var mediaInfo = new MediaInfo();
+                try
+                {
+                    mediaInfo = await mediaInfo.GetMediaInfo(result.OriginalPath);
+                }
+                catch
+                {
+                    result.Status = FileSortingStatus.InUse;
+                    result.StatusMessage = "Path is locked by other processes. Please try again later.";
+                    Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+                    return result; 
+                }
 
                 result.AudioStreamCodecs = mediaInfo.AudioStreamCodecs;
                 result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
@@ -253,8 +266,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     movieName = movieName.Replace($"({movieYear.Value})", string.Empty).Trim();
                 }
 
-                //Clean up the movie name that the Library Manager parsed, it will still contain unwanted character
-                movieName = Regex.Replace(movieName, @"[^A-Za-z0-9\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                //Clean up the movie name that the Library Manager parsed, it will still contain unwanted character, and it may still contain the Resolution.
+                movieName = Regex.Replace(movieName, @"[^A-Za-z0-9\s+]|[0-9]{3,4}[Pp]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
                 movieName = new CultureInfo("en-US", false).TextInfo.ToTitleCase(movieName.Trim());
 
 
@@ -277,17 +290,32 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (!string.IsNullOrEmpty(result.ExtractedName) && result.ExtractedYear.HasValue)
                 {
                     var targetFolder = "";
-                    if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    //if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    //{
+                    //    targetFolder = options.DefaultMovieLibraryPath;
+                    //} 
+                    //else
+                    //{
+                    //    //The user didn't filling the settings - warn the log, return failure - that is all
+                    //    var msg = $"Auto sorting for {movieName} is not possible. Please choose a default library path in settings";
+                    //    result.Status = FileSortingStatus.Failure;
+                    //    result.StatusMessage = msg;
+                    //    Log.Warn(msg);
+                    //    OrganizationService.SaveResult(result, cancellationToken);
+                    //    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    //    return result;
+                    //}
+
+                    try
                     {
-                        targetFolder = options.DefaultMovieLibraryPath;
-                    } 
-                    else
+                        targetFolder = ResolveTargetFolder(result, options, cancellationToken);
+                    }
+                    catch (InvalidTargetFolderException ex)
                     {
                         //The user didn't filling the settings - warn the log, return failure - that is all
-                        var msg = $"Auto sorting for {movieName} is not possible. Please choose a default library path in settings";
                         result.Status = FileSortingStatus.Failure;
-                        result.StatusMessage = msg;
-                        Log.Warn(msg);
+                        result.StatusMessage = ex.Message;
+                        Log.Warn(ex.Message);
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return result;
@@ -958,22 +986,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
         private async Task<Movie> GetMovieRemoteProviderData(FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
-            //if (!options.AutoDetectMovie) return null;
-
-            //var parsedName = LibraryManager.ParseName(movieName.AsSpan());
-
-            //var yearInName = parsedName.Year;
-            //var nameWithoutYear = parsedName.Name;
-
-            //if (string.IsNullOrWhiteSpace(nameWithoutYear))
-            //{
-            //    nameWithoutYear = movieName;
-            //}
-
-            //if (!yearInName.HasValue)
-            //{
-            //    yearInName = movieYear;
-            //}
+            
 
             string metadataLanguage = null;
             string metadataCountryCode = null;
@@ -1005,7 +1018,12 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 MetadataCountryCode = metadataCountryCode,
                 MetadataLanguage = metadataLanguage
             };
-            
+
+            if (result.ExtractedYear.HasValue)
+            {
+                movieInfo.Year = result.ExtractedYear.Value;
+            }
+
             IEnumerable<RemoteSearchResult> searchResults = null;
             try
             {
@@ -1028,8 +1046,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 var remoteSearchResults = searchResults.ToList();
                 Log.Info($"Movie Provider Results found: {remoteSearchResults.Count()} results for {result.ExtractedName}.");
-                Log.Info($"Compare Result {RegexExtensions.NormalizeString(result.ExtractedName)} and {RegexExtensions.NormalizeString(remoteSearchResults.ToList()[0].Name)}");
-                finalResult = remoteSearchResults.FirstOrDefault(m => RegexExtensions.NormalizeString(m.Name) == RegexExtensions.NormalizeString(result.ExtractedName));
+                Log.Info($"Compare Result {result.ExtractedName} and {remoteSearchResults.ToList()[0].Name}");
+                finalResult =
+                    remoteSearchResults
+                        .FirstOrDefault(); //.FirstOrDefault(m => RegexExtensions.NormalizeString(m.Name) == RegexExtensions.NormalizeString(result.ExtractedName));
             }
 
             if (finalResult == null) return null;
@@ -1037,7 +1057,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             // We are in the good position, we can create the item
             var organizationRequest = new MovieFileOrganizationRequest
             {
-                Name = RegexExtensions.NormalizeString(finalResult.Name) != RegexExtensions.NormalizeString(result.ExtractedName) ? result.ExtractedName : finalResult.Name, //<== This should keep the name in different languages
+                Name = finalResult.Name, //RegexExtensions.NormalizeString(finalResult.Name) != RegexExtensions.NormalizeString(result.ExtractedName) ? result.ExtractedName : finalResult.Name, //<== This should keep the name in different languages
                 ProviderIds  = finalResult.ProviderIds,
                 Year = finalResult.ProductionYear,
                 TargetFolder = options.DefaultMovieLibraryPath,
@@ -1221,51 +1241,46 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         }
 
         
-
-        //private static string GetStreamResolutionFromFileName(string sourceFileName)
-        //{
-        //    var namingOptions = new NamingOptions();
+        private string ResolveTargetFolder(FileOrganizationResult result, AutoOrganizeOptions options, CancellationToken cancellationToken)
+        {
+            var entityMatchingScore = 0;
+            var targetFolderResult = "";
+            //Check smart matches for target folder rules
+            var smartMatches = OrganizationService.GetSmartMatchInfos();
+            var customSmartMatches = smartMatches.Items.Where(s => s.IsCustomUserDefinedEntry).ToList();
             
-        //    foreach(var resolution in namingOptions.VideoResolutionFlags)
-        //    {
-        //        if(sourceFileName.Contains(resolution))
-        //        {
-        //            return resolution;
+            //Only attempt comparison if the user has added custom smart matches.
+            if (customSmartMatches.Any())
+            {
+                //Replace any non-alpha/non-numeric characters from the file name and replace with space, then split it by spaces.
+                var fileNameEntities = Regex.Replace(result.OriginalPath, @"[^A-Za-z0-9\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim().Split(' ');
 
-        //        }
-        //    }
-        //    return string.Empty;
-            
-        //}
+                foreach (var match in customSmartMatches.Where(m => m.OrganizerType == FileOrganizerType.Movie))
+                {
+                    var intersectingEntities = match.MatchStrings.Intersect(fileNameEntities).ToList();
+                    if (intersectingEntities.Count() <= entityMatchingScore) continue;
+                    entityMatchingScore = intersectingEntities.Count();
+                    targetFolderResult = match.TargetFolder;
+                }
 
-        //private string GetResolutionFromMetadata(Model.Stream stream)
-        //{
-        //    var width = stream.width;
-        //    var height = stream.height;
-            
-        //    var diagonal = Math.Round(Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height,2)), 2);
+                if (!string.IsNullOrEmpty(targetFolderResult))
+                {
+                    return targetFolderResult;
+                }
+            }
 
-        //    if (stream.profile == "High")
-        //    {
-        //        if (diagonal <= 800) return "480p"; //4:3
-        //        if (diagonal > 800 && diagonal <= 1468.6) return "720p"; //16:9
-        //        if (diagonal > 1468.6 && diagonal <= 2315.32) return "1080p"; //16:9 or 1:1.77
-        //        if (diagonal > 2315.32 && diagonal <= 2937.21) return "1440p"; //16:9
-        //        if (diagonal > 2937.21 && diagonal <= 4405.81) return "2160p"; //1:1.9 - 4K
-        //        if (diagonal > 4405.81 && diagonal <= 8811.63) return "4320p"; //16∶9 - 8K
-        //    }
-        //    else
-        //    {
-        //        return "SD";
-        //    }
+            var targetFolder = "";
+            if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+            {
+                targetFolder = options.DefaultMovieLibraryPath;
+            } 
+            else
+            {
+                //The user didn't filling the settings - warn the log, return failure - that is all
+                throw new InvalidTargetFolderException($"Auto sorting for {result.ExtractedName} is not possible. Please choose a default library path in settings");
+            }
 
-        //    return "Unknown";
-        //}
-
-        //private string NormalizeString(string value)
-        //{
-        //    return Regex.Replace(value, @"(\s+|@|&|'|:|\(|\)|<|>|#|\.|,)", string.Empty, RegexOptions.IgnoreCase).ToLowerInvariant();
-        //}
-        
+            return targetFolder;
+        }
     }
 }

@@ -12,7 +12,7 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 
-namespace Emby.AutoOrganize.Core
+namespace Emby.AutoOrganize.Core.ScheduledTasks
 {
     public class OrganizerScheduledTask : IScheduledTask, IConfigurableScheduledTask
     {
@@ -69,6 +69,9 @@ namespace Emby.AutoOrganize.Core
 
             }
 
+            
+
+            progress.Report(100.0);
 
         }
 

@@ -4,8 +4,12 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Emby.AutoOrganize.MediaInfo;
+using Emby.AutoOrganize.FileMetadata;
 using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model.Corrections;
+using Emby.AutoOrganize.Model.Organization;
+using Emby.AutoOrganize.Model.SmartLists;
+using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Controller;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
@@ -18,7 +22,8 @@ namespace Emby.AutoOrganize.Data
     {
         private readonly IJsonSerializer _json;
 
-        public SqliteFileOrganizationRepository(ILogger logger, IServerApplicationPaths appPaths, IJsonSerializer json) : base(logger)
+        public SqliteFileOrganizationRepository(ILogger logger, IServerApplicationPaths appPaths, IJsonSerializer json)
+            : base(logger)
         {
             _json = json;
             DbFilePath = Path.Combine(appPaths.DataPath, "fileorganization.db");
@@ -34,13 +39,15 @@ namespace Emby.AutoOrganize.Data
             {
                 RunDefaultInitialization(connection);
 
-                string[] queries = {
-
-                                "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedEpisodeName TEXT, ExtractedResolution TEXT null, VideoStreamCodecs TEXT null, AudioStreamCodecs TEXT null, SourceQuality TEXT null, Subtitles TEXT null, ExtractedEdition TEXT null, ExternalSubtitlePaths TEXT null, DuplicatePaths TEXT int null, ExistingInternalId INT)",
-                                "create index if not exists idx_FileOrganizerResults on FileOrganizerResults(ResultId)",
-                                "create table if not exists SmartMatch (Id GUID PRIMARY KEY, Name TEXT, OrganizerType TEXT, MatchStrings TEXT null, TargetFolder TEXT null, IsCustomUserDefinedEntry TEXT null)",
-                                "create index if not exists idx_SmartMatch on SmartMatch(Id)",
-                               };
+                string[] queries =
+                {
+                    "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedEpisodeName TEXT, ExtractedEndingEpisodeName TEXT, ExtractedResolution TEXT null, VideoStreamCodecs TEXT null, AudioStreamCodecs TEXT null, SourceQuality TEXT null, Subtitles TEXT null, ExtractedEdition TEXT null, ExternalSubtitlePaths TEXT null, DuplicatePaths TEXT int null, ExistingInternalId INT)",
+                    "create index if not exists idx_FileOrganizerResults on FileOrganizerResults(ResultId)",
+                    "create table if not exists SmartMatch (Id GUID PRIMARY KEY, Name TEXT, OrganizerType TEXT, MatchStrings TEXT null, TargetFolder TEXT null, IsCustomUserDefinedEntry TEXT null)",
+                    "create index if not exists idx_SmartMatch on SmartMatch(Id)",
+                    "create table if not exists SmartFilePathCorrections (Id GUID PRIMARY KEY,CurrentPath TEXT, CorrectedPath, SeriesName TEXT)",
+                    "create index if not exists idx_SmartFilePathCorrections on SmartFilePathCorrections(Id)",
+                };
 
                 connection.RunQueries(queries);
             }
@@ -63,7 +70,8 @@ namespace Emby.AutoOrganize.Data
                 {
                     connection.RunInTransaction(db =>
                     {
-                        var commandText = "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @ExtractedEpisodeName, @ExtractedResolution, @VideoStreamCodecs, @AudioStreamCodecs, @SourceQuality, @Subtitles, @ExtractedEdition, @ExternalSubtitlePaths, @DuplicatePaths, @ExistingInternalId)";
+                        var commandText =
+                            "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @ExtractedEpisodeName,@ExtractedEndingEpisodeName, @ExtractedResolution, @VideoStreamCodecs, @AudioStreamCodecs, @SourceQuality, @Subtitles, @ExtractedEdition, @ExternalSubtitlePaths, @DuplicatePaths, @ExistingInternalId)";
 
                         using (var statement = db.PrepareStatement(commandText))
                         {
@@ -81,15 +89,20 @@ namespace Emby.AutoOrganize.Data
                             statement.TryBind("@ExtractedEpisodeNumber", result.ExtractedEpisodeNumber);
                             statement.TryBind("@ExtractedEndingEpisodeNumber", result.ExtractedEndingEpisodeNumber);
                             statement.TryBind("@ExtractedEpisodeName", result.ExtractedEpisodeName);
-                            statement.TryBind("@ExtractedResolution", _json.SerializeToString(result.ExtractedResolution));
-                            statement.TryBind("@VideoStreamCodecs", string.Join("|", result.VideoStreamCodecs.ToArray()));
-                            statement.TryBind("@AudioStreamCodecs", string.Join("|", result.AudioStreamCodecs.ToArray()));
+                            statement.TryBind("@ExtractedEndingEpisodeName", result.ExtractedEndingEpisodeName);
+                            statement.TryBind("@ExtractedResolution",
+                                _json.SerializeToString(result.ExtractedResolution));
+                            statement.TryBind("@VideoStreamCodecs",
+                                string.Join("|", result.VideoStreamCodecs.ToArray()));
+                            statement.TryBind("@AudioStreamCodecs",
+                                string.Join("|", result.AudioStreamCodecs.ToArray()));
                             statement.TryBind("@SourceQuality", result.SourceQuality);
-                            statement.TryBind("@Subtitles",string.Join("|", result.Subtitles.ToArray()));
+                            statement.TryBind("@Subtitles", string.Join("|", result.Subtitles.ToArray()));
                             statement.TryBind("@ExtractedEdition", result.ExtractedEdition);
-                            statement.TryBind("@ExternalSubtitlePaths", string.Join("|", result.ExternalSubtitlePaths.ToArray()));
+                            statement.TryBind("@ExternalSubtitlePaths",
+                                string.Join("|", result.ExternalSubtitlePaths.ToArray()));
                             statement.TryBind("@DuplicatePaths", string.Join("|", result.DuplicatePaths.ToArray()));
-                            statement.TryBind("@ExistingInternalId",  result.ExistingInternalId);
+                            statement.TryBind("@ExistingInternalId", result.ExistingInternalId);
 
                             statement.MoveNext();
                         }
@@ -111,7 +124,8 @@ namespace Emby.AutoOrganize.Data
                 {
                     connection.RunInTransaction(db =>
                     {
-                        using (var statement = db.PrepareStatement("delete from FileOrganizerResults where ResultId = @ResultId"))
+                        using (var statement =
+                            db.PrepareStatement("delete from FileOrganizerResults where ResultId = @ResultId"))
                         {
                             statement.TryBind("@ResultId", id.ToGuidBlob());
                             statement.MoveNext();
@@ -145,7 +159,8 @@ namespace Emby.AutoOrganize.Data
                 {
                     connection.RunInTransaction(db =>
                     {
-                        using (var statement = db.PrepareStatement("delete from FileOrganizerResults where Status = @Status"))
+                        using (var statement =
+                            db.PrepareStatement("delete from FileOrganizerResults where Status = @Status"))
                         {
                             statement.TryBind("@Status", FileSortingStatus.Success.ToString());
                             statement.MoveNext();
@@ -166,16 +181,20 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    var commandText = "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults";
+                    var commandText =
+                        "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults";
 
                     if (!string.IsNullOrEmpty(query.Type) && query.Type != "All")
                     {
                         commandText += $" WHERE OrganizationType = \"{query.Type}\"";
                     }
+
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
                         commandText +=
-                            " WHERE ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY " + query.SortBy + " " + query.DataOrderDirection + $" LIMIT {query.StartIndex.Value.ToString(CultureInfo.InvariantCulture)})";
+                            " WHERE ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY " +
+                            query.SortBy + " " + query.DataOrderDirection +
+                            $" LIMIT {query.StartIndex.Value.ToString(CultureInfo.InvariantCulture)})";
                     }
 
                     commandText += " ORDER BY " + query.SortBy + " " + query.DataOrderDirection;
@@ -196,7 +215,8 @@ namespace Emby.AutoOrganize.Data
                     }
 
                     int count;
-                    using (var statement = connection.PrepareStatement("select count (ResultId) from FileOrganizerResults"))
+                    using (var statement =
+                        connection.PrepareStatement("select count (ResultId) from FileOrganizerResults"))
                     {
                         count = statement.ExecuteQuery().First().GetInt(0);
                     }
@@ -209,6 +229,7 @@ namespace Emby.AutoOrganize.Data
                 }
             }
         }
+
         public FileOrganizationResult GetResult(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -220,7 +241,9 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    using (var statement = connection.PrepareStatement("select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults where ResultId=@ResultId"))
+                    using (var statement = connection.PrepareStatement(
+                        "select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults where ResultId=@ResultId")
+                    )
                     {
                         statement.TryBind("@ResultId", id.ToGuidBlob());
 
@@ -234,6 +257,7 @@ namespace Emby.AutoOrganize.Data
                 }
             }
         }
+
         public FileOrganizationResult GetResult(IResultSet reader)
         {
             var index = 0;
@@ -262,11 +286,11 @@ namespace Emby.AutoOrganize.Data
             result.Date = reader.ReadDateTime(index);
 
             index++;
-            result.Status = (FileSortingStatus)Enum.Parse(typeof(FileSortingStatus), reader.GetString(index), true);
+            result.Status = (FileSortingStatus) Enum.Parse(typeof(FileSortingStatus), reader.GetString(index), true);
 
             index++;
-            result.Type = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
-            
+            result.Type = (FileOrganizerType) Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
+
             index++;
             if (!reader.IsDBNull(index))
             {
@@ -275,7 +299,7 @@ namespace Emby.AutoOrganize.Data
 
             result.OriginalFileName = Path.GetFileName(result.OriginalPath);
 
-           
+
 
             index++;
             if (!reader.IsDBNull(index))
@@ -312,6 +336,13 @@ namespace Emby.AutoOrganize.Data
             {
                 result.ExtractedEpisodeName = reader.GetString(index);
             }
+
+            index++;
+            if (!reader.IsDBNull(index))
+            {
+                result.ExtractedEndingEpisodeName = reader.GetString(index);
+            }
+
             index++;
             if (!reader.IsDBNull(index))
             {
@@ -321,13 +352,15 @@ namespace Emby.AutoOrganize.Data
             index++;
             if (!reader.IsDBNull(index))
             {
-                result.VideoStreamCodecs = reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
+                result.VideoStreamCodecs =
+                    reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
             }
 
             index++;
             if (!reader.IsDBNull(index))
             {
-                result.AudioStreamCodecs = reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
+                result.AudioStreamCodecs =
+                    reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
             }
 
             index++;
@@ -351,12 +384,15 @@ namespace Emby.AutoOrganize.Data
             index++;
             if (!reader.IsDBNull(index))
             {
-                result.ExternalSubtitlePaths = reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
+                result.ExternalSubtitlePaths =
+                    reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
             }
+
             index++;
             if (!reader.IsDBNull(index))
             {
-                result.DuplicatePaths = reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
+                result.DuplicatePaths =
+                    reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
             }
 
             index++;
@@ -387,7 +423,8 @@ namespace Emby.AutoOrganize.Data
                 {
                     connection.RunInTransaction(db =>
                     {
-                        var commandText = "replace into SmartMatch (Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry) values (@Id, @Name, @OrganizerType, @MatchStrings, @TargetFolder, @IsCustomUserDefinedEntry)";
+                        var commandText =
+                            "replace into SmartMatch (Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry) values (@Id, @Name, @OrganizerType, @MatchStrings, @TargetFolder, @IsCustomUserDefinedEntry)";
 
                         using (var statement = db.PrepareStatement(commandText))
                         {
@@ -475,7 +512,9 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    using (var statement = connection.PrepareStatement("SELECT Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry from SmartMatch where Id=@Id"))
+                    using (var statement = connection.PrepareStatement(
+                        "SELECT Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry from SmartMatch where Id=@Id")
+                    )
                     {
                         statement.TryBind("@Id", id.ToGuidBlob());
 
@@ -501,11 +540,13 @@ namespace Emby.AutoOrganize.Data
             {
                 using (var connection = CreateConnection(true))
                 {
-                    var commandText = "SELECT Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry from SmartMatch";
+                    var commandText =
+                        "SELECT Id, Name, OrganizerType, MatchStrings, TargetFolder, IsCustomUserDefinedEntry from SmartMatch";
 
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
-                        commandText += string.Format(" WHERE Id NOT IN (SELECT Id FROM SmartMatch ORDER BY Name desc LIMIT {0})",
+                        commandText += string.Format(
+                            " WHERE Id NOT IN (SELECT Id FROM SmartMatch ORDER BY Name desc LIMIT {0})",
                             query.StartIndex.Value.ToString(CultureInfo.InvariantCulture));
                     }
 
@@ -552,9 +593,10 @@ namespace Emby.AutoOrganize.Data
 
             index++;
             result.Name = reader.GetString(index);
-            
+
             index++;
-            result.OrganizerType = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
+            result.OrganizerType =
+                (FileOrganizerType) Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
 
             index++;
             if (!reader.IsDBNull(index))
@@ -576,6 +618,181 @@ namespace Emby.AutoOrganize.Data
 
             return result;
         }
+
+        #endregion
+
+        #region SmartFilePathCorrections
+
+        public void SaveResult(FileCorrection result, CancellationToken cancellationToken)
+        {
+            if (result == null)
+            {
+                throw new ArgumentNullException("result");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using (WriteLock.Write())
+            {
+                using (var connection = CreateConnection())
+                {
+                    connection.RunInTransaction(db =>
+                    {
+                        var commandText =
+                            "replace into SmartFilePathCorrections (Id, CurrentPath, CorrectedPath, SeriesName) values (@Id, @CurrentPath, @CorrectedPath, @SeriesName)";
+
+                        using (var statement = db.PrepareStatement(commandText))
+                        {
+                            statement.TryBind("@Id", result.Id.ToGuidBlob());
+                            statement.TryBind("@CurrentPath", result.CurrentPath);
+                            statement.TryBind("@CorrectedPath", result.CorrectedPath);
+                            statement.TryBind("@SeriesName", result.SeriesName);
+                            statement.MoveNext();
+                        }
+                    }, TransactionMode);
+                }
+            }
+        }
+
+        public void DeleteFilePathCorrection(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentNullException("id");
+            }
+
+            using (WriteLock.Write())
+            {
+                using (var connection = CreateConnection())
+                {
+                    connection.RunInTransaction(db =>
+                    {
+                        using (var statement =
+                            db.PrepareStatement("delete from SmartFilePathCorrections where Id = @Id"))
+                        {
+                            statement.TryBind("@Id", id.ToGuidBlob());
+                            statement.MoveNext();
+                        }
+                    }, TransactionMode);
+                }
+            }
+        }
+
+        public FileCorrection GetFilePathCorrection(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentNullException("id");
+            }
+
+            using (WriteLock.Read())
+            {
+                using (var connection = CreateConnection(true))
+                {
+                    using (var statement = connection.PrepareStatement(
+                        "SELECT Id, CurrentPath, CorrectedPath, SeriesName from SmartFilePathCorrections where Id=@Id")
+                    )
+                    {
+                        statement.TryBind("@Id", id.ToGuidBlob());
+
+                        foreach (var row in statement.ExecuteQuery())
+                        {
+                            return GetResultFilePathCorrection(row);
+                        }
+                    }
+
+                    return null;
+                }
+            }
+        }
+
+        private FileCorrection GetResultFilePathCorrection(IResultSet reader)
+        {
+            var index = 0;
+
+            var result = new FileCorrection
+            {
+                Id = reader.GetGuid(0).ToString("N")
+            };
+
+            index++;
+            result.CurrentPath = reader.GetString(index);
+
+            index++;
+            result.CorrectedPath = reader.GetString(index);
+
+            index++;
+            result.SeriesName = reader.GetString(index);
+
+            return result;
+        }
+
+         public QueryResult<FileCorrection> GetFilePathCorrections(FileCorrectionResultQuery resultQuery)
+         {
+            if (resultQuery == null)
+            {
+                throw new ArgumentNullException("resultQuery");
+            }
+
+            using (WriteLock.Read())
+            {
+                using (var connection = CreateConnection(true))
+                {
+                    var commandText =
+                        "SELECT Id, CurrentPath, CorrectedPath, SeriesName from SmartFilePathCorrections";
+
+                    if (!string.IsNullOrEmpty(resultQuery.StartsWith))
+                    {
+                        commandText += string.Format(
+                            " WHERE Id NOT IN (SELECT Id FROM SmartFilePathCorrections ORDER BY SeriesName desc LIKE ? {0} %)",
+                            resultQuery.StartsWith);
+                    }
+                    else
+                    {
+                        commandText += " ORDER BY SeriesName desc";
+                    }
+
+                   
+                    var list = new List<FileCorrection>();
+
+                    using (var statement = connection.PrepareStatement(commandText))
+                    {
+                        foreach (var row in statement.ExecuteQuery())
+                        {
+                            list.Add(GetResultFilePathCorrection(row));
+                        }
+                    }
+
+                    int count;
+                    using (var statement = connection.PrepareStatement("select count (Id) from SmartFilePathCorrections"))
+                    {
+                        count = statement.ExecuteQuery().First().GetInt(0);
+                    }
+
+                    return new QueryResult<FileCorrection>()
+                    {
+                        Items = list.ToArray(),
+                        TotalRecordCount = count
+                    };
+                }
+            }
+        }
+
+         public void DeleteAllFilePathCorrections()
+         {
+             using (WriteLock.Write())
+             {
+                 using (var connection = CreateConnection())
+                 {
+                     connection.RunInTransaction(db =>
+                     {
+                         var commandText = "delete from SmartFilePathCorrections";
+
+                         db.Execute(commandText);
+                     }, TransactionMode);
+                 }
+             }
+         }
 
         #endregion
     }

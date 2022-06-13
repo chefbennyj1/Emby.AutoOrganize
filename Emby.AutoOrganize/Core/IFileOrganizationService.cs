@@ -4,6 +4,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model.Organization;
+using Emby.AutoOrganize.Model.SmartLists;
+using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Model.Configuration;
 
 namespace Emby.AutoOrganize.Core
@@ -96,16 +99,14 @@ namespace Emby.AutoOrganize.Core
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Task.</returns>
         void SaveResult(SmartMatchResult result, CancellationToken cancellationToken);
-
+        
         /// <summary>
         /// Returns a list of smart match entries
         /// </summary>
         /// <param name="query">The query.</param>
         /// <returns>IEnumerable{SmartMatchInfo}.</returns>
         QueryResult<SmartMatchResult> GetSmartMatchInfos(FileOrganizationResultQuery query);
-
-        //string ParseMovieNameFromFileName(string fileName);
-
+        
         FileOrganizerType GetFileOrganizerType(string fileName);
 
         ServerConfiguration GetServerConfiguration();
@@ -123,6 +124,7 @@ namespace Emby.AutoOrganize.Core
         /// <param name="ItemName">Item name.</param>
         /// <param name="matchString">The match string to delete.</param>
         void DeleteSmartMatchEntry(string id, string matchString);
+
 
         /// <summary>
         /// Attempts to add a an item to the list of currently processed items.

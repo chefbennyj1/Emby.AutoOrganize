@@ -1,96 +1,12 @@
 ﻿define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize) {
     'use strict';
 
-    ApiClient.getFileOrganizationResults = function (options) {
-
-        var url = this.getUrl("Library/FileOrganization", options || {});
-
+    ApiClient.getFilePathCorrections = function() {
+        var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
         return this.getJSON(url);
     };
 
-    ApiClient.deleteOriginalFileFromOrganizationResult = function (id) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/File");
-
-        return this.ajax({
-            type: "DELETE",
-            url: url
-        });
-    };
-
-    ApiClient.clearOrganizationLog = function () {
-
-        var url = this.getUrl("Library/FileOrganizations");
-
-        return this.ajax({
-            type: "DELETE",
-            url: url
-        });
-    };
-
-    ApiClient.performOrganization = function (id) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
-
-        return this.ajax({
-            type: "POST",
-            url: url
-        });
-    };
-
-    ApiClient.performEpisodeOrganization = function (id, options) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
-
-        return this.ajax({
-            type: "POST",
-            url: url,
-            data: JSON.stringify(options),
-            contentType: 'application/json'
-        });
-    };
-
-    ApiClient.performMovieOrganization = function (id, options) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
-
-        return this.ajax({
-            type: "POST",
-            url: url,
-            data: JSON.stringify(options),
-            contentType: 'application/json'
-        });
-    };
-
-    ApiClient.getSmartMatchInfos = function (options) {
-
-        options = options || {};
-
-        var url = this.getUrl("Library/FileOrganizations/SmartMatches", options);
-
-        return this.ajax({
-            type: "GET",
-            url: url,
-            dataType: "json"
-        });
-    };
-
-    ApiClient.deleteSmartMatchEntries = function (entries) {
-
-        var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
-
-        var postData = {
-            Entries: entries
-        };
-
-        return this.ajax({
-
-            type: "POST",
-            url: url,
-            data: JSON.stringify(postData),
-            contentType: "application/json"
-        });
-    };
+    
 
     function getMovieFileName(value) {
         var movieName = "Movie Name";
@@ -381,8 +297,9 @@
         });
     }
 
+    var addCorrectionsTab = false;
     function getTabs() {
-        return [
+        var tabs = [
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
                 name: globalize.translate("HeaderActivity")
@@ -391,14 +308,19 @@
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
                 name: globalize.translate("HeaderSettings")
             },
-            //{
-            //    href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
-            //    name: 'Movie'
-            //},
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
                 name: 'Smart Matches'
-            }];
+            }
+        ];
+        
+        if (addCorrectionsTab) {
+            tabs.push({
+                href: Dashboard.getConfigurationPageUrl('AutoOrganizeCorrections'),
+                name: 'Corrections'
+            });
+        }
+        return tabs;
     }
 
     return function (view, params) {
@@ -708,6 +630,8 @@
 
         view.addEventListener('viewshow', async function (e) {
 
+            const correction = await ApiClient.getFilePathCorrections();
+            addCorrectionsTab = correction.Items.length > 0;
             mainTabsManager.setTabs(this, 1, getTabs);
 
             var config = await ApiClient.getNamedConfiguration('autoorganize');
