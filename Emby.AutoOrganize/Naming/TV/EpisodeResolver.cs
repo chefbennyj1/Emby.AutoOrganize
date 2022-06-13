@@ -1,10 +1,6 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using Emby.AutoOrganize.Naming.Common;
-using Emby.AutoOrganize.Naming.TV;
+﻿using Emby.AutoOrganize.Naming.Common;
 
-namespace Emby.Naming.TV
+namespace Emby.AutoOrganize.Naming.TV
 {
     public class EpisodeResolver
     {
@@ -15,9 +11,9 @@ namespace Emby.Naming.TV
             _options = options;
         }
 
-        public EpisodeInfo Resolve(string path, bool IsDirectory, bool? isNamed = null, bool? isOptimistic = null, bool? supportsAbsoluteNumbers = null, bool fillExtendedInfo = true)
+        public EpisodeInfo Resolve(string path, bool isDirectory, bool? isNamed = null, bool? isOptimistic = null, bool? supportsAbsoluteNumbers = null, bool fillExtendedInfo = true)
         {
-            var parsingResult = new EpisodePathParser(_options).Parse(path, IsDirectory, isNamed, isOptimistic, supportsAbsoluteNumbers, fillExtendedInfo);
+            var parsingResult = new EpisodePathParser(_options).Parse(path, isDirectory, isNamed, isOptimistic, supportsAbsoluteNumbers, fillExtendedInfo);
             
             return new EpisodeInfo
             {

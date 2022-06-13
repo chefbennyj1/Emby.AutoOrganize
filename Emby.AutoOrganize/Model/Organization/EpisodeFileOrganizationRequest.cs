@@ -1,6 +1,6 @@
 ﻿using MediaBrowser.Model.Entities;
 
-namespace Emby.AutoOrganize.Model
+namespace Emby.AutoOrganize.Model.Organization
 {
     public class EpisodeFileOrganizationRequest : IFileOrganizationRequest
     {

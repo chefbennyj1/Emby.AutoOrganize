@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Emby.AutoOrganize.Model
+﻿namespace Emby.AutoOrganize.Model.SmartLists
 {
     public class SmartMatchQuery
     {

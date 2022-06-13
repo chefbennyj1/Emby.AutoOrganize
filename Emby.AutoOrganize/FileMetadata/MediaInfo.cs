@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Emby.AutoOrganize.MediaInfo
+namespace Emby.AutoOrganize.FileMetadata
 {
     public class Resolution
     {
@@ -12,14 +12,14 @@ namespace Emby.AutoOrganize.MediaInfo
         public string Name { get; set; }
     }
 
-    public class MediaInfoProvider
+    public class MediaInfo
     {
         public List<string> AudioStreamCodecs { get; set; }
         public List<string> VideoStreamCodecs { get; set; }
         public Resolution Resolution          { get; set; }
         public List<string> Subtitles         { get; set; }
 
-        public MediaInfoProvider()
+        public MediaInfo()
         {
             AudioStreamCodecs = new List<string>();
             VideoStreamCodecs = new List<string>();
@@ -28,30 +28,30 @@ namespace Emby.AutoOrganize.MediaInfo
         }
 
 
-        public async Task<MediaInfoProvider> GetMediaInfo(string filePath)
+        public async Task<MediaInfo> GetMediaInfo(string filePath)
         {
-            var internalStreamInfo = new MediaInfoProvider();
+            var mediaInfo = new MediaInfo();
 
-            Ffprobe.FileInternalMediaInfo mediaInfo;
+            FileInternalMediaInfo mediaInfoProvider;
             try
             {
-                mediaInfo = await Ffprobe.Instance.GetFileMediaInfo(filePath);
+                mediaInfoProvider = await MediaInfoProvider.Instance.GetFileMediaInfo(filePath);
             }
             catch (Exception)
             {
                 throw new Exception("file in use");
             }
 
-            if (mediaInfo != null)
+            if (mediaInfoProvider != null)
             {
-                foreach (var stream in mediaInfo.streams)
+                foreach (var stream in mediaInfoProvider.streams)
                 {
                     switch (stream.codec_type)
                     {
                         case "audio":
                             if (!string.IsNullOrEmpty(stream.codec_name)) //&& !result.AudioStreamCodecs.Any())
                             {
-                                internalStreamInfo.AudioStreamCodecs.Add(stream.codec_name);
+                                mediaInfo.AudioStreamCodecs.Add(stream.codec_name);
                             }
 
                             break;
@@ -64,11 +64,11 @@ namespace Emby.AutoOrganize.MediaInfo
                                 {
                                     if (codec.Trim().Split(' ').Length > 1)
                                     {
-                                        internalStreamInfo.VideoStreamCodecs.Add(codec.Trim().Split(' ')[0]);
+                                        mediaInfo.VideoStreamCodecs.Add(codec.Trim().Split(' ')[0]);
                                         continue;
                                     }
 
-                                    internalStreamInfo.VideoStreamCodecs.Add(codec.Trim());
+                                    mediaInfo.VideoStreamCodecs.Add(codec.Trim());
                                 }
                             }
 
@@ -76,7 +76,7 @@ namespace Emby.AutoOrganize.MediaInfo
                             //{
                             if (stream.width != 0 && stream.height != 0)
                             {
-                                internalStreamInfo.Resolution = new Resolution()
+                                mediaInfo.Resolution = new Resolution()
                                 {
                                     Name = GetResolutionFromMetadata(stream),
                                     Width = stream.width,
@@ -95,7 +95,7 @@ namespace Emby.AutoOrganize.MediaInfo
                                 var language = stream.tags.title ?? stream.tags.language;
                                 if (!string.IsNullOrEmpty(language))
                                 {
-                                    internalStreamInfo.Subtitles.Add(language);
+                                    mediaInfo.Subtitles.Add(language);
                                 }
                             }
 
@@ -104,31 +104,28 @@ namespace Emby.AutoOrganize.MediaInfo
                 }
             }
 
-            return internalStreamInfo;
+            return mediaInfo;
         }
 
-        private string GetResolutionFromMetadata(Ffprobe.MediaStream stream)
+        private string GetResolutionFromMetadata(MediaStream stream)
         {
             var width = stream.width;
             var height = stream.height;
 
             var diagonal = Math.Round(Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height, 2)), 2);
 
-            if (stream.profile == "High")
-            {
-                if (diagonal <= 800) return "480p"; //4:3
-                if (diagonal > 800 && diagonal <= 1468.6) return "720p"; //16:9
-                if (diagonal > 1468.6 && diagonal <= 2315.32) return "1080p"; //16:9 or 1:1.77
-                if (diagonal > 2315.32 && diagonal <= 2937.21) return "1440p"; //16:9
-                if (diagonal > 2937.21 && diagonal <= 4405.81) return "2160p"; //1:1.9 - 4K
-                if (diagonal > 4405.81 && diagonal <= 8811.63) return "4320p"; //16∶9 - 8K
-            }
-            else
-            {
-                return "SD";
-            }
+            
+                if (diagonal < 579.0)                            return "SD";    //4:3
+                if (diagonal > 579.0 && diagonal   <= 749)       return "480p";  //4:3
+                if (diagonal > 749.0 && diagonal   <= 920.0)     return "540p";
+                if (diagonal > 920.0 && diagonal   <= 1101.4)    return "576p";
+                if (diagonal > 1101.4 && diagonal  <= 1468.6)    return "720p";  //16:9
+                if (diagonal > 1468.6 && diagonal  <= 2315.32)   return "1080p"; //16:9 or 1:1.77
+                if (diagonal > 2315.32 && diagonal <= 2937.21)   return "1440p"; //16:9
+                if (diagonal > 2937.21 && diagonal <= 4405.81)   return "2160p"; //1:1.9 - 4K
+                if (diagonal > 4405.81 && diagonal <= 8811.63)   return "4320p"; //16∶9 - 8K
 
-            return "Unknown";
+                return "Unknown";
         }
 
     }

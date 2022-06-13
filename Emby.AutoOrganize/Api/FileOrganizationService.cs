@@ -4,13 +4,20 @@ using System.Linq;
 using System.Threading;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model.Corrections;
+using Emby.AutoOrganize.Model.Organization;
+using Emby.AutoOrganize.Model.SmartLists;
+using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Common.Extensions;
+using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Services;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.IO;
+using MediaBrowser.Model.Serialization;
 
 namespace Emby.AutoOrganize.Api
 {
@@ -168,8 +175,9 @@ namespace Emby.AutoOrganize.Api
     [Route("/Library/FileOrganizations/SmartMatches/Delete", "POST", Summary = "Deletes a smart match entry")]
     public class DeleteSmartMatchEntry
     {
-        [ApiMember(Name = "Entries", Description = "SmartMatch Entry", IsRequired = true, DataType = "string", ParameterType = "query", Verb = "POST")]
-        public List<NameValuePair> Entries { get; set; }
+        [ApiMember(Name = "Entry", Description = "SmartMatch Entry", IsRequired = true, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public string Id  { get; set; }
+        public string MatchString { get; set; }
     }
 
     [Route("/Library/FileOrganizations/SmartMatches/Save", "POST", Summary = "Save a custom smart match entry")]
@@ -189,6 +197,20 @@ namespace Emby.AutoOrganize.Api
 
     }
 
+    [Route("/Library/FileOrganizations/FileNameCorrections", "GET", Summary = "Gets a list of file name corrections")]
+    public class FileNameCorrectionRequest
+    {
+        [ApiMember(Name = "StartsWith", Description = "Item names start with", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        public string StartsWith { get; set; }
+    }
+
+    [Route("/Library/FileOrganizations/FileNameCorrections/Update", "POST", Summary = "Update/Change files name")]
+    public class UpdateFileNameCorrectionRequest
+    {
+        [ApiMember(Name = "Ids", Description = "File Name Correction Entry Ids", IsRequired = true, DataType = "string", ParameterType = "query", Verb = "POST")]
+        public List<string> Ids { get; set; }
+    }
+
     [Authenticated(Roles = "Admin")]
     public class FileOrganizationService : IService, IRequiresRequest
     {
@@ -196,13 +218,23 @@ namespace Emby.AutoOrganize.Api
 
         public IRequest Request { get; set; }
         private ILibraryManager LibraryManager { get; set; }
-        public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager)
+        private ILibraryMonitor LibraryMonitor { get; }
+        private IFileSystem FileSystem { get;  }
+        private IJsonSerializer JsonSerializer { get; }
+
+        private IServerConfigurationManager ServerConfiguration { get; set; }
+        public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IServerConfigurationManager config, IJsonSerializer json)
         {
             _resultFactory = resultFactory;
             LibraryManager = libraryManager;
+            LibraryMonitor = libraryMonitor;
+            FileSystem = fileSystem;
+            ServerConfiguration = config;
+            JsonSerializer = json;
         }
 
         private IFileOrganizationService InternalFileOrganizationService => PluginEntryPoint.Instance.FileOrganizationService;
+        private IFileCorrectionService InternalFileCorrectionService => PluginEntryPoint.Instance.FileCorrectionService;
 
         public object Get(GetFileOrganizationActivity request)
         {
@@ -238,15 +270,13 @@ namespace Emby.AutoOrganize.Api
             InternalFileOrganizationService.ClearLog();
 
         }
-
-
+        
         public void Delete(ClearOrganizationCompletedLog request)
         {
             InternalFileOrganizationService.ClearCompleted();
 
         }
-
-
+        
         public void Post(PerformOrganization request)
         {
             // Don't await this
@@ -323,20 +353,16 @@ namespace Emby.AutoOrganize.Api
 
         public void Post(DeleteSmartMatchEntry request)
         {
-            foreach (var entry in request.Entries)
-            {
-                InternalFileOrganizationService.DeleteSmartMatchEntry(entry.Name, entry.Value);
-            }
+            InternalFileOrganizationService.DeleteSmartMatchEntry(request.Id, request.MatchString);
         }
 
         public void Post(SaveCustomSmartMatch request)
         {
             SmartMatchResult result = null;
             var smartInfo = InternalFileOrganizationService.GetSmartMatchInfos();
-            if (!string.IsNullOrEmpty(request.Id))
+            if (!string.IsNullOrEmpty(request.TargetFolder))
             {
-                
-                result = smartInfo.Items.FirstOrDefault(s => s.Id == request.Id);
+                result = smartInfo.Items.FirstOrDefault(s => s.TargetFolder == request.TargetFolder);
             }
 
             if (result is null)
@@ -346,15 +372,46 @@ namespace Emby.AutoOrganize.Api
                     Id = $"custom_smart_match { smartInfo.TotalRecordCount + 1 }".GetMD5().ToString("N"),
                     OrganizerType = request.Type,
                     IsCustomUserDefinedEntry = true,
+                    TargetFolder = request.TargetFolder
                 };
             }
 
-            result.TargetFolder = request.TargetFolder;
-            result.MatchStrings = request.Matches;
+            //Only add new match items to the smart match result.
+            result.MatchStrings.AddRange(request.Matches.Where(r => !result.MatchStrings.Contains(r)));
+            
 
             InternalFileOrganizationService.SaveResult(result, CancellationToken.None);
 
         }
-       
+
+        public object Get(FileNameCorrectionRequest request)
+        {
+            var result = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery
+            {
+                StartsWith = !string.IsNullOrEmpty(request.StartsWith) ? request.StartsWith : ""
+            });
+
+            return _resultFactory.GetResult(Request, result);
+        }
+
+        public void Post(UpdateFileNameCorrectionRequest request)
+        {
+            
+            var correctionResult = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery());
+            
+            foreach (var id in request.Ids)
+            {
+                var correction = correctionResult.Items.FirstOrDefault(c => c.Id == id);
+                try
+                {
+                    InternalFileCorrectionService.CorrectFileName(correction);
+                }
+                catch
+                {
+                    
+                }
+            }
+        }
+
     }
 }

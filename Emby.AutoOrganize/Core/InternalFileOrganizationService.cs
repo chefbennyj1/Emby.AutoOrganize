@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core.FileOrganization;
+using Emby.AutoOrganize.Core.ScheduledTasks;
 using Emby.AutoOrganize.Data;
 using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model.Organization;
+using Emby.AutoOrganize.Model.SmartLists;
+using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Common.Extensions;
 using MediaBrowser.Controller.Configuration;
@@ -114,7 +116,7 @@ namespace Emby.AutoOrganize.Core
 
             return GetResult(id);
         }
-
+        
         public void DeleteOriginalFile(string resultId)
         {
             var result = _repo.GetResult(resultId);
@@ -143,7 +145,7 @@ namespace Emby.AutoOrganize.Core
 
             EventHelper.FireEventIfNotNull(ItemRemoved, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
         }
-
+        
         private AutoOrganizeOptions GetAutoOrganizeOptions()
         {
             return _config.GetAutoOrganizeOptions();
@@ -275,9 +277,8 @@ namespace Emby.AutoOrganize.Core
             }
 
             return testTvShow.Matches(fileName).Count >= 1 ? FileOrganizerType.Episode : FileOrganizerType.Unknown;
-        } 
+        }
 
-        
 
         public void DeleteSmartMatchEntry(string id, string matchString)
         {
