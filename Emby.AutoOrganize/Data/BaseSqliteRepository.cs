@@ -227,11 +227,11 @@ namespace Emby.AutoOrganize.Data
 
             try
             {
-                var retval = TableExistsInTransaction(db, name);
+                var retVal = TableExistsInTransaction(db, name);
 
                 db.CommitTransaction();
 
-                return retval;
+                return retVal;
             }
             catch (Exception)
             {

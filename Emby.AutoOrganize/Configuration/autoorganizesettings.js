@@ -159,7 +159,7 @@
             .replace('%00e', '004');
     }
 
-    function getSeriesDirecoryName(value) {
+    function getSeriesDirectoryName(value) {
 
         var seriesName = "Series Name";
         var seriesYear = "2017";
@@ -406,7 +406,7 @@
         function updateSeriesPatternHelp() {
 
             var value = view.querySelector('#txtSeriesPattern').value;
-            value = getSeriesDirecoryName(value);
+            value = getSeriesDirectoryName(value);
 
             var replacementHtmlResult = 'Result: ' + value;
 

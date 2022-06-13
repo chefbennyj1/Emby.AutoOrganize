@@ -470,7 +470,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = "Auto Organize settings: default library not set for Movies. Stopping Organization";
                         Log.Warn(result.StatusMessage);
-                        //OrganizationService.RemoveFromInprogressList(result);
+                        //OrganizationService.RemoveFromInProgressList(result);
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         //return result;
@@ -509,7 +509,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     Log.Warn(msg);
-                    //OrganizationService.RemoveFromInprogressList(result);
+                    //OrganizationService.RemoveFromInProgressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -588,7 +588,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Log.Info(msg);
                     result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = msg;
-                    //OrganizationService.RemoveFromInprogressList(result);
+                    //OrganizationService.RemoveFromInProgressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -598,7 +598,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (overwriteFile)
                 {
                     Log.Info("Sorting file {0} into movie {1}", sourcePath, result.TargetPath);
-                    //The request came in from the client. The file needs to be moved into the target folder dispite the status.
+                    //The request came in from the client. The file needs to be moved into the target folder despite the status.
                     PerformFileSorting(options, result, cancellationToken);
                     return;
                 }
@@ -738,7 +738,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.GetItemsResult(new InternalItemsQuery() { Path = result.TargetPath }).Items[0].InternalId;
-                    OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.RemoveFromInProgressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -757,7 +757,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Log.Info(msg);
                     result.Status = FileSortingStatus.NewMedia;
                     result.StatusMessage = msg;
-                    //OrganizationService.RemoveFromInprogressList(result);
+                    //OrganizationService.RemoveFromInProgressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -777,7 +777,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = errorMsg;
                     Log.Warn(errorMsg, ex);
-                    //OrganizationService.RemoveFromInprogressList(result);
+                    //OrganizationService.RemoveFromInProgressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 }
@@ -787,7 +787,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
                 Log.Warn(ex.Message);
-                //OrganizationService.RemoveFromInprogressList(result);
+                //OrganizationService.RemoveFromInProgressList(result);
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
             }
@@ -809,7 +809,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             result.Status = FileSortingStatus.Processing;
             result.StatusMessage = "";
             result.FileSize = FileSystem.GetFileInfo(result.OriginalPath).Length; //Update the file size so it will show the actual size of the file here. It may have been copying before.
-            Log.Info($"Auto organize adding {result.TargetPath} to inprogress list");
+            Log.Info($"Auto organize adding {result.TargetPath} to in progress list");
             OrganizationService.SaveResult(result, cancellationToken);
             OrganizationService.AddToInProgressList(result, true);
             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
@@ -820,7 +820,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 result.Status = FileSortingStatus.Failure;
                 OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.RemoveFromInProgressList(result);
                 
                 //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 return;
@@ -861,7 +861,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             result.Status = FileSortingStatus.NotEnoughDiskSpace;
                             result.StatusMessage = "There is not enough disk space on the drive to move this file";
                             OrganizationService.SaveResult(result, cancellationToken);
-                            OrganizationService.RemoveFromInprogressList(result);
+                            OrganizationService.RemoveFromInProgressList(result);
                             
                             //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                             return;
@@ -893,7 +893,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";                           
                         }
                         OrganizationService.SaveResult(result, cancellationToken);
-                        OrganizationService.RemoveFromInprogressList(result);
+                        OrganizationService.RemoveFromInProgressList(result);
                         
                         //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                         return;
@@ -903,7 +903,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.Status = FileSortingStatus.Success;
                 result.StatusMessage = string.Empty;
                 OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.RemoveFromInProgressList(result);
                
                 //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
             }
@@ -916,7 +916,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.StatusMessage = errorMsg;
                     Log.ErrorException(errorMsg, ex);
                     OrganizationService.SaveResult(result, cancellationToken);
-                    OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.RemoveFromInProgressList(result);
                     
                     //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
@@ -931,7 +931,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.StatusMessage = errorMsg;
                 Log.ErrorException(errorMsg, ex);
                 OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.RemoveFromInProgressList(result);
                
                 LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                 return;
@@ -993,7 +993,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = "Auto Organize settings: default library not set for Movies.";
-                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.RemoveFromInProgressList(result);
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 return null;

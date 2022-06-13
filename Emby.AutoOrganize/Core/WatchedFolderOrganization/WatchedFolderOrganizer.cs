@@ -333,7 +333,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 }
 
                 var entries = _fileSystem.GetFileSystemEntryPaths(path);
-                _logger.Info($"{entries.Count()} directory enteries");
+                _logger.Info($"{entries.Count()} directory entries");
                 if (!entries.Any() && !IsWatchFolder(path, watchLocations))
                 {
                     try
