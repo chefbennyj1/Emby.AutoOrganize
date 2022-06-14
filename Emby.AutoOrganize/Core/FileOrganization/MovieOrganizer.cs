@@ -1,4 +1,4 @@
-﻿using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
@@ -929,7 +929,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 result.Status = FileSortingStatus.Success;
-                result.StatusMessage = string.Empty;
+                result.StatusMessage = $"{result.OriginalPath} has successfully been placed in the target destination: {result.TargetPath}";
                 OrganizationService.SaveResult(result, cancellationToken);
                 OrganizationService.RemoveFromInProgressList(result);
                
