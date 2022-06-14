@@ -664,11 +664,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             try
             {
                 // Proceed to sort the file
-
-                var fileExists = FileSystem.FileExists(result.TargetPath);
-                
                 var existingEpisodeFilesButWithDifferentPath = GetExistingEpisodeFilesButWithDifferentPath(result.TargetPath, series, episode);
                 result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
+
+                var episodeExists = FileSystem.FileExists(result.TargetPath) || result.DuplicatePaths.Count > 0;
 
                 //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "InUse"
                 if(IsCopying(sourcePath, FileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
@@ -710,9 +709,13 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //5. The file doesn't exist in the library - is new - auto sorting is turned off - Mark the file as NewMedia
 
                 //1.
-                if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && fileExists) 
+                if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists) 
                 {
-                    var msg = $"File '{sourcePath}' already already exists at '{result.TargetPath}', stopping organization";
+                    var msg = $"File '{sourcePath}' already exists at '{result.TargetPath}'. Stopping organization";
+                    if (existingEpisodeFilesButWithDifferentPath.Count > 1)
+                    {
+                        msg = $"File '{sourcePath}' already exists as these:'{string.Join("', '", existingEpisodeFilesButWithDifferentPath)}'. Stopping organization";
+                    }
                     Log.Info(msg);
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
@@ -724,7 +727,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
                 
                 //2.
-                if (options.OverwriteExistingEpisodeFiles && fileExists && options.AutoDetectSeries)
+                if (options.OverwriteExistingEpisodeFiles && episodeExists && options.AutoDetectSeries)
                 {
                     RemoveExistingLibraryFiles(existingEpisodeFilesButWithDifferentPath, result);
 
@@ -738,7 +741,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 //3.
-                if (!options.OverwriteExistingEpisodeFiles && options.OverwriteExistingEpisodeFilesKeyWords.Any() && fileExists && options.AutoDetectSeries)
+                if (!options.OverwriteExistingEpisodeFiles && options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists && options.AutoDetectSeries)
                 {
                     if (options.OverwriteExistingEpisodeFilesKeyWords.Any(word => result.OriginalFileName.ContainsIgnoreCase(word)))
                     {
@@ -767,10 +770,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 //4.
-                if (!fileExists && options.AutoDetectSeries)
+                if (!episodeExists && options.AutoDetectSeries)
                 {
                     if (IsNewSeries(series) && options.SortExistingSeriesOnly)
-                    {
+                    {//b
                         var msg = $"Auto detect disabled for new series. File '{sourcePath}' will wait for user interaction. Stopping organization";
                         Log.Info(msg);
                         result.Status = FileSortingStatus.NewMedia;
@@ -791,7 +794,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 //5.
-                if (!options.AutoDetectSeries && !fileExists)
+                if (!options.AutoDetectSeries && !episodeExists)
                 {
                     var msg = $"Series Auto detect disabled. File '{sourcePath}' will wait for user interaction. Stopping organization";
                     Log.Info(msg);
@@ -799,11 +802,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.StatusMessage = msg;
                     OrganizationService.SaveResult(result, cancellationToken);
                     //OrganizationService.RemoveFromInProgressList(result);
-                   
+
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
                 }
-
 
             }
             catch (Exception ex)
@@ -928,7 +930,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private List<string> GetExistingEpisodeFilesButWithDifferentPath(string targetPath, Series series, Episode episode)
         {
             // TODO: Support date-naming?
-            if (!series.ParentIndexNumber.HasValue || !episode.IndexNumber.HasValue)
+            if (!episode.ParentIndexNumber.HasValue || !episode.IndexNumber.HasValue)
             {
                 return new List<string>();
             }
@@ -946,8 +948,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     // Must be file system based and match exactly
                     if (locationType != LocationType.Virtual &&
-                        i.ParentIndexNumber.HasValue && i.ParentIndexNumber.Value == series.ParentIndexNumber &&
-                        i.IndexNumber.HasValue && i.IndexNumber.Value == episode.IndexNumber)
+                        i.ParentIndexNumber.HasValue && i.ParentIndexNumber.Value == episode.ParentIndexNumber.Value &&
+                        i.IndexNumber.HasValue && i.IndexNumber.Value == episode.IndexNumber.Value)
                     {
 
                         if (episode.IndexNumberEnd.HasValue || i.IndexNumberEnd.HasValue)
