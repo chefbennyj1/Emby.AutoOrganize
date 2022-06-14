@@ -592,23 +592,19 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
 
         view.querySelector('#chkEnableTelevisionOptions').addEventListener('change', () => {
             toggleTelevisionOptions();
-            onSubmit(view);
             return false;
         });
         view.querySelector('#chkEnableMovieOptions').addEventListener('change', () => {
             toggleMovieOptions();
-            onSubmit(view);
             return false;
         });
         view.querySelector('#chkOverwriteExistingEpisodeItems').addEventListener('change', () => {
             toggleOverwriteExistingEpisodeItemKeyWords();
-            onSubmit(view);
             return false;
         });
 
         view.querySelector('#chkOverwriteExistingMovieItems').addEventListener('change', () => {
             toggleOverwriteExistingMovieItemKeyWords();
-            onSubmit(view);
             return false;
         });
 
@@ -617,13 +613,10 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
 
         view.querySelector('#chkEnableSeriesAutoDetect').addEventListener('change', () => {
             toggleSortExistingSeriesOnly();
-
         });
 
         view.querySelector('#chkSubMovieFolders').addEventListener('click', () => {
             toggleMovieFolderPattern();
-            onSubmit(view);
-            
         });
         view.querySelector('#txtMovieFolderPattern').addEventListener('change', updateMovieFolderPatternHelp);
         view.querySelector('#txtMovieFolderPattern').addEventListener('keyup', updateMovieFolderPatternHelp);
@@ -632,7 +625,6 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
         view.querySelector('.libraryFileOrganizerForm').addEventListener('submit', function (e) {
             e.preventDefault();
             onSubmit(view);
-            
         });
 
         view.addEventListener('viewshow', async function (e) {
