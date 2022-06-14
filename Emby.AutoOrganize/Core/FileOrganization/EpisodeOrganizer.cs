@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -466,7 +466,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (episode is null)
                     {
-                        var msg = $"Unable to determine episode from {result.OriginalPath}";
+                        string epNumber = request.EndingEpisodeNumber > 0 ? string.Concat(request.EpisodeNumber, '-', request.EndingEpisodeNumber) : $"{request.EpisodeNumber}";
+                        var msg = $"Unable to retrieve episode information for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:1)";
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = msg;
                         Log.Warn(msg);
@@ -486,7 +487,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 if (string.IsNullOrEmpty(episodeFileName))
                 {
-                    var msg = $"Unable to determine episode from {result.OriginalPath}";
+                    string epNumber = request.EndingEpisodeNumber > 0 ? string.Concat(request.EpisodeNumber, '-', request.EndingEpisodeNumber) : $"{request.EpisodeNumber}";
+                    var msg = $"Unable to retrieve episode information for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:2)";
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     Log.Warn(msg);
@@ -605,15 +607,15 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     episode = await GetEpisodeRemoteProviderData(series, seasonNumber, episodeNumber, endingEpisodeNumber, premiereDate, cancellationToken);
                 }
                 catch(Exception)
-                {
+                {//this doesnt log anything on error
                     Log.Warn("Exceeded Provider limits. Try again later...");
-
                 }
             }
 
             if (episode is null)
             {
-                var msg = $"Unable to determine episode from {sourcePath}";
+                string epNumber = endingEpisodeNumber > 0 ? string.Concat(episodeNumber, '-', endingEpisodeNumber) : $"{episodeNumber}";
+                var msg = $"Unable to retrieve episode information for {series.Name} Season {seasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:3)";
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = msg;
                 Log.Warn(msg);
@@ -1131,7 +1133,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 result.Status = FileSortingStatus.Success;
-                result.StatusMessage = string.Empty;
+                result.StatusMessage = $"{result.OriginalPath} has successfully been placed in the target destination: {result.TargetPath}";
                 OrganizationService.SaveResult(result, cancellationToken);
                 OrganizationService.RemoveFromInProgressList(result);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
