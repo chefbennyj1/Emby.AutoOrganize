@@ -46,28 +46,31 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
 
         var seriesName = "Series Name";
         var episodeTitle = "Episode Four";
+        var endingEpisodeTitle = "Episode Five";
         var fileName = seriesName + ' ' + episodeTitle;
         var resolution = "1080p";
 
-        var result = value.replace('%sn', seriesName)
-            .replace('%s.n', seriesName.replace(' ', '.'))
-            .replace('%s_n', seriesName.replace(' ', '_'))
-            .replace('%s', '1')
-            .replace('%0s', '01')
-            .replace('%00s', '001')
-            .replace('%ext', 'mkv')
-            .replace('%en', episodeTitle)
-            .replace('%e.n', episodeTitle.replace(' ', '.'))
-            .replace('%e_n', episodeTitle.replace(' ', '_'))
-            .replace('%fn', fileName)
-            .replace('%res', resolution);
+        var result = value
 
         if (enableMultiEpisode) {
-            result = result
-                .replace('%ed', '5')
-                .replace('%0ed', '05')
-                .replace('%00ed', '005');
+            episodeTitle = episodeTitle.concat(", ", endingEpisodeTitle);
+            result = result.replace('%ed', '5')
+                           .replace('%0ed', '05')
+                           .replace('%00ed', '005');
         }
+
+        result = result.replace('%sn', seriesName)
+                       .replace('%s.n', seriesName.replaceAll(' ', '.'))
+                       .replace('%s_n', seriesName.replaceAll(' ', '_'))
+                       .replace('%s', '1')
+                       .replace('%0s', '01')
+                       .replace('%00s', '001')
+                       .replace('%ext', 'mkv')
+                       .replace('%en', episodeTitle)
+                       .replace('%e.n', episodeTitle.replaceAll(' ', '.'))
+                       .replace('%e_n', episodeTitle.replaceAll(' ', '_'))
+                       .replace('%fn', fileName)
+                       .replace('%res', resolution);
 
         return result
             .replace('%e', '4')
