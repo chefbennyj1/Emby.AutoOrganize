@@ -74,8 +74,21 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return NamingOptions;
         }
 
-        
 
+        private bool CheckIfFilesMatch(string SourcePath, string TargetPath)
+        {
+            try
+            {
+                var sourceSize = FileSystem.GetFileInfo(SourcePath).Length;
+                var targetSize = FileSystem.GetFileInfo(TargetPath).Length;
+                return sourceSize == targetSize;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
         public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             FileOrganizationResult result = null;
@@ -667,7 +680,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 var existingEpisodeFilesButWithDifferentPath = GetExistingEpisodeFilesButWithDifferentPath(result.TargetPath, series, episode);
                 result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
 
-                var episodeExists = FileSystem.FileExists(result.TargetPath) || result.DuplicatePaths.Count > 0;
+                var fileExists = CheckIfFilesMatch(sourcePath, result.TargetPath); //check if exact file sorted
+                var episodeExists = fileExists || result.DuplicatePaths.Count > 0; //check for other copies (duplicates)
 
                 //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "InUse"
                 if(IsCopying(sourcePath, FileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
@@ -699,23 +713,33 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     return;
                 }
 
-                
-                //Five phases:
-                //1. Overwrite existing files option is unchecked - The key words input is empty - the file already exists in the library - no files will be overwritten - mark as existing - stop organization.
-                //2. Overwrite existing files option is checked - Doesn't matter about key words - the file already exists in the library - any file will overwrite the library item.
-                //3. Overwrite existing files option is unchecked - Key words inputs have values - the file already exists in the library - only items with key words in the file name will overwrite the library item.
-                //4. a)  The file doesn't exist in the library - is a new episode for an existing series - auto sorting is turned on - Sort episodes for existing series only is turned on - sort it!
+
+                //Six phases:
+                //1. Destination file is the same file as the one we are trying to sort and there are no duplicates - stop organisation and do nothing.
+                //2. Overwrite existing files option is unchecked - The key words input is empty - the file already exists in the library - no files will be overwritten - mark as existing - stop organization.
+                //3. Overwrite existing files option is checked - Doesn't matter about key words - the file already exists in the library - any file will overwrite the library item.
+                //4. Overwrite existing files option is unchecked - Key words inputs have values - the file already exists in the library - only items with key words in the file name will overwrite the library item.
+                //5. a)  The file doesn't exist in the library - is a new episode for an existing series - auto sorting is turned on - Sort episodes for existing series only is turned on - sort it!
                 //   b)  The file doesn't exist in the library - is a new episode for a new series - auto sorting is turned on - Sort episodes for existing series only is turned off - Mark the file as NewMedia
-                //5. The file doesn't exist in the library - is new - auto sorting is turned off - Mark the file as NewMedia
+                //6. The file doesn't exist in the library - is new - auto sorting is turned off - Mark the file as NewMedia
 
                 //1.
-                if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists) 
+                if (fileExists && existingEpisodeFilesButWithDifferentPath.Count == 0)
                 {
-                    var msg = $"File '{sourcePath}' already exists at '{result.TargetPath}'. Stopping organization";
-                    if (existingEpisodeFilesButWithDifferentPath.Count > 1)
-                    {
-                        msg = $"File '{sourcePath}' already exists as these:'{string.Join("', '", existingEpisodeFilesButWithDifferentPath)}'. Stopping organization";
-                    }
+                    var msg = $"Exact Match.<br/>File '{sourcePath}' is the same as '{result.TargetPath}'.";
+                    Log.Info(msg + " Stopping organization");
+                    result.Status = FileSortingStatus.Success;
+                    result.StatusMessage = msg;
+                    result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                    return;
+                }
+
+                //2.
+                if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists)
+                {
+                    var msg = $"Existing Episode & No Overwrite.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
                     Log.Info(msg);
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
@@ -723,10 +747,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
-                   
                 }
                 
-                //2.
+                //3.
                 if (options.OverwriteExistingEpisodeFiles && episodeExists && options.AutoDetectSeries)
                 {
                     RemoveExistingLibraryFiles(existingEpisodeFilesButWithDifferentPath, result);
@@ -740,7 +763,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     return;
                 }
 
-                //3.
+                //4.
                 if (!options.OverwriteExistingEpisodeFiles && options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists && options.AutoDetectSeries)
                 {
                     if (options.OverwriteExistingEpisodeFilesKeyWords.Any(word => result.OriginalFileName.ContainsIgnoreCase(word)))
@@ -756,25 +779,24 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         return;
                     }
 
-                    var msg = $"File '{sourcePath}' already exists as these:'{string.Join("', '", existingEpisodeFilesButWithDifferentPath)}'. Stopping organization";
+                    var msg = $"Overwrite restricted to key words.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
                     Log.Info(msg);
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
                     result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
                     OrganizationService.SaveResult(result, cancellationToken);
-                    //OrganizationService.RemoveFromInProgressList(result);
-                   
+
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
                 }
 
-                //4.
+                //5.
                 if (!episodeExists && options.AutoDetectSeries)
                 {
                     if (IsNewSeries(series) && options.SortExistingSeriesOnly)
                     {//b
-                        var msg = $"Auto detect disabled for new series. File '{sourcePath}' will wait for user interaction. Stopping organization";
+                        var msg = $"Enable new series creation is disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
                         Log.Info(msg);
                         result.Status = FileSortingStatus.NewMedia;
                         result.StatusMessage = msg;
@@ -793,15 +815,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     return;
                 }
 
-                //5.
+                //6.
                 if (!options.AutoDetectSeries && !episodeExists)
                 {
-                    var msg = $"Series Auto detect disabled. File '{sourcePath}' will wait for user interaction. Stopping organization";
+                    var msg = $"Smart Series Auto detect disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
                     Log.Info(msg);
                     result.Status = FileSortingStatus.NewMedia;
                     result.StatusMessage = msg;
                     OrganizationService.SaveResult(result, cancellationToken);
-                    //OrganizationService.RemoveFromInProgressList(result);
 
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
