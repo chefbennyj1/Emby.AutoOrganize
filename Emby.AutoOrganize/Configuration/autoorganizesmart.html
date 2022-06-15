@@ -1,32 +1,28 @@
-﻿<div id="libraryFileOrganizerSmartMatchPage" data-role="page" class="page type-interior pluginConfigurationPage withTabs" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeSmartJs">
+﻿<div id="libraryFileOrganizerSmartMatchPage" data-role="page" is="emby-scroller" class="libraryFileOrganizerSmartMatchPage pluginConfigurationPage view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY overflowYScroll" data-mousewheel="true" data-horizontal="false" data-centerfocus="card" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeSmartJs">
+    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page settingsContainer scrollSliderY">
+        <div class="readOnlyContent" style="padding-bottom:2em">
+            <div is="emby-collapse" title="Smart Matches">
+                <div class="collapseContent divMatchInfos">
 
-    <div>
-        <div class="content-primary">
-
-            <div class="readOnlyContent" style="padding-bottom:2em">
-                <div is="emby-collapse" title="Smart Matches">
-                    <div class="collapseContent divMatchInfos">
-
-                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="verticalSection">
-                <div class="sectionTitleContainer sectionTitleContainer-cards">
-                    <h2 class="sectionTitle sectionTitle-cards">
-                        <span>Custom Smart Match</span>
-                    </h2>
-                    <button is="emby-button" type="button" class="raised raised-mini btnCreateCustomSmartListEntry submit sectionTitleButton emby-button emby-button-backdropfilter raised-backdropfilter" style="margin-left:1em;">
-                        <i class="md-icon button-icon button-icon button-icon-left"></i>
-                        <span>Create</span>
-                    </button>
-                </div>
+        <div class="verticalSection">
+            <div class="sectionTitleContainer sectionTitleContainer-cards">
+                <h2 class="sectionTitle sectionTitle-cards">
+                    <span>Custom Smart Match</span>
+                </h2>
+                <button is="emby-button" type="button" class="raised raised-mini btnCreateCustomSmartListEntry submit sectionTitleButton emby-button emby-button-backdropfilter raised-backdropfilter" style="margin-left:1em;">
+                    <i class="md-icon button-icon button-icon button-icon-left"></i>
+                    <span>Create</span>
+                </button>
             </div>
+        </div>
 
-            <div class="readOnlyContent">
-                <div is="emby-collapse" title="Custom Smart Matches">
-                    <div class="collapseContent divCustomMatchInfos">
-                    </div>
+        <div class="readOnlyContent">
+            <div is="emby-collapse" title="Custom Smart Matches">
+                <div class="collapseContent divCustomMatchInfos">
                 </div>
             </div>
         </div>
