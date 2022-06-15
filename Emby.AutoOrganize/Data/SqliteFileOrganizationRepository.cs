@@ -184,9 +184,11 @@ namespace Emby.AutoOrganize.Data
                     var commandText =
                         "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults";
 
+                    var filterBy = "";
                     if (!string.IsNullOrEmpty(query.Type) && query.Type != "All")
                     {
-                        commandText += $" WHERE OrganizationType = \"{query.Type}\"";
+                        filterBy = $" WHERE OrganizationType = \"{query.Type}\"";
+                        commandText += filterBy;
                     }
 
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
@@ -216,7 +218,7 @@ namespace Emby.AutoOrganize.Data
 
                     int count;
                     using (var statement =
-                        connection.PrepareStatement("select count (ResultId) from FileOrganizerResults"))
+                        connection.PrepareStatement($"select count (ResultId) from FileOrganizerResults{filterBy}"))
                     {
                         count = statement.ExecuteQuery().First().GetInt(0);
                     }

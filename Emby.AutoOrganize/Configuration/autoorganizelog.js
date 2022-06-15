@@ -1,4 +1,4 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
+define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
     
     ApiClient.getFilePathCorrections = function() {
         var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
@@ -204,15 +204,11 @@
 
         var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
 
-        
         if (!item.TargetPath) {
-
             return;
-
         }
 
         openConfirmDialog(page, item);
-       
     }
 
     function openConfirmDialog(view, item) {
@@ -848,7 +844,7 @@
     function getResultItemTypeIcon(type) {
         switch (type) {
             case "Unknown": return { path: "" }
-            case "Movie": return { path: "M14.75 5.46L12 1.93L13.97 1.54L16.71 5.07L14.75 5.46M21.62 4.1L20.84 .18L16.91 .96L19.65 4.5L21.62 4.1M11.81 6.05L9.07 2.5L7.1 2.91L9.85 6.44L11.81 6.05M2 8V18C2 19.11 2.9 20 4 20H20C21.11 20 22 19.11 22 18V8H2M4.16 3.5L3.18 3.69C2.1 3.91 1.4 4.96 1.61 6.04L2 8L6.9 7.03L4.16 3.5M11 24H13V22H11V24M7 24H9V22H7V24M15 24H17V22H15V24Z" }
+            case "Movie": return { path: "M20.84 2.18L16.91 2.96L19.65 6.5L21.62 6.1L20.84 2.18M13.97 3.54L12 3.93L14.75 7.46L16.71 7.07L13.97 3.54M9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05L9.07 4.5M4.16 5.5L3.18 5.69A2 2 0 0 0 1.61 8.04L2 10L6.9 9.03L4.16 5.5M2 10V20C2 21.11 2.9 22 4 22H20C21.11 22 22 21.11 22 20V10H2Z" }
             case "Episode": return { path: "M8.16,3L6.75,4.41L9.34,7H4C2.89,7 2,7.89 2,9V19C2,20.11 2.89,21 4,21H20C21.11,21 22,20.11 22,19V9C22,7.89 21.11,7 20,7H14.66L17.25,4.41L15.84,3L12,6.84L8.16,3M4,9H17V19H4V9M19.5,9A1,1 0 0,1 20.5,10A1,1 0 0,1 19.5,11A1,1 0 0,1 18.5,10A1,1 0 0,1 19.5,9M19.5,12A1,1 0 0,1 20.5,13A1,1 0 0,1 19.5,14A1,1 0 0,1 18.5,13A1,1 0 0,1 19.5,12Z" }
             case "Song": return { path: "M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z" }
         }
@@ -1491,22 +1487,9 @@
             },
             1000);
 
-
-        view.querySelector('.btnAll').addEventListener('click', async () => {
+        view.querySelector('#filterDropdown').addEventListener('change', async (e) => {
             query.StartIndex = 0;
-            query.Type = "All";
-            await reloadItems(view, true);
-        });
-
-        view.querySelector('.btnMovie').addEventListener('click', async () => {
-            query.StartIndex = 0;
-            query.Type = "Movie";
-            await reloadItems(view, true);
-        });
-
-        view.querySelector('.btnEpisode').addEventListener('click', async () => {
-            query.StartIndex = 0;
-            query.Type = "Episode";
+            query.Type = e.target.selectedOptions[0].value;
             await reloadItems(view, true);
         });
 
