@@ -290,6 +290,80 @@ define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'dat
         dialogHelper.open(dlg);
     }
 
+    function openClearDialog() {
+        var dlg = dialogHelper.createDialog({
+            size: "small",
+            removeOnClose: !1,
+            scrollY: !0
+        });
+
+        dlg.classList.add("formDialog");
+        dlg.classList.add("ui-body-a");
+        dlg.classList.add("background-theme-a");
+        dlg.style.maxHeight = "40%";
+        dlg.style.maxWidth = "40%";
+
+
+        var html = '';
+        html += '<div class="formDialogHeader" style="display:flex">';
+        html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light" tabindex="-1"><i class="md-icon"></i></button><h3 class="formDialogHeaderTitle">Clear Log</h3>';
+        html += '</div>';
+
+        html += '<div class="formDialogContent flex flex-direction-column" style="text-align:center; display:flex; justify-content:center;align-items:center">';
+        html += 'Once items have been removed from the logs they cannot be restored.';
+
+        html += '<div class="flex flex-direction-row" style="align-items: center">'
+        html += '<button is="emby-button" type="button" id="btnClearCompleted" class="raised emby-button">';
+        html += '<svg style="width: 24px; height: 24px" viewBox="0 0 24 24">';
+        html += '<path fill="var(--focus-background)" d="M18 14.5C19.11 14.5 20.11 14.95 20.83 15.67L22 14.5V18.5H18L19.77 16.73C19.32 16.28 18.69 16 18 16C16.62 16 15.5 17.12 15.5 18.5C15.5 19.88 16.62 21 18 21C18.82 21 19.55 20.61 20 20H21.71C21.12 21.47 19.68 22.5 18 22.5C15.79 22.5 14 20.71 14 18.5C14 16.29 15.79 14.5 18 14.5M4 3H18C19.11 3 20 3.9 20 5V12.17C19.5 12.06 19 12 18.5 12C17.23 12 16.04 12.37 15.04 13H12V17H12.18C12.06 17.5 12 18 12 18.5L12 19H4C2.9 19 2 18.11 2 17V5C2 3.9 2.9 3 4 3M4 7V11H10V7H4M12 7V11H18V7H12M4 13V17H10V13H4Z" />';
+        html += '</svg>';
+        html += '<span>Clear Completed Only</span>';
+        html += '</button>';
+        html += '<button is="emby-button" type="button" id="btnClearLog" class="raised emby-button">';
+        html += '<svg style="width: 24px; height: 24px" viewBox="0 0 24 24">';
+        html += '<path fill="var(--focus-background)" d="M15.46,15.88L16.88,14.46L19,16.59L21.12,14.46L22.54,15.88L20.41,18L22.54,20.12L21.12,21.54L19,19.41L16.88,21.54L15.46,20.12L17.59,18L15.46,15.88M4,3H18A2,2 0 0,1 20,5V12.08C18.45,11.82 16.92,12.18 15.68,13H12V17H13.08C12.97,17.68 12.97,18.35 13.08,19H4A2,2 0 0,1 2,17V5A2,2 0 0,1 4,3M4,7V11H10V7H4M12,7V11H18V7H12M4,13V17H10V13H4Z" />';
+        html += '</svg>';
+        html += '<span>Clear All Logs</span>';
+        html += '</button>';
+        html += '</div>';
+        html += '</div>';
+
+        html += '<div class="formDialogFooter" style="position:relative" >';
+        html += '<button id="cancelButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Cancel</button>';
+        html += '</div>';
+
+        dlg.innerHTML = html;
+
+        
+        dlg.querySelector('.btnCloseDialog').addEventListener('click',
+            () => {
+                dialogHelper.close(dlg);
+            });
+            
+        dlg.querySelector('#cancelButton').addEventListener('click',
+            () => {
+                dialogHelper.close(dlg);
+            })
+
+        dlg.querySelector('#btnClearCompleted').addEventListener('click', function () {
+            ApiClient.clearOrganizationCompletedLog().then(async function () {
+                query.StartIndex = 0;
+                await reloadItems(view, true);
+            }, Dashboard.processErrorResponse);
+            dialogHelper.close(dlg);
+        })
+
+        dlg.querySelector('#btnClearLog').addEventListener('click', function () {
+            ApiClient.clearOrganizationLog().then(async function () {
+                query.StartIndex = 0;
+                await reloadItems(view, true);
+            }, Dashboard.processErrorResponse);
+            dialogHelper.close(dlg);
+        });
+
+        dialogHelper.open(dlg);
+    }
+
     async function openComparisonDialog(id) {
        
         var sourceResult = await ApiClient.getFileOrganizationResults(query)
@@ -1493,22 +1567,9 @@ define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'dat
             await reloadItems(view, true);
         });
 
-        view.querySelector('.btnClearLog').addEventListener('click', function () {
-
-            ApiClient.clearOrganizationLog().then(async function () {
-                query.StartIndex = 0;
-                await reloadItems(view, true);
-            }, Dashboard.processErrorResponse);
+        view.querySelector('#btnClearDialog').addEventListener('click', function () {
+            openClearDialog();
         });
-
-        view.querySelector('.btnClearCompleted').addEventListener('click', function () {
-
-            ApiClient.clearOrganizationCompletedLog().then(async function () {
-                query.StartIndex = 0;
-                await reloadItems(view, true);
-            }, Dashboard.processErrorResponse);
-        });
-
        
         txtSearch.addEventListener('input', (e) => {
             debounceSearchTerm(e.target.value);
