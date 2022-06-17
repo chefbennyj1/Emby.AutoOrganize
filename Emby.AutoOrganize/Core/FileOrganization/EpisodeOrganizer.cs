@@ -715,7 +715,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
 
                 //Six phases:
-                //1. Destination file is the same file as the one we are trying to sort and there are no duplicates - stop organisation and do nothing.
+                //1. Copy Mode Only - Destination file is the same file as the one we are trying to sort and there are no duplicates - stop organisation and do nothing.
                 //2. Overwrite existing files option is unchecked - The key words input is empty - the file already exists in the library - no files will be overwritten - mark as existing - stop organization.
                 //3. Overwrite existing files option is checked - Doesn't matter about key words - the file already exists in the library - any file will overwrite the library item.
                 //4. Overwrite existing files option is unchecked - Key words inputs have values - the file already exists in the library - only items with key words in the file name will overwrite the library item.
@@ -724,7 +724,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //6. The file doesn't exist in the library - is new - auto sorting is turned off - Mark the file as NewMedia
 
                 //1.
-                if (fileExists && existingEpisodeFilesButWithDifferentPath.Count == 0)
+                if (options.CopyOriginalFile && fileExists && existingEpisodeFilesButWithDifferentPath.Count == 0)
                 {
                     var msg = $"Exact Match.<br/>File '{sourcePath}' is the same as '{result.TargetPath}'.";
                     Log.Info(msg + " Stopping organization");
@@ -739,7 +739,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //2.
                 if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists)
                 {
-                    var msg = $"Existing Episode & No Overwrite.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
+                    var msg = $"Existing Episode & No Overwrite.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                     Log.Info(msg);
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
@@ -779,7 +779,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         return;
                     }
 
-                    var msg = $"Overwrite restricted to key words.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
+                    var msg = $"Overwrite restricted to key words.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                     Log.Info(msg);
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
@@ -796,7 +796,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 {
                     if (IsNewSeries(series) && options.SortExistingSeriesOnly)
                     {//b
-                        var msg = $"Enable new series creation is disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
+                        var msg = $"Enable new series creation is disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                         Log.Info(msg);
                         result.Status = FileSortingStatus.NewMedia;
                         result.StatusMessage = msg;
@@ -818,7 +818,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //6.
                 if (!options.AutoDetectSeries && !episodeExists)
                 {
-                    var msg = $"Smart Series Auto detect disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the AutoOrganize log.";
+                    var msg = $"Smart Series Auto detect disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                     Log.Info(msg);
                     result.Status = FileSortingStatus.NewMedia;
                     result.StatusMessage = msg;
