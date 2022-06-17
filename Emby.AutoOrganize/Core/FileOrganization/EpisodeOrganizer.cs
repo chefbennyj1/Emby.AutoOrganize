@@ -175,7 +175,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.Subtitles = mediaInfo.Subtitles;
                 result.ExtractedResolution = mediaInfo.Resolution;
 
-
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 
@@ -489,7 +488,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     if (episode is null)
                     {
                         string epNumber = request.EndingEpisodeNumber > 0 ? string.Concat(request.EpisodeNumber, '-', request.EndingEpisodeNumber) : $"{request.EpisodeNumber}";
-                        var msg = $"Unable to retrieve episode information for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:1)";
+                        var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:1)";
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = msg;
                         Log.Warn(msg);
@@ -510,7 +509,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (string.IsNullOrEmpty(episodeFileName))
                 {
                     string epNumber = request.EndingEpisodeNumber > 0 ? string.Concat(request.EpisodeNumber, '-', request.EndingEpisodeNumber) : $"{request.EpisodeNumber}";
-                    var msg = $"Unable to retrieve episode information for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:2)";
+                    var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:2)";
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     Log.Warn(msg);
@@ -637,7 +636,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             if (episode is null)
             {
                 string epNumber = endingEpisodeNumber > 0 ? string.Concat(episodeNumber, '-', endingEpisodeNumber) : $"{episodeNumber}";
-                var msg = $"Unable to retrieve episode information for {series.Name} Season {seasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:3)";
+                var msg = $"No provider metadata found for {series.Name} Season {seasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:3)";
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = msg;
                 Log.Warn(msg);
