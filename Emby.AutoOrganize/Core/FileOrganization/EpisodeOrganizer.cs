@@ -74,21 +74,30 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return NamingOptions;
         }
 
-
-        private bool CheckIfFilesMatch(string SourcePath, string TargetPath)
+        private bool IsSameEpisode(string sourcePath, string newPath)
         {
             try
             {
-                var sourceSize = FileSystem.GetFileInfo(SourcePath).Length;
-                var targetSize = FileSystem.GetFileInfo(TargetPath).Length;
-                return sourceSize == targetSize;
+                var sourceFileInfo = FileSystem.GetFileInfo(sourcePath);
+                var destinationFileInfo = FileSystem.GetFileInfo(newPath);
+
+                if (sourceFileInfo.Length == destinationFileInfo.Length)
+                {
+                    return true;
+                }
             }
-            catch
+            catch (FileNotFoundException)
             {
                 return false;
             }
+            catch (IOException)
+            {
+                return false;
+            }
+
+            return false;
         }
-        
+    
         public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             FileOrganizationResult result = null;
@@ -680,7 +689,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 var existingEpisodeFilesButWithDifferentPath = GetExistingEpisodeFilesButWithDifferentPath(result.TargetPath, series, episode);
                 result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
 
-                var fileExists = CheckIfFilesMatch(sourcePath, result.TargetPath); //check if exact file sorted
+                var fileExists = IsSameEpisode(sourcePath, result.TargetPath); //check if exact file sorted
                 var episodeExists = fileExists || result.DuplicatePaths.Count > 0; //check for other copies (duplicates)
 
                 //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "InUse"
