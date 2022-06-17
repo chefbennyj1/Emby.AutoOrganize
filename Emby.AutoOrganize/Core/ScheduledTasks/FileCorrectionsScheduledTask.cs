@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,10 +51,10 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
             };
         }
 
-        public string Name => "AutoOrganize File Name Corrections";
+        public string Name => "File Name Corrections";
         public string Key => "AutoOrganizeFileNameCorrections";
         public string Description => "Locate files in the file system which names don't match the user defined pattern";
-        public string Category => "Library";
+        public string Category => "Auto Organize";
         public bool IsHidden => false;
         public bool IsEnabled => true;
         public bool IsLogged => true;
