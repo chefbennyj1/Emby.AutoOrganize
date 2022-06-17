@@ -15,6 +15,7 @@
   <ItemGroup>
     <None Remove="Configuration\autoorganizecorrections.html" />
     <None Remove="Configuration\autoorganizecorrections.js" />
+    <None Remove="Configuration\detailtable.css" />
     <None Remove="Core\FileOrganization\5jobyk34.jie~" />
     <None Remove="thumb.gif" />
   </ItemGroup>
@@ -39,6 +40,8 @@
     <EmbeddedResource Include="Configuration\autoorganizesettings.html" />
 
     <EmbeddedResource Include="Configuration\autoorganizesettings.js" />
+
+    <EmbeddedResource Include="Configuration\detailtable.css" />
  
    <EmbeddedResource Include="Configuration\fileorganizer.js" />
 
