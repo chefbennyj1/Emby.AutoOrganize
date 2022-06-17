@@ -14,10 +14,10 @@ namespace Emby.AutoOrganize.FileMetadata
 
     public class MediaInfo
     {
-        public List<string> AudioStreamCodecs { get; set; }
-        public List<string> VideoStreamCodecs { get; set; }
-        public Resolution Resolution          { get; set; }
-        public List<string> Subtitles         { get; set; }
+        public List<string> AudioStreamCodecs { get; }
+        public List<string> VideoStreamCodecs { get; }
+        public Resolution Resolution          { get; private set; }
+        public List<string> Subtitles         { get; }
 
         public MediaInfo()
         {
@@ -120,8 +120,7 @@ namespace Emby.AutoOrganize.FileMetadata
                 if (diagonal > 749.0 && diagonal   <= 920.0)     return "540p";
                 if (diagonal > 920.0 && diagonal   <= 1101.4)    return "576p";
                 if (diagonal > 1101.4 && diagonal  <= 1468.6)    return "720p";  //16:9
-                if (diagonal > 1468.6 && diagonal  <= 2315.32)   return "1080p"; //16:9 or 1:1.77
-                if (diagonal > 2315.32 && diagonal <= 2937.21)   return "1440p"; //16:9
+                if (diagonal > 1468.6 && diagonal  <= 2937.21)   return "1080p"; //16:9 or 1:1.77
                 if (diagonal > 2937.21 && diagonal <= 4405.81)   return "2160p"; //1:1.9 - 4K
                 if (diagonal > 4405.81 && diagonal <= 8811.63)   return "4320p"; //16∶9 - 8K
 

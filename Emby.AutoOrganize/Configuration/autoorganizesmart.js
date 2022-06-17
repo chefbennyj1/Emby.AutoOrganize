@@ -95,6 +95,10 @@
                 populateList(page, result);
             }
 
+            
+
+            
+
             loading.hide();
         }
 
@@ -104,21 +108,19 @@
             var matchStringHtml = '';
             for (let matchStringIndex = 0; matchStringIndex < info.MatchStrings.length; matchStringIndex++) {
 
-                matchStringHtml +=
-                    '<div class="listItem" style="border-bottom: 1px solid var(--theme-icon-focus-background)">';
+                matchStringHtml += '<div class="listItem">';
 
                 matchStringHtml += '<div class="listItemBody">';
 
-                matchStringHtml += "<div class='listItemBodyText secondary'>";
+                matchStringHtml += '<div class="listItemBodyText secondary">';
 
                 matchStringHtml += info.MatchStrings[matchStringIndex];
 
-                matchStringHtml += "</div>";
+                matchStringHtml += '</div>';
 
                 matchStringHtml += '</div>';
 
-                matchStringHtml +=
-                    '<button type="button" is="emby-button" class="btnDeleteMatchEntry emby-button" style="padding: 0;" id="' +
+                matchStringHtml += '<button type="button" is="emby-button" class="btnDeleteMatchEntry emby-button" style="padding: 0;" data-id="' +
                     info.Id + '" data-match-string="' + info.MatchStrings[matchStringIndex] + '" title="Delete"><i class="md-icon">delete</i></button>';
 
                 matchStringHtml += '</div>';
@@ -152,13 +154,13 @@
                 } else {
 
                     var smartListHtml = "";
-                    smartListHtml += '<div class="" style="padding:4%">';
-                    smartListHtml += '<div is="emby-collapse" title="' + (match.Name) + '">';
-                    smartListHtml += '<div class="collapseContent">';
+                    //smartListHtml += '<div class="" style="padding:4%">';
+                    smartListHtml += '<h3 style="border-bottom: 1px solid hsla(var(--background-hue),var(--background-saturation),calc(var(--background-lightness) - 82%),.5);padding: 9px;"">' + match.Name + '</h3>';
+                    //smartListHtml += '<div class="collapseContent matchStringInfo">';
                     smartListHtml += getHtmlFromMatchStrings(match);
+                    //smartListHtml += '</div>';
                     smartListHtml += '</div>';
-                    smartListHtml += '</div>';
-                    smartListHtml += '</div>';
+                    //smartListHtml += '</div>';
                     matchInfos.innerHTML += smartListHtml;
                 }
 
@@ -167,7 +169,7 @@
             [...page.querySelectorAll('.btnDeleteMatchEntry')].forEach(btn => {
                 btn.addEventListener('click',
                     async (e) => {
-                        var id = e.target.closest('button').id;
+                        var id = e.target.closest('button').dataset.id;
                         var matchString = e.target.closest('button').dataset.matchString;
                         await removeSmartMatchEntry(page, id, matchString);
 
@@ -352,40 +354,18 @@
 
         return function (view, params) {
 
-            
-            var smartMatches = view.querySelector('.divMatchInfos');
-            var customSmartMatches = view.querySelector('.divCustomMatchInfos');
-            
-            smartMatches.addEventListener('click', async function (e) {
-                var button = parentWithClass(e.target, 'btnDeleteMatchEntry');
-                if (button) {
-                    var index = parseInt(button.getAttribute('data-index'));
-                    var matchIndex = parseInt(button.getAttribute('data-matchindex'));
-                    await removeSmartMatchEntry(view, index, matchIndex);
-                    
-                }
-            });
-
-            customSmartMatches.addEventListener('click', async function (e) {
-                var button = parentWithClass(e.target, 'btnDeleteMatchEntry');
-                if (button) {
-                    var index = parseInt(button.getAttribute('data-index'));
-                    var matchIndex = parseInt(button.getAttribute('data-matchindex'));
-                    await removeSmartMatchEntry(view, index, matchIndex);
-                    
-                }
-            });
-
-            view.querySelector('.btnCreateCustomSmartListEntry').addEventListener('click', async () => {
-                await openCustomSmartMatchDialog(view);
-            });
-
             view.addEventListener('viewshow', async function (e) {
 
                 const correction = await ApiClient.getFilePathCorrections();
                 addCorrectionsTab = correction.Items.length > 0;
                 mainTabsManager.setTabs(this, 2, getTabs);
                 loading.show();
+
+                
+                view.querySelector('.btnCreateCustomSmartListEntry').addEventListener('click', async () => {
+                    await openCustomSmartMatchDialog(view);
+                });
+
 
                 await reloadList(view);
 

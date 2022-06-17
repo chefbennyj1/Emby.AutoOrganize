@@ -3,7 +3,6 @@ namespace Emby.AutoOrganize.Model
 {
     public class AutoOrganizeOptions
     {
-        
         public bool EnableTelevisionOrganization              { get; set; }
         public bool EnableMovieOrganization                   { get; set; }
         public string[] WatchLocations                        { get; set; }

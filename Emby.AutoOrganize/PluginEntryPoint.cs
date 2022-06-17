@@ -66,7 +66,6 @@ namespace Emby.AutoOrganize
             FileOrganizationService = new InternalFileOrganizationService(TaskManager, Repository, Logger, LibraryMonitor, LibraryManager, ConfigurationManager, FileSystem, ProviderManager);
 
             FileOrganizationService.ItemAdded     += _organizationService_ItemAdded;
-           
             MovieOrganizer.ItemUpdated            += _organizationService_ItemUpdated;
             EpisodeOrganizer.ItemUpdated          += _organizationService_ItemUpdated;
             SubtitleOrganizer.ItemUpdated         += _organizationService_ItemUpdated;

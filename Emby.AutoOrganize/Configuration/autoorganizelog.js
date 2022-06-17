@@ -64,29 +64,29 @@
         });
     };
     //
-    ApiClient.performEpisodeOrganization = function (id, options) {
+    //ApiClient.performEpisodeOrganization = function (id, options) {
 
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
+    //    var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
 
-        return this.ajax({
-            type: "POST",
-            url: url,
-            data: JSON.stringify(options),
-            contentType: 'application/json'
-        });
-    };
+    //    return this.ajax({
+    //        type: "POST",
+    //        url: url,
+    //        data: JSON.stringify(options),
+    //        contentType: 'application/json'
+    //    });
+    //};
 
-    ApiClient.performMovieOrganization = function (id, options) {
+    //ApiClient.performMovieOrganization = function (id, options) {
 
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
+    //    var url = this.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
 
-        return this.ajax({
-            type: "POST",
-            url: url,
-            data: JSON.stringify(options),
-            contentType: 'application/json'
-        });
-    };
+    //    return this.ajax({
+    //        type: "POST",
+    //        url: url,
+    //        data: JSON.stringify(options),
+    //        contentType: 'application/json'
+    //    });
+    //};
     
     ApiClient.getRemoteSearchImages = async function (options, item) {
 
@@ -194,8 +194,8 @@
 
         require([Dashboard.getConfigurationResourceUrl('FileOrganizerJs')], async function (fileorganizer) {
 
-            await fileorganizer.show(item).then(function () {
-                reloadItems(page, false);
+            await fileorganizer.show(item).then(async function () {
+                await reloadItems(page, false);
             }, function () { /* Do nothing on reject */ });
         });
     }
@@ -280,9 +280,9 @@
                 var options = {
                     RequestToMoveFile: true
                 }
-                ApiClient.performOrganization(item.Id, options).then(function () {
-                    reloadItems(view, false);
-                }, reloadItems(view, false));
+                ApiClient.performOrganization(item.Id, options).then(async function () {
+                    await reloadItems(view, false);
+                }, function() {});
                 dialogHelper.close(dlg);
             });
        
@@ -568,7 +568,7 @@
 
         await renderResults(page, result);
 
-        pageGlobal.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
+        page.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
             btn.addEventListener('click',
                 (e) => {
                     let id = e.target.getAttribute('data-resultid');
@@ -576,7 +576,7 @@
                 });
         })
 
-        pageGlobal.querySelectorAll('.btnIdentifyResult').forEach(btn => {
+        page.querySelectorAll('.btnIdentifyResult').forEach(btn => {
             btn.addEventListener('click',
                 (e) => {
                     e.preventDefault();
@@ -586,7 +586,7 @@
                 });
         })
 
-        pageGlobal.querySelectorAll('.btnProcessResult').forEach(btn => {
+        page.querySelectorAll('.btnProcessResult').forEach(btn => {
             btn.addEventListener('click',
                 (e) => {
                     let id = e.target.closest('button').getAttribute('data-resultid');
@@ -594,7 +594,7 @@
                 })
         });
 
-        pageGlobal.querySelectorAll('.btnDeleteResult').forEach(btn => {
+        page.querySelectorAll('.btnDeleteResult').forEach(btn => {
             btn.addEventListener('click',
                 async (e) => {
                     let id = e.target.closest('button').getAttribute('data-resultid');
@@ -605,7 +605,7 @@
                 });
         })
 
-        pageGlobal.querySelectorAll('.btnShowSubtitleList').forEach(btn => btn.addEventListener('click',
+        page.querySelectorAll('.btnShowSubtitleList').forEach(btn => btn.addEventListener('click',
             (e) => {
                 let id = e.target.getAttribute('data-resultid');
                 var subtitles = currentResult.Items.filter(function (i) { return i.Id === id; })[0].Subtitles;
@@ -619,7 +619,7 @@
                 });
             }));
 
-        var statusIcons = [...pageGlobal.querySelectorAll('.statusIcon')];
+        var statusIcons = [...page.querySelectorAll('.statusIcon')];
         var itemsToCompare = statusIcons.filter(icon => icon.dataset.status === "SkippedExisting" ||
             icon.dataset.status === "NewEdition" ||
             icon.dataset.status === "NewResolution");
@@ -1142,10 +1142,10 @@
         html += '</td>';
 
         //Internal Subtitles
-        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
+        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles" >';
         if (item.Subtitles.length) {
 
-            html += '<svg style="width:24px;height:24px; cursor:pointer" viewBox="0 0 24 24" data-resultid="' + item.Id + '" class="btnShowSubtitleList">';
+            html += '<svg style="width:24px;height:24px; cursor:pointer;" viewBox="0 0 24 24" data-resultid="' + item.Id + '" class="btnShowSubtitleList">';
             html += '<path fill="var(--theme-accent-text-color)" d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"  />';
             html += '</svg>';
 

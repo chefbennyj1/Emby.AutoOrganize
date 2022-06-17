@@ -120,7 +120,7 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
 
-        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existing File", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        [ApiMember(Name = "RequestToMoveFile", Description = "Force sorting of the file", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToMoveFile { get; set; }
 
         [ApiMember(Name = "CreateNewDestination", Description = "Create New Destination Folder", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
@@ -304,7 +304,7 @@ namespace Emby.AutoOrganize.Api
                 RememberCorrection              = request.RememberCorrection,
                 ResultId                        = request.Id,
                 SeasonNumber                    = request.SeasonNumber,
-                SeriesId                        = request.SeriesId,
+                SeriesId                        = request.SeriesId ?? string.Empty,
                 Name                            = request.Name,
                 Year                            = request.Year,
                 ProviderIds                     = dicNewProviderIds,
@@ -408,7 +408,7 @@ namespace Emby.AutoOrganize.Api
                 }
                 catch
                 {
-                    
+                    InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
                 }
             }
         }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Emby.AutoOrganize.Data;
 using Emby.AutoOrganize.FileMetadata;
 using Emby.AutoOrganize.Model.Organization;
 
@@ -75,6 +74,7 @@ namespace Emby.AutoOrganize.Model
         public int? ExtractedEndingEpisodeNumber { get; set; }
         
         public string ExtractedEndingEpisodeName { get; set; }
+
         public string ExtractedEpisodeName { get; set; }
         /// <summary>
         /// Gets or sets the target path.
@@ -139,19 +139,11 @@ namespace Emby.AutoOrganize.Model
 
         public FileOrganizationResult()
         {
-            DuplicatePaths = new List<string>();
+            DuplicatePaths        = new List<string>();
             ExternalSubtitlePaths = new List<string>();
-            AudioStreamCodecs = new List<string>();
-            VideoStreamCodecs = new List<string>();
-            Subtitles = new List<string>();
-            
+            AudioStreamCodecs     = new List<string>();
+            VideoStreamCodecs     = new List<string>();
+            Subtitles             = new List<string>();
         }
     }
-
-    //public class Resolution
-    //{
-    //    public string Name { get; set; }
-    //    public int Width { get; set; }
-    //    public int Height { get; set; }
-    //}
 }

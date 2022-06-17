@@ -45,7 +45,7 @@
     function getEpisodeFileName(value, enableMultiEpisode) {
 
         var seriesName = "Series Name";
-        var episodeTitle = "Episode Four";
+        var episodeTitle = enableMultiEpisode ? "Episode Four, Episode Five" : "Episode Four";
         var fileName = seriesName + ' ' + episodeTitle;
         var resolution = "1080p";
 
@@ -57,8 +57,8 @@
             .replace('%00s', '001')
             .replace('%ext', 'mkv')
             .replace('%en', episodeTitle)
-            .replace('%e.n', episodeTitle.replace(' ', '.'))
-            .replace('%e_n', episodeTitle.replace(' ', '_'))
+            .replace('%e.n', episodeTitle.replaceAll('Episode ', 'Episode.'))
+            .replace('%e_n', episodeTitle.replaceAll('Episode ', 'Episode_'))
             .replace('%fn', fileName)
             .replace('%res', resolution);
 

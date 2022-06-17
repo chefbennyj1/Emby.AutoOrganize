@@ -10,8 +10,10 @@ using MediaBrowser.Model.Serialization;
 
 namespace Emby.AutoOrganize.FileMetadata
 {
+    // ReSharper disable InconsistentNaming
     public class Disposition
     {
+        
         public int @default { get; set; }
         public int dub { get; set; }
         public int original { get; set; }
@@ -43,12 +45,14 @@ namespace Emby.AutoOrganize.FileMetadata
     }
     public class FileInternalMediaInfo
     {
+        // ReSharper disable once CollectionNeverUpdated.Global - Meh.
         public List<MediaStream> streams { get; set; }
         public Format format { get; set; }
     }
+    
+    // ReSharper disable IdentifierTypo
     public class MediaStream
     {
-
         public string profile { get; set; }
         public int coded_width { get; set; }
         public int coded_height { get; set; }
@@ -70,6 +74,7 @@ namespace Emby.AutoOrganize.FileMetadata
         public string bits_per_raw_sample { get; set; }
 
         public string dmix_mode { get; set; }
+       
         public string ltrt_cmixlev { get; set; }
         public string ltrt_surmixlev { get; set; }
         public string loro_cmixlev { get; set; }
@@ -113,10 +118,10 @@ namespace Emby.AutoOrganize.FileMetadata
     public class MediaInfoProvider : IServerEntryPoint
     {
         private IFfmpegManager FfmpegManager { get; }
-        public static MediaInfoProvider Instance { get; set; }
-        private IJsonSerializer JsonSerializer { get; set; }
+        public static MediaInfoProvider Instance { get; private set; }
+        private IJsonSerializer JsonSerializer { get; }
 
-        private ConcurrentDictionary<string, int> FfprobeProcessMonitor = new ConcurrentDictionary<string, int>();
+        private readonly ConcurrentDictionary<string, int> FfprobeProcessMonitor = new ConcurrentDictionary<string, int>();
         public MediaInfoProvider(IFfmpegManager ffmpeg, IJsonSerializer json)
         {
             FfmpegManager = ffmpeg;
@@ -151,14 +156,14 @@ namespace Emby.AutoOrganize.FileMetadata
                 {
                     process.Start();
                     FfprobeProcessMonitor.TryAdd(path, process.Id);
-                    var reader = process.StandardOutput;
+                    var reader = process.StandardOutput; //<--Yikes it isn't in a using statement. But this method doesn't work while in a using statement. Be sure to close the StreamReader.
                     string line;
                     while ((line = await reader.ReadLineAsync()) != null)
                     {
                         json += line;
                     }
 
-                    reader.Close();
+                    reader.Close(); 
                 }
             }
             catch (Exception)
@@ -188,7 +193,7 @@ namespace Emby.AutoOrganize.FileMetadata
             {
 
             }
-            return FfprobeProcessMonitor.TryRemove(path, out _);
+            return FfprobeProcessMonitor.TryRemove(path, out _); //Just die already!
         }
         public void Dispose()
         {
