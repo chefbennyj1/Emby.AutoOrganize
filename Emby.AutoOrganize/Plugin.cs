@@ -105,11 +105,7 @@ namespace Emby.AutoOrganize
                     Name = "AutoOrganizeCorrections",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.html"
                 },
-                new PluginPageInfo
-                {
-                    Name = "AutoOrganizeTableStyleCss",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.detailtable.css"
-                },
+                
                 //new PluginPageInfo
                 //{
                 //Name = "Chart.js",

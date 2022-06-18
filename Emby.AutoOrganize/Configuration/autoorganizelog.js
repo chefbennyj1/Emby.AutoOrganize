@@ -1,4 +1,4 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'emby-collapse', 'emby-input'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
+﻿define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'emby-collapse', 'emby-input'], function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper) {
     
     ApiClient.getFilePathCorrections = function() {
         var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
@@ -1074,19 +1074,19 @@
         html += '</td>';
 
         //Status
-        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell" style="white-space:normal;">';
+        html += '<td data-resultid="' + item.Id + '" class= class="fileCell" style="white-space:normal; border-spacing:0;padding:.4em">';
         html += '<span>' + statusRenderData.text + '</span>';
         html += '</td>';
 
         //Name
-        html += '<td data-resultid="' + item.Id + '" class="detailTableBodyCell fileCell cellName_' + item.Id + '">';
+        html += '<td data-resultid="' + item.Id + '" class="fileCell cellName_' + item.Id + '" style="border-spacing:0;padding:.4em">';
                
         html += '<span id="string_name_' + item.Id + '">' + formatItemName(item.ExtractedName ?? "") + '</span>';
 
         html += '</td>';             
 
         //Release Edition
-        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+        html += '<td class="fileCell" data-title="Edition" style="border-spacing:0;padding:.4em">';
         switch(item.Type) {
             case "Episode":
                 if (item.ExtractedSeasonNumber && item.ExtractedEpisodeNumber) {
@@ -1106,12 +1106,12 @@
         html += '</td>';
 
         //Quality
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution" style="width:5em">';
+        html += '<td class="fileCell" data-title="Resolution"style="border-spacing:0;padding:.4em width:5em">';
         html += '<span style="color: white;background-color: var(--theme-accent-text-color); padding: .5em 1em 0.5em 1em;border-radius: 5px;font-size: 0.7em;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "")  + '</span>';  
         html += '</td>';
 
         //Codec
-        html += '<td class="detailTableBodyCell fileCell" data-title="Codec" style="width:8em">';
+        html += '<td class="fileCell" data-title="Codec" style="border-spacing:0;padding:.4em width:8em">';
         if (item.VideoStreamCodecs.length) {
             html += '<div style="display:flex; flex-direction:row">';
             html += '<div style="display:flex; flex-direction:column">'
@@ -1129,7 +1129,7 @@
         html += '</td>';
 
         //Audio
-        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+        html += '<td class="fileCell" data-title="Audio" style="border-spacing:0;padding:.4em">';
         if (item.AudioStreamCodecs.length) {
            
             html += '<div style="display:flex; flex-direction:column">'
@@ -1142,7 +1142,7 @@
         html += '</td>';
 
         //Internal Subtitles
-        html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles" >';
+        html += '<td class="fileCell" data-title="Subtitles" style="border-spacing:0;padding:.4em">';
         if (item.Subtitles.length) {
 
             html += '<svg style="width:24px;height:24px; cursor:pointer;" viewBox="0 0 24 24" data-resultid="' + item.Id + '" class="btnShowSubtitleList">';
@@ -1167,13 +1167,13 @@
         html += '</td>';
 
         //File Size
-        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+        html += '<td class="fileCell" data-title="File Size" style="border-spacing:0;padding:.4em">';
         html += '<span>' + formatBytes(item.FileSize) + '</span>';
         html += '</td>';        
 
         //Media Type Icon (Movie/Episode)
         var icon = getResultItemTypeIcon(item.Type)
-        html += '<td class="detailTableBodyCell">';
+        html += '<td style="border-spacing:0;padding:.4em">';
         html += '<div class="type-icon-container">';
         html += '<svg id="typeIcon" style="width:24px;height:24px" viewBox="0 0 24 24">';
         html += '<path fill="' + statusRenderData.color + '" d="' + icon.path + '"/>';
@@ -1182,23 +1182,23 @@
         html += '</td>';
 
         //Source file path
-        html += '<td data-title="Source" class="detailTableBodyCell fileCell" style="white-space: normal">';
+        html += '<td data-title="Source" class="fileCell" style="border-spacing:0;padding:.4em white-space: normal">';
         html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + ';white-space: normal;" href="#" class="button-link btnShowStatusMessage">';
         html += item.OriginalFileName.replaceAll('.', '<wbr>.'); //<== Add a word break opportunity to file names because they may be really long, and cause the table to go off screen.
         html += '</a>';
         html += '</td>';
 
         //Destination file path
-        html += '<td data-title="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '" class="detailTableBodyCell fileCell" style="white-space: normal">';
+        html += '<td data-title="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '" class="fileCell" style="border-spacing:0;padding:.4em white-space: normal">';
         html += item.TargetPath || '';
         html += '</td>';                                 
 
         //Row sorting options (action buttons)
-        html += '<td class="detailTableBodyCell" data-title="Actions" style="white-space:normal;">';
+        html += '<td data-title="Actions" style="border-spacing:0;padding:.4em white-space:normal;">';
         html += renderActionButtons(item);
         html += '</td>';
 
-        html += '<td class="detailTableBodyCell organizerButtonCell" style="white-space:no-wrap;"></td>';
+        html += '<td class="organizerButtonCell" style="border-spacing:0;padding:.4em white-space:no-wrap;"></td>';
         
         return html;
     }
@@ -1586,13 +1586,24 @@
             events.on(serverNotifications, 'TaskData', await onServerEvent)
             events.on(serverNotifications, 'TaskComplete', await onServerEvent)
             // on here
-            taskButton({
-                mode: 'on',
-                progressElem: view.querySelector('.itemProgressBar'),
-                panel: view.querySelector('.organizeProgress'),
-                taskKey: 'AutoOrganize',
-                button: view.querySelector('.btnOrganize')
-            });
+            var taskButton;
+            try {
+
+                await require(['scripts/taskbutton'], (btn) => taskButton = btn);
+
+            } catch (err) {
+
+                await require(['components/taskbutton'], (btn) => taskButton = btn.default);
+            }
+            if (taskButton) {
+                taskButton({
+                    mode: 'on',
+                    progressElem: view.querySelector('.itemProgressBar'),
+                    panel: view.querySelector('.organizeProgress'),
+                    taskKey: 'AutoOrganize',
+                    button: view.querySelector('.btnOrganize')
+                });
+            } 
 
             ApiClient.getScheduledTask().then(tasks => {
                 var data = tasks.filter(t => t.Key == 'AutoOrganize')[0];
