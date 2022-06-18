@@ -336,19 +336,19 @@
 
         html += '<div class="formDialogContent" style="margin:2em;">';
 
-        html += '<table class="tblOrganizationResults table detailTable ui-responsive">'
+        html += '<table class="tblOrganizationResults table detailTable ui-responsive" style="width:100%">'
         html += '<thead> ';
         html += '<tr style="text-align: left;">';
         
-        html += '<th class="detailTableHeaderCell" data-priority="3">Location</th>'
-        html += '<th class="detailTableHeaderCell" data-priority="3">File Size</th>'
-        html += '<th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>'
-        html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
-        html += '<th class="detailTableHeaderCell" data-priority="1"></th> '   //Quality is up or down
-        html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
-        html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="3">Location</th>'
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="3">File Size</th>'
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Release/<br>Edition</th>'
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Quality</th>'
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1"></th> '   //Quality is up or down
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Codec</th> '
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Audio</th>'
         //html += '<th class="detailTableHeaderCell" data-priority="1">Subtitles</th>'
-        html += '<th class="detailTableHeaderCell" data-priority="1">Action</th>'
+        html += '<th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Action</th>'
         html += '</tr>';
         html += '</thead>';
         html += '<tbody class="resultBody">';
@@ -361,12 +361,12 @@
         html += '</td>';
 
         //File Size
-        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="File Size">';
         html += '<span>' + formatBytes(item.FileSize) + '</span>';
         html += '</td>';
 
         //Release Edition
-        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Edition">';
         switch(item.Type) {
         case "Episode":
             if (item.ExtractedSeasonNumber && item.ExtractedEpisodeNumber) {
@@ -380,12 +380,12 @@
         html += '</td>';
 
         //Quality
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Resolution">';
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
         html += '</td>';
 
         //Quality is up or down
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Resolution">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
 
         if (sourceResolution == libraryItemResolution) {
@@ -400,14 +400,14 @@
         html += '</td>';
 
         //Codec
-        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Codec">';
         if (item.VideoStreamCodecs.length) {
             html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.VideoStreamCodecs[0] + '</span>';
         }
         html += '</td>';
 
         //Audio
-        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Audio">';
         if (item.AudioStreamCodecs.length) {
             for(var i = 0; i < item.AudioStreamCodecs.length - 1; i++) {
                
@@ -451,17 +451,17 @@
         //Library Item
         html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
         
-        html += '<td class="detailTableBodyCell fileCell">';
+        html += '<td style="border-spacing:0;padding:.4em">';
         html += 'Library'
         html += '</td>';   
         
         //File Size
-        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="File Size">';
         html += '<span>' + formatBytes(libraryItem.MediaSources[0].Size) + '</span>';
         html += '</td>';
 
         //Release Edition
-        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Edition">';
         switch(item.Type) {
         case "Episode":
             
@@ -473,12 +473,12 @@
         html += '</td>';
 
         //Quality
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Resolution">';
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0]  + '</span>';  
         html += '</td>';
 
         //Quality is up or down
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Resolution">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
 
         if (libraryItemResolution == sourceResolution) {
@@ -494,12 +494,12 @@
         html += '</td>';
 
         //Codec
-        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Codec">';
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase() + '</span>'; 
         html += '</td>';
 
         //Audio
-        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Audio">';
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase() + '</span>';
         html += '</td>';
 
@@ -511,7 +511,7 @@
         //html += '</td>';
 
         //Action
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<td style="border-spacing:0;padding:.4em" data-title="Resolution">';
         
         html += '</td>';
 
