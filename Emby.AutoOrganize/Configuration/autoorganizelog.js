@@ -1568,7 +1568,7 @@
             await reloadItems(view, false)
         })
         
-
+        var taskButton;
 
         view.addEventListener('viewshow', async function () {
 
@@ -1586,7 +1586,7 @@
             events.on(serverNotifications, 'TaskData', await onServerEvent)
             events.on(serverNotifications, 'TaskComplete', await onServerEvent)
             // on here
-            var taskButton;
+            
             try {
 
                 await require(['scripts/taskbutton'], (btn) => taskButton = btn);
