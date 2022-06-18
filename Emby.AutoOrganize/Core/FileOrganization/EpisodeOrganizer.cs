@@ -250,8 +250,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     if (episodeInfo.IsByDate || (seasonNumber.HasValue && episodeNumber.HasValue))
                     {
-                        Log.Info($"Extracted information from {path}. Series name {seriesName}, {(seasonNumber.HasValue ? $": Season { seasonNumber.Value }," : " Can not determine season number,")} {(episodeNumber.HasValue ? $" Episode {episodeNumber.Value}." : " Can not determine episode number.")}");
-
+                        string epNumber = episodeInfo.EndingEpisodeNumber > 0 ? string.Concat(episodeInfo.EpisodeNumber, '-', episodeInfo.EndingEpisodeNumber) : $"{episodeInfo.EpisodeNumber}";
+                        Log.Info($"Extracted information from {path}. Series name {seriesName}, {(seasonNumber.HasValue ? $": Season { seasonNumber.Value }," : " Can not determine season number,")} {(episodeNumber.HasValue ? $" Episode {epNumber}." : " Can not determine episode number.")}");
+                        
                         var endingEpisodeNumber = episodeInfo.EndingEpisodeNumber;
 
                         result.ExtractedEndingEpisodeNumber = endingEpisodeNumber;
@@ -280,7 +281,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         if (series == null && seriesName.Length <= 3)
                         {
                             result.Status = FileSortingStatus.UserInputRequired;
-                            var msg = $"A Smart Match should be created for {seriesName}. Please Organize with corrections to create the Smart Match entry.";
+                            var msg = $"Unable to determine Series.<br/>A Smart Match should be created for {seriesName}.<br/><br/>Please Organize with corrections to create the Smart Match entry.";
                             result.StatusMessage = msg;
                             Log.Warn(FormatLogMsg(msg));
                             OrganizationService.SaveResult(result, cancellationToken);
@@ -303,7 +304,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                         if (series == null) 
                         {
-                            var msg = $"Unable to determine series from {path}";
+                            var msg = $"Unable to determine Series.<br/>{path} extracted as {seriesName}.<br/><br/>Please Organize with corrections to create the Smart Match entry.";
                             result.Status = FileSortingStatus.Failure;
                             result.StatusMessage = msg;
                             Log.Warn(FormatLogMsg(msg));
@@ -493,7 +494,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     if (episode is null)
                     {
                         string epNumber = request.EndingEpisodeNumber > 0 ? string.Concat(request.EpisodeNumber, '-', request.EndingEpisodeNumber) : $"{request.EpisodeNumber}";
-                        var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:1)";
+                        var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}.<br/>You have either exceeded provider limits or the provider does not have episode information.<br/>Please try again later and/or manually check your providers have the episode available.<br/>(REF:1)";
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = msg;
                         Log.Warn(FormatLogMsg(msg));
@@ -514,7 +515,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (string.IsNullOrEmpty(episodeFileName))
                 {
                     string epNumber = request.EndingEpisodeNumber > 0 ? string.Concat(request.EpisodeNumber, '-', request.EndingEpisodeNumber) : $"{request.EpisodeNumber}";
-                    var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:2)";
+                    var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}.<br/>You have either exceeded provider limits or the provider does not have episode information.<br/>Please try again later and/or manually check your providers have the episode available.<br/>(REF:2)";
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     Log.Warn(FormatLogMsg(msg));
@@ -633,7 +634,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     episode = await GetEpisodeRemoteProviderData(series, seasonNumber, episodeNumber, endingEpisodeNumber, premiereDate, cancellationToken);
                 }
                 catch(Exception)
-                {//this doesnt log anything on error
+                {
                     Log.Warn("Exceeded Provider limits. Try again later...");
                 }
             }
@@ -641,7 +642,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             if (episode is null)
             {
                 string epNumber = endingEpisodeNumber > 0 ? string.Concat(episodeNumber, '-', endingEpisodeNumber) : $"{episodeNumber}";
-                var msg = $"No provider metadata found for {series.Name} Season {seasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:3)";
+                var msg = $"No provider metadata found for {series.Name} Season {seasonNumber} Episode {epNumber}.<br/>You have either exceeded provider limits or the provider does not have episode information.<br/>Please try again later and/or manually check your providers have the episode available.<br/>(REF:3)";
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = msg;
                 Log.Warn(FormatLogMsg(msg));
@@ -1601,11 +1602,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (!episodeIndexNumber.HasValue || !seasonIndexNumber.HasValue)
             {
-                
-                var msg = "GetEpisodeFileName: Mandatory param as missing!";
-                Log.Error(msg);
+                Log.Error("GetEpisodeFileName: Mandatory param as missing!");
                 return null;
-
             }
 
             var endingEpisodeNumber = episodeIndexNumberEnd;
@@ -1618,8 +1616,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             if (string.IsNullOrWhiteSpace(pattern))
             {
-                var msg = "Configured episode name pattern is empty!";
-                Log.Warn(msg);
+                Log.Warn("Configured episode name pattern is empty!");
                 return null;
             }
 
