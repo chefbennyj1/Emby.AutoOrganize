@@ -74,6 +74,12 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return NamingOptions;
         }
 
+        private string FormatLogMsg(string msg)
+        {
+            msg.Replace("<br/>", " ");
+            return msg;
+        }
+        
         private bool IsSameEpisode(string sourcePath, string newPath)
         {
             try
@@ -276,7 +282,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             result.Status = FileSortingStatus.UserInputRequired;
                             var msg = $"A Smart Match should be created for {seriesName}. Please Organize with corrections to create the Smart Match entry.";
                             result.StatusMessage = msg;
-                            Log.Warn(msg);
+                            Log.Warn(FormatLogMsg(msg));
                             OrganizationService.SaveResult(result, cancellationToken);
                             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                             return result;
@@ -300,7 +306,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             var msg = $"Unable to determine series from {path}";
                             result.Status = FileSortingStatus.Failure;
                             result.StatusMessage = msg;
-                            Log.Warn(msg);
+                            Log.Warn(FormatLogMsg(msg));
                             OrganizationService.SaveResult(result, cancellationToken);
                             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                             return result;
@@ -326,9 +332,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         var msg = $"Unable to determine episode number from {path}";
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = msg;
-                        Log.Warn(msg);
+                        Log.Warn(FormatLogMsg(msg));
 
-                        
                     }
                 }
                 else
@@ -336,7 +341,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     var msg = $"Unable to determine series name from {path}";
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
-                    Log.Warn(msg);
+                    Log.Warn(FormatLogMsg(msg));
                     
                 }
 
@@ -440,7 +445,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 {
                    var msg = ($"Unable to determine series and season folder name from file name: {result.OriginalPath}");
                    result.StatusMessage = msg;
-                   Log.Warn(msg);
+                   Log.Warn(FormatLogMsg(msg));
                    result.Status = FileSortingStatus.Failure;
                    OrganizationService.SaveResult(result, cancellationToken);
                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
@@ -466,7 +471,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         var msg = ("Unable to parse series info while organizing with corrections. Stopping Organization...");
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = msg;
-                        Log.Warn(msg);
+                        Log.Warn(FormatLogMsg(msg));
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
@@ -491,7 +496,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:1)";
                         result.Status = FileSortingStatus.Failure;
                         result.StatusMessage = msg;
-                        Log.Warn(msg);
+                        Log.Warn(FormatLogMsg(msg));
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
@@ -512,7 +517,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     var msg = $"No provider metadata found for {series.Name} Season {request.SeasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:2)";
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
-                    Log.Warn(msg);
+                    Log.Warn(FormatLogMsg(msg));
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -581,7 +586,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         result.Status = FileSortingStatus.Failure;
                         const string msg = "Auto Organize settings: default library not set for TV Shows.";
                         result.StatusMessage = msg;
-                        Log.Warn(msg);
+                        Log.Warn(FormatLogMsg(msg));
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
@@ -639,7 +644,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 var msg = $"No provider metadata found for {series.Name} Season {seasonNumber} Episode {epNumber}. Please check your metadata providers. (REF:3)";
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = msg;
-                Log.Warn(msg);
+                Log.Warn(FormatLogMsg(msg));
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 return;
@@ -657,7 +662,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 var msg = $"Unable to sort {sourcePath} because target path could not be determined.";
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = msg;
-                Log.Warn(msg);
+                Log.Warn(FormatLogMsg(msg));
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 return;
@@ -695,7 +700,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if(IsCopying(sourcePath, FileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
                 {
                     var msg = $"File '{sourcePath}' is currently in use, stopping organization";
-                    Log.Info(msg);
+                    Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = msg;
                     OrganizationService.SaveResult(result, cancellationToken);
@@ -748,7 +753,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists)
                 {
                     var msg = $"Existing Episode & No Overwrite.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
-                    Log.Info(msg);
+                    Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
@@ -788,7 +793,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     }
 
                     var msg = $"Overwrite restricted to key words.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
-                    Log.Info(msg);
+                    Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
@@ -805,7 +810,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     if (IsNewSeries(series) && options.SortExistingSeriesOnly)
                     {//b
                         var msg = $"Enable new series creation is disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
-                        Log.Info(msg);
+                        Log.Info(FormatLogMsg(FormatLogMsg(msg)));
                         result.Status = FileSortingStatus.NewMedia;
                         result.StatusMessage = msg;
                         OrganizationService.SaveResult(result, cancellationToken);
@@ -827,7 +832,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (!options.AutoDetectSeries && !episodeExists)
                 {
                     var msg = $"Smart Series Auto detect disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
-                    Log.Info(msg);
+                    Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.NewMedia;
                     result.StatusMessage = msg;
                     OrganizationService.SaveResult(result, cancellationToken);
@@ -1241,7 +1246,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
 
             }
-
             
             return episode;
         }
@@ -1381,7 +1385,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     msg += $"Location: {entry.Path}\n";
                 }
                 result.StatusMessage = msg;
-                Log.Warn(msg);
+                Log.Warn(FormatLogMsg(msg));
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 return resultSeries.Cast<Series>().FirstOrDefault();;
@@ -1435,7 +1439,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             if (episodeResults == null)
             {
                 var msg = $"No provider metadata found for {series.Name} season {seasonNumber} episode {episodeNumber}";
-                Log.Warn(msg);
+                Log.Warn(FormatLogMsg(msg));
                 return null;
             }
 
@@ -1468,8 +1472,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             } 
             else
             {
-                const string msg = "Auto Organize settings: default library not set for TV Shows.";
-                Log.Warn(msg);
+                Log.Warn("Auto Organize settings: default library not set for TV Shows.");
                 return null;
             }
 
