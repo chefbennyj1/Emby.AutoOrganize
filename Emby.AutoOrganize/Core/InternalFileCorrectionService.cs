@@ -123,6 +123,7 @@ namespace Emby.AutoOrganize.Core
                     string correctEpisodeFileName;
                     try
                     {
+                        //Log.Warn($"Name: {episode.Name} IndexNumber: {episode.IndexNumber} IndexNumberEnd: {episode.IndexNumberEnd}");
                         correctEpisodeFileName = GetEpisodeFileName(episode, options).Trim();
                     }
                     catch
@@ -228,9 +229,8 @@ namespace Emby.AutoOrganize.Core
             var sourceExtension     = Path.GetExtension(episode.Path).Replace(".", string.Empty);
             var episodeNumber       = episode.IndexNumber.Value;
             var endingEpisodeNumber = episode.IndexNumberEnd;
-            var episodeTitle        = episode.Name.Replace("/", ", ");
-            var resolution = string.Empty;
-            
+            var episodeTitle        = episode.Name;
+            var resolution          = string.Empty;
 
             try
             {
@@ -259,6 +259,9 @@ namespace Emby.AutoOrganize.Core
 
             if (endingEpisodeNumber.HasValue)
             {
+                //doing this isnt great - other option to check media provider for every mylti episode like we do for sorting ?
+                //Main issue is if episode name has a comma
+                episodeTitle = episodeTitle.Replace(", ", options.MultiEpisodeNameDeliminator);
                 filename = filename.Replace("%ed", endingEpisodeNumber.Value.ToString(_usCulture))
                     .Replace("%0ed", endingEpisodeNumber.Value.ToString("00", _usCulture))
                     .Replace("%00ed", endingEpisodeNumber.Value.ToString("000", _usCulture));
@@ -270,6 +273,7 @@ namespace Emby.AutoOrganize.Core
 
             if (filename.Contains("%#"))
             {
+                episodeTitle = episodeTitle.Replace("/", ", "); //replace here so multi episode doesnt conflict
                 filename = filename.Replace("%#1", episodeTitle)
                     .Replace("%#2", episodeTitle.Replace(" ", "."))
                     .Replace("%#3", episodeTitle.Replace(" ", "_"));

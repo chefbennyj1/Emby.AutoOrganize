@@ -94,9 +94,16 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     ExtractedResolution = new Resolution()
                 };
 
-                
+                Log.Info("Auto organize checking for movie: " + result.TargetPath);
+                result.Status = FileSortingStatus.Checking;
+                result.Date = DateTime.UtcNow; //Update the Date so that it moves to the top of the list in the UI (UI table is sorted by date)
+                result.StatusMessage = $"File {result.TargetPath} is currently being analysed";
+                OrganizationService.SaveResult(result, cancellationToken);
+                OrganizationService.AddToInProgressList(result, true);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+
             }
-            
+
             //Check to see if we can access the file path, or if the file path is being used.
             if (LibraryMonitor.IsPathLocked(path.AsSpan()) && result.Status != FileSortingStatus.Processing || IsCopying(path, FileSystem))
             {

@@ -6,6 +6,7 @@
         Failure,
         SkippedExisting,
         NewResolution,
+        Checking,
         Processing,
         UserInputRequired,
         NotEnoughDiskSpace,

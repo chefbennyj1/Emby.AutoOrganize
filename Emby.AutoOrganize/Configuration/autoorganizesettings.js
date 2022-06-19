@@ -1,4 +1,4 @@
-define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize) {
+define(['mainTabsManager', 'globalize', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle', 'dialogHelper'], function (mainTabsManager, globalize, dialogHelper) {
     'use strict';
 
     ApiClient.getFilePathCorrections = function() {
@@ -7,6 +7,86 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
     };
 
     
+
+    /*
+    function openSaveDialog(view, item) {
+        var dlg = dialogHelper.createDialog({
+            size: "small",
+            removeOnClose: !1,
+            scrollY: !0
+        });
+
+        dlg.classList.add("formDialog");
+        dlg.classList.add("ui-body-a");
+        dlg.classList.add("background-theme-a");
+        dlg.style.maxHeight = "55%";
+        dlg.style.maxWidth = "40%";
+
+
+        var html = '';
+        html += '<div class="formDialogHeader" style="display:flex">';
+        html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light" tabindex="-1"><i class="md-icon"></i></button><h3 class="formDialogHeaderTitle">Organize File</h3>';
+        html += '</div>';
+
+        html += '<div class="formDialogContent" style="text-align:center; display:flex; justify-content:center;align-items:center">';
+        html += '<svg style="width: 55px;height: 55px;top: 19%;position: absolute;" viewBox="0 0 24 24"><path fill="var(--focus-background)" d="M21 11.1V8C21 6.9 20.1 6 19 6H11L9 4H3C1.9 4 1 4.9 1 6V18C1 19.1 1.9 20 3 20H10.2C11.4 21.8 13.6 23 16 23C19.9 23 23 19.9 23 16C23 14.1 22.2 12.4 21 11.1M9.3 18H3V8H19V9.7C18.1 9.2 17.1 9 16 9C12.1 9 9 12.1 9 16C9 16.7 9.1 17.4 9.3 18M16 21C13.2 21 11 18.8 11 16S13.2 11 16 11 21 13.2 21 16 18.8 21 16 21M17 14H15V12H17V14M17 20H15V15H17V20Z"></path></svg>';
+        var message = globalize.translate("MessageFollowingFileWillBeMovedFrom") + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + globalize.translate("MessageDestinationTo") + '<br/><br/>' + item.TargetPath;
+        if (item.DuplicatePaths.length) {
+            message += '<br/><br/>' + 'The following duplicates will be deleted:';
+
+            message += '<br/><br/>' + item.DuplicatePaths.join('<br/>');
+        }
+
+        message += '<br/><br/>' + globalize.translate("MessageSureYouWishToProceed");
+
+
+        html += message;
+
+        html += '<div class="formDialogFooter" >';
+        html += '<div style="display:flex;align-items:center;justify-content:center">'
+        html += '<button id="okButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Ok</button>';
+        html += '<button id="cancelButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Cancel</button>';
+        html += '<button id="editButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24"> ';
+        html += '<path fill="white" d="M10 20H6V4H13V9H18V12.1L20 10.1V8L14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H10V20M20.2 13C20.3 13 20.5 13.1 20.6 13.2L21.9 14.5C22.1 14.7 22.1 15.1 21.9 15.3L20.9 16.3L18.8 14.2L19.8 13.2C19.9 13.1 20 13 20.2 13M20.2 16.9L14.1 23H12V20.9L18.1 14.8L20.2 16.9Z" />';
+        html += '</svg> ';
+        html += '</button>';
+        html += '</div>';
+        html += '</div>';
+
+
+        html += '</div>';
+
+        dlg.innerHTML = html;
+
+        dlg.querySelector('.btnCloseDialog').addEventListener('click',
+            () => {
+                dialogHelper.close(dlg);
+            });
+
+        dlg.querySelector('#cancelButton').addEventListener('click',
+            () => {
+                dialogHelper.close(dlg);
+            })
+
+        dlg.querySelector('#okButton').addEventListener('click',
+            () => {
+                var options = {
+                    RequestToMoveFile: true
+                }
+                ApiClient.performOrganization(item.Id, options).then(function () {
+                    reloadItems(view, false);
+                }, reloadItems(view, false));
+                dialogHelper.close(dlg);
+            });
+
+        dlg.querySelector('#editButton').addEventListener('click', () => {
+            showCorrectionPopup(view, item)
+            dialogHelper.close(dlg);
+        })
+
+        dialogHelper.open(dlg);
+    }*/
 
     function getMovieFileName(value) {
         var movieName = "Movie Name";
@@ -42,7 +122,7 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
 
     
 
-    function getEpisodeFileName(value, enableMultiEpisode) {
+    function getEpisodeFileName(value, enableMultiEpisode, delim) {
 
         var seriesName = "Series Name";
         var episodeTitle = "Episode Four";
@@ -52,30 +132,41 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
 
         var result = value
 
-        if (enableMultiEpisode) {
-            episodeTitle = episodeTitle.concat(", ", endingEpisodeTitle);
-            result = result.replace('%ed', '5')
-                           .replace('%0ed', '05')
-                           .replace('%00ed', '005');
-        }
-
+        //series number
         result = result.replace('%sn', seriesName)
-                       .replace('%s.n', seriesName.replaceAll(' ', '.'))
-                       .replace('%s_n', seriesName.replaceAll(' ', '_'))
-                       .replace('%s', '1')
-                       .replace('%0s', '01')
-                       .replace('%00s', '001')
-                       .replace('%ext', 'mkv')
-                       .replace('%en', episodeTitle)
+            .replace('%s.n', seriesName.replaceAll(' ', '.'))
+            .replace('%s_n', seriesName.replaceAll(' ', '_'))
+            .replace('%s', '1')
+            .replace('%0s', '01')
+            .replace('%00s', '001')
+            .replace('%ext', 'mkv');
+
+        //episode name
+        result = result.replace('%en', episodeTitle)
                        .replace('%e.n', episodeTitle.replaceAll(' ', '.'))
                        .replace('%e_n', episodeTitle.replaceAll(' ', '_'))
                        .replace('%fn', fileName)
                        .replace('%res', resolution);
 
-        return result
-            .replace('%e', '4')
+        //multi ep names
+        if (enableMultiEpisode) {
+            if (result.includes("%e.n")) endingEpisodeTitle = endingEpisodeTitle.replaceAll(' ', '.');
+            if (result.includes("%e_n")) endingEpisodeTitle = endingEpisodeTitle.replaceAll(' ', '_');
+            result = result.replace('%ed', '5')
+                .replace('%0ed', '05')
+                .replace('%00ed', '005');
+        }
+
+        //episode number
+        result = result.replace('%e', '4')
             .replace('%0e', '04')
             .replace('%00e', '004');
+
+        //do this again to sim not using regex
+        if (enableMultiEpisode) {
+            result = result.replace(episodeTitle, episodeTitle.concat(delim, endingEpisodeTitle));
+        }
+        return result
     }
 
     function getSeriesDirectoryName(value) {
@@ -127,6 +218,8 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
         view.querySelector('#txtEpisodePattern').value = config.EpisodeNamePattern;
 
         view.querySelector('#txtMultiEpisodePattern').value = config.MultiEpisodeNamePattern;
+
+        view.querySelector('#txtMultiEpisodeDeliminator').value = config.MultiEpisodeNameDeliminator;
 
         view.querySelector('#txtIgnoreFileNameContains').value = config.IgnoredFileNameContains.join(';');
 
@@ -184,6 +277,8 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
             config.EpisodeNamePattern = view.querySelector('#txtEpisodePattern').value;
 
             config.MultiEpisodeNamePattern = view.querySelector('#txtMultiEpisodePattern').value;
+
+            config.MultiEpisodeNameDeliminator = view.querySelector('#txtMultiEpisodeDeliminator').value;
 
             config.AutoDetectSeries = view.querySelector('#chkEnableSeriesAutoDetect').checked;
 
@@ -351,7 +446,7 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
         function updateEpisodePatternHelp() {
 
             var value = view.querySelector('#txtEpisodePattern').value;
-            var fileName = getEpisodeFileName(value, false);
+            var fileName = getEpisodeFileName(value, false, '');
 
             var replacementHtmlResult = 'Result: ' + fileName;
 
@@ -361,7 +456,8 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
         function updateMultiEpisodePatternHelp() {
 
             var value = view.querySelector('#txtMultiEpisodePattern').value;
-            var fileName = getEpisodeFileName(value, true);
+            var delim = view.querySelector('#txtMultiEpisodeDeliminator').value;
+            var fileName = getEpisodeFileName(value, true, delim);
 
             var replacementHtmlResult = 'Result: ' + fileName;
 
@@ -581,6 +677,8 @@ define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkb
         view.querySelector('#txtEpisodePattern').addEventListener('keyup', updateEpisodePatternHelp);
         view.querySelector('#txtMultiEpisodePattern').addEventListener('change', updateMultiEpisodePatternHelp);
         view.querySelector('#txtMultiEpisodePattern').addEventListener('keyup', updateMultiEpisodePatternHelp);
+        view.querySelector('#txtMultiEpisodeDeliminator').addEventListener('change', updateMultiEpisodePatternHelp);
+        view.querySelector('#txtMultiEpisodeDeliminator').addEventListener('keyup', updateMultiEpisodePatternHelp);
         
         view.querySelector('#btnSelectWatchFolder').addEventListener('click', selectWatchFolder);
           

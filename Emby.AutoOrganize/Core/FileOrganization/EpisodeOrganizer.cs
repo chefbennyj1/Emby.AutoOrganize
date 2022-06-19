@@ -84,6 +84,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             try
             {
+                if(Path.GetExtension(sourcePath) != Path.GetExtension(newPath))
+                {
+                    return false;
+                }
+
                 var sourceFileInfo = FileSystem.GetFileInfo(sourcePath);
                 var destinationFileInfo = FileSystem.GetFileInfo(newPath);
 
@@ -143,15 +148,24 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     SourceQuality       = RegexExtensions.GetSourceQuality(Path.GetFileName(path)),
                 };
 
+                Log.Info("Auto organize checking for tv series: " + result.TargetPath);
+                result.Status = FileSortingStatus.Checking;
+                result.Date = DateTime.UtcNow; //Update the Date so that it moves to the top of the list in the UI (UI table is sorted by date)
+                result.StatusMessage = $"File {result.TargetPath} is currently being analysed";
+                OrganizationService.SaveResult(result, cancellationToken);
+                OrganizationService.AddToInProgressList(result, true);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+
             }
-                        
+
 
             //Check to see if we can access the file path, or if the file path is being used.
             if (LibraryMonitor.IsPathLocked(path.AsSpan()) && result.Status != FileSortingStatus.Processing || IsCopying(path, FileSystem))
             {
                 result.Status = FileSortingStatus.InUse;
+                result.Date = DateTime.UtcNow; //Update the Date so that it moves to the top of the list in the UI (UI table is sorted by date)
                 result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                Log.Info("Auto organize Path is locked by other processes. Please try again later.");
                 
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
@@ -482,7 +496,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                     try
                     {
-                        episode = await GetEpisodeRemoteProviderData(series, request.SeasonNumber, request.EpisodeNumber, request.EndingEpisodeNumber, null, cancellationToken);
+                        episode = await GetEpisodeRemoteProviderData(series, request.SeasonNumber, request.EpisodeNumber, request.EndingEpisodeNumber, null, options, cancellationToken);
                         
                     }
                     catch (Exception ex)
@@ -631,12 +645,15 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 try
                 {
-                    episode = await GetEpisodeRemoteProviderData(series, seasonNumber, episodeNumber, endingEpisodeNumber, premiereDate, cancellationToken);
+                    episode = await GetEpisodeRemoteProviderData(series, seasonNumber, episodeNumber, endingEpisodeNumber, premiereDate, options, cancellationToken);
                 }
                 catch(Exception)
                 {
                     Log.Warn("Exceeded Provider limits. Try again later...");
                 }
+            }else
+            {
+                Log.Debug("Episode matched from internal metadata");
             }
 
             if (episode is null)
@@ -741,7 +758,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (options.CopyOriginalFile && fileExists && existingEpisodeFilesButWithDifferentPath.Count == 0)
                 {
                     var msg = $"Exact Match.<br/>File '{sourcePath}' is the same as '{result.TargetPath}'.";
-                    Log.Info(msg + " Stopping organization");
+                    Log.Info(FormatLogMsg(msg + " Stopping organization"));
                     result.Status = FileSortingStatus.Success;
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
@@ -837,7 +854,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.NewMedia;
                     result.StatusMessage = msg;
                     OrganizationService.SaveResult(result, cancellationToken);
-
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
                 }
@@ -1023,7 +1039,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         {
             Log.Info("Processing " + result.TargetPath);
             result.Status = FileSortingStatus.Processing;
-            result.StatusMessage = "";
+            result.StatusMessage = "Sorting is in progress";
             result.FileSize = FileSystem.GetFileInfo(result.OriginalPath).Length; //Update the file size so it will show the actual size of the file here. It may have been copying before.
             Log.Info($"Auto organize adding {result.TargetPath} to in progress list");
             OrganizationService.SaveResult(result, cancellationToken);
@@ -1234,7 +1250,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private Episode GetMatchingEpisode(Series series, int? seasonNumber, int? episodeNumber, int? endingEpisodeNumber, FileOrganizationResult result, DateTime? premiereDate, CancellationToken cancellationToken)
         {
             Episode episode = null;
-
+            if(endingEpisodeNumber > 0)
+            {   
+                //always do a provider check for dual episodes - we need individual names and not concatented for us
+                return episode;
+            }
             if (!IsNewSeries(series))
             {
                 episode = series
@@ -1244,8 +1264,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                            && e.IndexNumberEnd == endingEpisodeNumber
                            && e.LocationType == LocationType.FileSystem
                            && Path.GetExtension(e.Path) == Path.GetExtension(result.OriginalPath));
-
-
             }
             
             return episode;
@@ -1398,7 +1416,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         }
         
 
-        private async Task<Episode> GetEpisodeRemoteProviderData(Series series, int? seasonNumber, int? episodeNumber, int? endingEpisodeNumber, DateTime? premiereDate, CancellationToken cancellationToken)
+        private async Task<Episode> GetEpisodeRemoteProviderData(Series series, int? seasonNumber, int? episodeNumber, int? endingEpisodeNumber, DateTime? premiereDate, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             Log.Info("Searching providers for matching episode data...");
             var libraryOptions = LibraryManager.GetLibraryOptions(series);
@@ -1437,6 +1455,35 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 episodeResults = searchResults.FirstOrDefault();
             }
 
+            if (endingEpisodeNumber > 0)
+            {
+                IEnumerable<RemoteSearchResult> subSearchResults;
+                for (int i = (int)(episodeNumber + 1); i <= endingEpisodeNumber; i++)
+                {
+                    var subEpisodeInfo = episodeInfo;
+                    subEpisodeInfo.IndexNumber = i;
+                    try
+                    {
+                        subSearchResults = await ProviderManager.GetRemoteSearchResults<Episode, EpisodeInfo>(new RemoteSearchQuery<EpisodeInfo>
+                        {
+                            SearchInfo = subEpisodeInfo,
+                            IncludeDisabledProviders = true
+
+                        }, series, cancellationToken);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warn($"Internal Error subEpisode: {e}");
+                        throw new Exception(); //We'll catch this later
+                    }
+
+                    if (subSearchResults != null)
+                    {
+                        RemoteSearchResult subEpisodeResults = subSearchResults.FirstOrDefault();
+                        episodeResults.Name = string.Concat(episodeResults.Name, options.MultiEpisodeNameDeliminator, subEpisodeResults.Name);
+                    }
+                }
+            }
             if (episodeResults == null)
             {
                 var msg = $"No provider metadata found for {series.Name} season {seasonNumber} episode {episodeNumber}";
@@ -1613,7 +1660,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var sourceExtension = (Path.GetExtension(result.OriginalPath) ?? string.Empty).TrimStart('.');
 
             var pattern = endingEpisodeNumber.HasValue ? options.MultiEpisodeNamePattern : options.EpisodeNamePattern;
-
+            
             if (string.IsNullOrWhiteSpace(pattern))
             {
                 Log.Warn("Configured episode name pattern is empty!");

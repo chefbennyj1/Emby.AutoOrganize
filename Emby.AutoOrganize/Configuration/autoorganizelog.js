@@ -412,12 +412,15 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         var sourceResult = await ApiClient.getFileOrganizationResults(query)
         var item = sourceResult.Items.filter(r => r.Id == id)[0];
         var libraryResult = await ApiClient.getJSON( await ApiClient.getUrl('Items?Recursive=true&Fields=MediaStreams&IncludeItemTypes=' + item.Type + '&Ids=' + item.ExistingInternalId))
-        
+
         var libraryItem = libraryResult.Items[0];
-        if (!libraryItem) return;
+        if (!libraryResult.Items[0]) return;
 
 
-        var libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
+        var libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
+        if (libraryItemResolution !== undefined) {
+            libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
+        }
         var sourceResolution = parseInt(item.ExtractedResolution.Name.replace('p', ''));
 
 
@@ -456,7 +459,9 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '<th class="detailTableHeaderCell" data-priority="3">Location</th>'
         html += '<th class="detailTableHeaderCell" data-priority="3">File Size</th>'
         html += '<th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>'
-        html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
+        if (libraryItemResolution !== undefined) {
+            html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
+        }
         html += '<th class="detailTableHeaderCell" data-priority="1"></th> '   //Quality is up or down
         html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
         html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
@@ -466,7 +471,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '</thead>';
         html += '<tbody class="resultBody">';
 
-        //Source Folder Item
+        //Source Folder Icon
         html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
         
         html += '<td class="detailTableBodyCell fileCell">';
@@ -497,20 +502,22 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
         html += '</td>';
 
-        //Quality is up or down
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+        if (libraryItemResolution !== undefined) {
+            //Quality is up or down
+            html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
 
-        if (sourceResolution == libraryItemResolution) {
-            html += '<path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" />';
+            if (sourceResolution == libraryItemResolution) {
+                html += '<path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" />';
+            }
+            else if (sourceResolution > libraryItemResolution) {
+                html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
+            } else {
+                html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
+            }
+            html += '</svg>';
+            html += '</td>';
         }
-        else if (sourceResolution > libraryItemResolution) {
-            html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
-        } else {
-            html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
-        }
-        html += '</svg>';  
-        html += '</td>';
 
         //Codec
         html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
@@ -558,75 +565,93 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
 
         html += '</tr>';
 
+        for (let index = 0; index < libraryResult.Items.length; ++index) 
+        {
+            libraryItem = libraryResult.Items[index];
+            libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
+            if (libraryItemResolution !== undefined) {
+                libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
+            }
+            //Library Item
+            html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
 
-        //Library Item
-        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
-        
-        html += '<td class="detailTableBodyCell fileCell">';
-        html += 'Library'
-        html += '</td>';   
-        
-        //File Size
-        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
-        html += '<span>' + formatBytes(libraryItem.MediaSources[0].Size) + '</span>';
-        html += '</td>';
+            html += '<td class="detailTableBodyCell fileCell">';
+            html += 'Library'
+            html += '</td>';
 
-        //Release Edition
-        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
-        switch(item.Type) {
-        case "Episode":
-            
-            html += '<span>' + libraryItem.ParentIndexNumber + 'x' + (libraryItem.IndexNumber <= 9 ? `0${libraryItem.IndexNumber}` : libraryItem.IndexNumber) + '</span>';
-            
-        case "Movie":
-            html += '<span>' + "" + '</span>';  
+            //File Size
+            html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+            html += '<span>' + formatBytes(libraryItem.MediaSources[0].Size) + '</span>';
+            html += '</td>';
+
+            //Release Edition
+            html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+            switch (item.Type) {
+                case "Episode":
+
+                    if (libraryItemResolution !== undefined) {
+                        html += '<span>' + libraryItem.ParentIndexNumber + 'x' + (libraryItem.IndexNumber <= 9 ? `0${libraryItem.IndexNumber}` : libraryItem.IndexNumber) + '</span>';
+                    } else {
+                        html += '<span>Processing...</span>'
+                    }
+                case "Movie":
+                    html += '<span>' + "" + '</span>';
+            }
+            html += '</td>';
+
+            //Quality
+            var quality = 'und';
+            if (libraryItemResolution !== undefined) { quality = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0] }
+            html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + quality + '</span>';
+            html += '</td>';
+
+            if (libraryItemResolution !== undefined) {
+                //Quality is up or down
+                html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+                html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+
+                if (libraryItemResolution == sourceResolution) {
+                    html += ' <path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" /> ';
+                }
+                else if (libraryItemResolution > sourceResolution) {
+                    html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
+                }
+                else {
+                    html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
+                }
+                html += '</svg>';
+                html += '</td>';
+            }
+
+            //Codec
+            var codectemp = 'und';
+            if (libraryItemResolution !== undefined) { codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase() }
+            html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + codectemp + '</span>';
+            html += '</td>';
+
+            //Audio
+            var audiotemp = 'und';
+            if (libraryItemResolution !== undefined) { codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase() }
+            html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + audiotemp + '</span>';
+            html += '</td>';
+
+            ////Internal Subtitle
+            //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
+            //var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
+            //var subtitleLabel = subtitles && !subtitles.IsExternal ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
+            //html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
+            //html += '</td>';
+
+            //Action
+            html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+
+            html += '</td>';
+
+            html += '</tr>';
         }
-        html += '</td>';
-
-        //Quality
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0]  + '</span>';  
-        html += '</td>';
-
-        //Quality is up or down
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-
-        if (libraryItemResolution == sourceResolution) {
-            html += ' <path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" /> ';
-        }
-        else if (libraryItemResolution > sourceResolution) {
-            html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
-        } 
-        else {
-            html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
-        }
-        html += '</svg>';  
-        html += '</td>';
-
-        //Codec
-        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
-        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase() + '</span>'; 
-        html += '</td>';
-
-        //Audio
-        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
-        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 1px 1px 1px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase() + '</span>';
-        html += '</td>';
-
-        ////Internal Subtitle
-        //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
-        //var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
-        //var subtitleLabel = subtitles && !subtitles.IsExternal ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
-        //html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
-        //html += '</td>';
-
-        //Action
-        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-        
-        html += '</td>';
-
-        html += '</tr>';
         html += '</tbody>'
         html += '</table>';
 
