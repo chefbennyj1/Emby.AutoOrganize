@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
-using MediaBrowser.Model.Serialization;
 using System.IO;
-using System.Runtime.CompilerServices;
 using MediaBrowser.Model.Drawing;
 
 namespace Emby.AutoOrganize
@@ -16,30 +12,18 @@ namespace Emby.AutoOrganize
         
         public override string Name => "Auto Organize";
 
+        public override string Description => "Automatically organize new media";
 
-        public override string Description
-            => "Automatically organize new media";
-
-        private Guid _id = new Guid("14f5f69e-4c8d-491b-8917-8e90e8317530");
-        public override Guid Id
-        {
-            get { return _id; }
-        }
-
+        public override Guid Id => new Guid("14f5f69e-4c8d-491b-8917-8e90e8317530");
+        
         public Stream GetThumbImage()
         {
             var type = GetType();
             return type.Assembly.GetManifestResourceStream(type.Namespace + ".thumb.gif");
         }
 
-        public ImageFormat ThumbImageFormat
-        {
-            get
-            {
-                return ImageFormat.Gif;
-            }
-        }
-
+        public ImageFormat ThumbImageFormat => ImageFormat.Gif;
+        
         public IEnumerable<PluginPageInfo> GetPages()
         {
             return new[]

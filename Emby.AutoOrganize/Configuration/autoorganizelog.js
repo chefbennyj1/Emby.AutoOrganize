@@ -1,4 +1,5 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'emby-collapse', 'emby-input'], function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper) {
+﻿define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'components/taskbutton', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'emby-collapse', 'emby-input'], 
+    function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper, taskButton) {
     
     ApiClient.getFilePathCorrections = function() {
         var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
@@ -607,16 +608,20 @@
 
         page.querySelectorAll('.btnShowSubtitleList').forEach(btn => btn.addEventListener('click',
             (e) => {
-                let id = e.target.getAttribute('data-resultid');
-                var subtitles = currentResult.Items.filter(function (i) { return i.Id === id; })[0].Subtitles;
-                var msg = "";
-                subtitles.forEach(t => {
-                    msg += t + '\n';
-                })
-                Dashboard.alert({
-                    title: "Subtitles",
-                    message: msg
-                });
+                let id = e.target.closest('svg').getAttribute('data-resultid');
+                var result = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
+                if (result) {
+                    var subtitles = currentResult.Items.filter(function (i) { return i.Id === id; })[0].Subtitles;
+                    var msg = "";
+                    subtitles.forEach(t => {
+                        msg += t + '\n';
+                    })
+                    Dashboard.alert({
+                        title: "Subtitles",
+                        message: msg
+                    });
+                }
+                
             }));
 
         var statusIcons = [...page.querySelectorAll('.statusIcon')];
@@ -709,8 +714,8 @@
 
                 })
 
-                resultBody.addEventListener('click', handleItemClick);
-
+                resultBody.addEventListener('click', handleItemClick);  
+                
                 
             } else {
 
@@ -941,8 +946,7 @@
             };
         }
     }
-
-    
+         
 
     function showStatusMessage(id) {
         var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
@@ -1107,7 +1111,7 @@
 
         //Quality
         html += '<td class="fileCell" data-title="Resolution"style="border-spacing:0;padding:.4em width:5em">';
-        html += '<span style="color: white;background-color: var(--theme-accent-text-color); padding: .5em 1em 0.5em 1em;border-radius: 5px;font-size: 0.7em;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "")  + '</span>';  
+        html += '<span style="color: white;background-color: #2195f3; padding: .5em 1em 0.5em 1em;border-radius: 5px;font-size: 0.7em;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "")  + '</span>';  
         html += '</td>';
 
         //Codec
@@ -1146,7 +1150,7 @@
         if (item.Subtitles.length) {
 
             html += '<svg style="width:24px;height:24px; cursor:pointer;" viewBox="0 0 24 24" data-resultid="' + item.Id + '" class="btnShowSubtitleList">';
-            html += '<path fill="var(--theme-accent-text-color)" d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"  />';
+            html += '<path fill="#2195f3" d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"  />';
             html += '</svg>';
 
             
@@ -1433,15 +1437,15 @@
 
     function processSvg(next) {
         switch (next) {
-            case 1: return "M12 20C16.42 20 20 16.42 20 12S16.42 4 12 4 4 7.58 4 12 7.58 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.47 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 7.8L12.3 13H11V7H12.5V9.65L14 7.05L15.3 7.8Z"
-            case 2: return "M12 20C16.42 20 20 16.42 20 12S16.42 4 12 4 4 7.58 4 12 7.58 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.47 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 13V13H11V7H12.5V11.26L16.2 9.13L16.95 10.43L12.5 13Z"
-            case 3: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M17 11.5V13H11V7H12.5V11.5H17Z"
-            case 4: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M17 13.9L16.3 15.2L11 12.3V7H12.5V11.4L17 13.9Z"
-            case 5: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z"
-            case 6: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 7V17H11V7H12.5Z"
-            case 7: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 7V12.2L9.8 17L8.5 16.2L11 11.8V7H12.5Z"
-            case 8: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 12.8L7.7 15.6L7 14.2L11 11.9V7H12.5V12.8Z"
-            case 9: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 7V13H7V11.5H11V7H12.5Z"
+            case 1 : return "M12 20C16.42 20 20 16.42 20 12S16.42 4 12 4 4 7.58 4 12 7.58 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.47 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 7.8L12.3 13H11V7H12.5V9.65L14 7.05L15.3 7.8Z"
+            case 2 : return "M12 20C16.42 20 20 16.42 20 12S16.42 4 12 4 4 7.58 4 12 7.58 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.47 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 13V13H11V7H12.5V11.26L16.2 9.13L16.95 10.43L12.5 13Z"
+            case 3 : return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M17 11.5V13H11V7H12.5V11.5H17Z"
+            case 4 : return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M17 13.9L16.3 15.2L11 12.3V7H12.5V11.4L17 13.9Z"
+            case 5 : return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z"
+            case 6 : return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 7V17H11V7H12.5Z"
+            case 7 : return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 7V12.2L9.8 17L8.5 16.2L11 11.8V7H12.5Z"
+            case 8 : return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 12.8L7.7 15.6L7 14.2L11 11.9V7H12.5V12.8Z"
+            case 9 : return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 7V13H7V11.5H11V7H12.5Z"
             case 10: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 13H11L7 10.7L7.8 9.4L11.1 11.3V7H12.6V13Z"
             case 11: return "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 7V13H11L8.5 8.6L9.8 7.8L11 10V7H12.5Z"
             case 12: return "M12 20C16.42 20 20 16.42 20 12S16.42 4 12 4 4 7.58 4 12 7.58 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.47 22 2 17.5 2 12C2 6.5 6.5 2 12 2M12.5 13.03H11V7H12.5V13.03Z"
@@ -1475,21 +1479,20 @@
         var txtSearch = view.querySelector('#txtSearch');
 
         processingAnimation = setInterval(() => {
-                view.querySelectorAll('.statusIcon').forEach(svg => {
-                    if (svg.dataset.active === "true") {
-                        var step = parseInt(svg.dataset.step);
-                        if (step > 12) {
-                            step = 1;
-                        }
-                        var draw = processSvg(step);
-                        var path = svg.querySelector('path');
-                        path.setAttribute("d", draw)
-                        step += 1;
-                        svg.setAttribute('data-step', step)
+            view.querySelectorAll('.statusIcon').forEach(svg => {
+                if (svg.dataset.active === "true") {
+                    var step = parseInt(svg.dataset.step);
+                    if (step > 12) {
+                        step = 1;
                     }
-                })
-            },
-            1000);
+                    var draw = processSvg(step);
+                    var path = svg.querySelector('path');
+                    path.setAttribute("d", draw)
+                    step += 1;
+                    svg.setAttribute('data-step', step)
+                }
+            })
+        }, 1000);
 
 
         view.querySelector('.btnAll').addEventListener('click', async () => {
@@ -1566,17 +1569,14 @@
                 query.Ascending = false;
             }
             await reloadItems(view, false)
-        })
+        })        
         
-        var taskButton;
 
         view.addEventListener('viewshow', async function () {
 
             const correction = await ApiClient.getFilePathCorrections();
             addCorrectionsTab = correction.Items.length > 0;
-            mainTabsManager.setTabs(this, 0, getTabs);
-
-           
+            mainTabsManager.setTabs(this, 0, getTabs);            
                  
             events.on(serverNotifications, 'AutoOrganize_LogReset', await onServerEvent);
             events.on(serverNotifications, 'AutoOrganize_ItemUpdated', await onServerEvent);
@@ -1585,18 +1585,10 @@
             events.on(serverNotifications, 'ScheduledTasksInfoStop', await onServerEvent);
             events.on(serverNotifications, 'TaskData', await onServerEvent)
             events.on(serverNotifications, 'TaskComplete', await onServerEvent)
-            // on here
+            // on here            
             
-            try {
-
-                await require(['scripts/taskbutton'], (btn) => taskButton = btn);
-
-            } catch (err) {
-
-                await require(['components/taskbutton'], (btn) => taskButton = btn.default);
-            }
             if (taskButton) {
-                taskButton({
+                taskButton.default({
                     mode: 'on',
                     progressElem: view.querySelector('.itemProgressBar'),
                     panel: view.querySelector('.organizeProgress'),
@@ -1630,7 +1622,7 @@
             events.off(serverNotifications, 'TaskComplete', onServerEvent)
 
             // off here
-            taskButton({
+            taskButton.default({
                 mode: 'off',
                 button: view.querySelector('.btnOrganize')
             });

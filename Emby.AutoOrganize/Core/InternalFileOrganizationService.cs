@@ -8,7 +8,6 @@ using Emby.AutoOrganize.Core.ScheduledTasks;
 using Emby.AutoOrganize.Data;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Model.Organization;
-using Emby.AutoOrganize.Model.SmartLists;
 using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Common.Extensions;

@@ -1,5 +1,5 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'],
-    function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
+﻿define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'],
+    function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper) {
 
 
         ApiClient.getFilePathCorrections = function () {
