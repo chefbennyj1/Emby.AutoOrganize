@@ -1,17 +1,37 @@
 ﻿define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize) {
-    'use strict';
-
+    
     ApiClient.getFilePathCorrections = function() {
-        var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
+        const url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
         return this.getJSON(url);
     };
 
+    ApiClient.getDefaultMovieDriveSize = function() {
+        const url = this.getUrl("AutoOrganize/CurrentDefaultMovieDriveSize");
+        return this.getJSON(url);
+    }
     
+    ApiClient.getDefaultTvDriveSize = function() {
+        const url = this.getUrl("AutoOrganize/CurrentDefaultTvDriveSize");
+        return this.getJSON(url);
+    }
 
+    //https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+    
     function getMovieFileName(value) {
-        var movieName = "Movie Name";
-        var movieYear = "2017";
-        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
+        const movieName = "Movie Name";
+        const movieYear = "2017";
+        const fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
 
         var result = value.replace('%mn', movieName)
             .replace('%m.n', movieName.replace(' ', '.'))
@@ -26,9 +46,9 @@
     }
 
     function getMovieFolderFileName(value) {
-        var movieName = "Movie Name";
-        var movieYear = "2017";
-        var fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
+        const movieName = "Movie Name";
+        const movieYear = "2017";
+        const fileNameWithoutExt = movieName + '.' + movieYear + '.MULTI.1080p.BluRay.Directors.Cut.DTS.x264-UTT';
 
         var result = value.replace('%mn', movieName)
             .replace('%m.n', movieName.replace(' ', '.'))
@@ -39,15 +59,13 @@
 
         return result;
     }
-
-    
-
+     
     function getEpisodeFileName(value, enableMultiEpisode) {
 
-        var seriesName = "Series Name";
-        var episodeTitle = enableMultiEpisode ? "Episode Four, Episode Five" : "Episode Four";
-        var fileName = seriesName + ' ' + episodeTitle;
-        var resolution = "1080p";
+        const seriesName = "Series Name";
+        const episodeTitle = enableMultiEpisode ? "Episode Four, Episode Five" : "Episode Four";
+        const fileName = seriesName + ' ' + episodeTitle;
+        const resolution = "1080p";
 
         var result = value.replace('%sn', seriesName)
             .replace('%s.n', seriesName.replace(' ', '.'))
@@ -75,11 +93,11 @@
             .replace('%00e', '004');
     }
 
-    function getSeriesDirecoryName(value) {
+    function getSeriesDirectoryName(value) {
 
-        var seriesName = "Series Name";
-        var seriesYear = "2017";
-        var fullName = seriesName + ' (' + seriesYear + ')';
+        const seriesName = "Series Name";
+        const seriesYear = "2017";
+        const fullName = seriesName + ' (' + seriesYear + ')';
 
         return value.replace('%sn', seriesName)
             .replace('%s.n', seriesName.replace(' ', '.'))
@@ -88,7 +106,7 @@
             .replace('%fn', fullName);
     }
 
-    function loadPage(view, config) {
+    async function loadPage(view, config) {
 
         
         view.querySelector('#chkEnableTelevisionOptions').checked = config.EnableTelevisionOrganization;
@@ -153,7 +171,11 @@
 
         view.querySelector('#selectMovieFolder').value = config.DefaultMovieLibraryPath;
 
+        var tvDriveSize = await ApiClient.getDefaultTvDriveSize();
+        view.querySelector('.tvDriveSize').innerHTML = "<br>Space Available:" + formatBytes(tvDriveSize);
 
+        var movieDriveSize = await ApiClient.getDefaultMovieDriveSize();
+        view.querySelector('.movieDriveSize').innerHTML = "<br>Space Available:" + formatBytes(movieDriveSize);
     }
 
     function onSubmit(view) {
@@ -204,14 +226,14 @@
             config.IgnoredFileNameContains = view.querySelector('#txtIgnoreFileNameContains').value.split(';');
 
             var episodeKeywordsInput = view.querySelector('#txtOverWriteExistingEpisodeFilesKeyWords');
-            if (episodeKeywordsInput.value == "") {
+            if (episodeKeywordsInput.value === "") {
                 config.OverwriteExistingEpisodeFilesKeyWords = [];
             } else {
                 config.OverwriteExistingEpisodeFilesKeyWords = episodeKeywordsInput.value.split(';');
             }
             
             var movieKeywordsInput = view.querySelector('#txtOverWriteExistingMovieFilesKeyWords');
-            if (movieKeywordsInput.value == "") {
+            if (movieKeywordsInput.value === "") {
                 config.OverwriteExistingMovieFilesKeyWords = [];
             } else {
                 config.OverwriteExistingMovieFilesKeyWords = movieKeywordsInput.value.split(';');
@@ -225,7 +247,7 @@
             var listItems = watchedLocationList.querySelectorAll('.listItem');
 
             listItems.forEach(item => {
-                if (!config.WatchLocations.filter(i => i == item.dataset.folder))
+                if (!config.WatchLocations.filter(i => i === item.dataset.folder))
                     config.WatchLocations.push(item.dataset.folder);
             });
             
@@ -274,15 +296,15 @@
             html += '</button>';
             html += '</div>';
             html += '</div>';
-        })
+        });
         return html;
     }
 
     async function removeWatchedFolder(e, view) {
-        var config = await ApiClient.getNamedConfiguration('autoorganize')
-        
+        var config = await ApiClient.getNamedConfiguration('autoorganize');
+
         var folderToRemove = e.target.dataset.folder;
-        var watchLocations = config.WatchLocations.filter(location => location != folderToRemove);
+        const watchLocations = config.WatchLocations.filter(location => location !== folderToRemove);
         config.WatchLocations = watchLocations;
 
         ApiClient.updateNamedConfiguration('autoorganize', config).then(() => {
@@ -291,7 +313,7 @@
             watchLocationList.innerHTML = getWatchedLocationListItemHtml(config.WatchLocations);
             var removeButtons = watchLocationList.querySelectorAll('button');
             if (removeButtons) {
-                removeButtons.forEach(btn => btn.addEventListener('click', async (elem) => await removeWatchedFolder(elem)))
+                removeButtons.forEach(btn => btn.addEventListener('click', async (elem) => await removeWatchedFolder(elem)));
             }
                 
         });
@@ -323,14 +345,14 @@
         return tabs;
     }
 
-    return function (view, params) {
+    return function (view) {
 
         function updateSeriesPatternHelp() {
 
             var value = view.querySelector('#txtSeriesPattern').value;
-            value = getSeriesDirecoryName(value);
+            value = getSeriesDirectoryName(value);
 
-            var replacementHtmlResult = 'Result: ' + value;
+            const replacementHtmlResult = 'Result: ' + value;
 
             view.querySelector('.seriesPatternDescription').innerHTML = replacementHtmlResult;
         }
@@ -365,11 +387,11 @@
             view.querySelector('.multiEpisodePatternDescription').innerHTML = replacementHtmlResult;
         }
 
-        function selectWatchFolder(e) {
+        function selectWatchFolder() {
 
-            require(['directorybrowser'], function (directoryBrowser) {
+            require(['directorybrowser'], function (DirectoryBrowser) {
 
-                var picker = new directoryBrowser();
+                var picker = new DirectoryBrowser();
 
                 picker.show({
 
@@ -382,7 +404,7 @@
                                 Dashboard.processServerConfigurationUpdateResult;
                                 var watchLocationList = view.querySelector('.watchFolderListContainer');
                                 watchLocationList.innerHTML = getWatchedLocationListItemHtml(config.WatchLocations);
-                                watchLocationList.querySelectorAll('Button').forEach(btn => btn.addEventListener('click', async (elem) => await removeWatchedFolder(elem, view)))
+                                watchLocationList.querySelectorAll('Button').forEach(btn => btn.addEventListener('click', async (elem) => await removeWatchedFolder(elem, view)));
                             });
                             
                             //view.querySelector('#txtWatchFolder').value = path;
@@ -394,16 +416,6 @@
                 });
             });
         }
-
-        //function toggleSeriesLocation() {
-        //    if (view.querySelector('#chkEnableSeriesAutoDetect').checked) {
-        //        view.querySelector('.fldSelectSeriesFolder').classList.remove('hide');
-        //        view.querySelector('#selectSeriesFolder').setAttribute('required', 'required');
-        //    } else {
-        //        view.querySelector('.fldSelectSeriesFolder').classList.add('hide');
-        //        view.querySelector('#selectSeriesFolder').removeAttribute('required');
-        //    }
-        //}
 
         function toggleTelevisionOptions()
         {
@@ -441,17 +453,16 @@
 
         function toggleOverwriteExistingMovieItemKeyWords() {
             if (!view.querySelector('#chkOverwriteExistingMovieItems').checked) {
-                view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.remove('hide');
-               
-            } else {
-                view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.add('hide');
                 
+                view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.remove('hide');
+            } else {
+                
+                view.querySelector('.fldOverWriteExistingMovieFilesKeyWords').classList.add('hide');
             }
         }
 
         function populateSeriesLocation(config) {
 
-            
             ApiClient.getVirtualFolders().then(function (result) {
 
                 var mediasLocations = [];
@@ -466,7 +477,7 @@
                             display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
                         };
 
-                        if (virtualFolder.CollectionType == 'tvshows') {
+                        if (virtualFolder.CollectionType === 'tvshows') {
                             mediasLocations.push(location);
                         }
                     }
@@ -510,23 +521,16 @@
 
         function toggleMovieFolderPattern() {
             if (view.querySelector('#chkSubMovieFolders').checked) {
+                
                 view.querySelector('.fldSelectMovieFolderPattern').classList.remove('hide');
                
             } else {
+                
                 view.querySelector('.fldSelectMovieFolderPattern').classList.add('hide');
                 
             }
         }
 
-        //function toggleMovieLocation() {
-        //    if (view.querySelector('#chkEnableMoviesAutoDetect').checked) {
-        //        view.querySelector('.fldSelectMovieFolder').classList.remove('hide');
-        //        view.querySelector('#selectMovieFolder').setAttribute('required', 'required');
-        //    } else {
-        //        view.querySelector('.fldSelectMovieFolder').classList.add('hide');
-        //        view.querySelector('#selectMovieFolder').removeAttribute('required');
-        //    }
-        //}
 
         function populateMovieLocation(config) {
 
@@ -534,9 +538,9 @@
 
                 var mediasLocations = [];
                 result = result.Items || result;
-                for (var n = 0; n < result.length; n++) {
+                for (let n = 0; n < result.length; n++) {
 
-                    var virtualFolder = result[n];
+                    const virtualFolder = result[n];
 
                     for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
                         var location = {
@@ -544,7 +548,7 @@
                             display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
                         };
 
-                        if (virtualFolder.CollectionType == 'movies') {
+                        if (virtualFolder.CollectionType === 'movies') {
                             mediasLocations.push(location);
                         }
                     }
@@ -576,23 +580,20 @@
         view.querySelector('#txtMultiEpisodePattern').addEventListener('keyup', updateMultiEpisodePatternHelp);
         
         view.querySelector('#btnSelectWatchFolder').addEventListener('click', selectWatchFolder);
-          
-        //view.querySelector('#chkEnableSeriesAutoDetect').addEventListener('change', () => {
-        //    //toggleSeriesLocation();
-        //    onSubmit(view);
-        //    return false;
-        //});
+
 
         view.querySelector('#chkEnableTelevisionOptions').addEventListener('change', () => {
             toggleTelevisionOptions();
             onSubmit(view);
             return false;
         });
+        
         view.querySelector('#chkEnableMovieOptions').addEventListener('change', () => {
             toggleMovieOptions();
             onSubmit(view);
             return false;
         });
+        
         view.querySelector('#chkOverwriteExistingEpisodeItems').addEventListener('change', () => {
             toggleOverwriteExistingEpisodeItemKeyWords();
             onSubmit(view);
@@ -609,11 +610,13 @@
         view.querySelector('#txtMoviePattern').addEventListener('keyup', updateMoviePatternHelp);
 
         view.querySelector('#chkEnableSeriesAutoDetect').addEventListener('change', () => {
+            
             toggleSortExistingSeriesOnly();
 
         });
 
         view.querySelector('#chkSubMovieFolders').addEventListener('click', () => {
+            
             toggleMovieFolderPattern();
             onSubmit(view);
             
@@ -623,32 +626,32 @@
 
 
         view.querySelector('.libraryFileOrganizerForm').addEventListener('submit', function (e) {
+            
             e.preventDefault();
             onSubmit(view);
             
         });
 
-        view.addEventListener('viewshow', async function (e) {
+        view.addEventListener('viewshow', async function () {
 
+            //Figure out if we should show the corrections tab
             const correction = await ApiClient.getFilePathCorrections();
             addCorrectionsTab = correction.Items.length > 0;
+            
             mainTabsManager.setTabs(this, 1, getTabs);
 
-            var config = await ApiClient.getNamedConfiguration('autoorganize');
+            const config = await ApiClient.getNamedConfiguration('autoorganize');
             
-            loadPage(view, config);
+            await loadPage(view, config);
 
             updateSeriesPatternHelp();
             updateSeasonPatternHelp();
             updateEpisodePatternHelp();
             updateMultiEpisodePatternHelp();
             populateSeriesLocation(config);
-            //toggleSeriesLocation();
-
             updateMoviePatternHelp();
             updateMovieFolderPatternHelp();
-            populateMovieLocation(config);
-            //toggleMovieLocation();
+            populateMovieLocation(config); 
             toggleMovieFolderPattern();
             toggleSortExistingSeriesOnly();
             toggleMovieOptions();

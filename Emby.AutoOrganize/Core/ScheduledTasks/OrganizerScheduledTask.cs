@@ -58,7 +58,6 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
             var options = GetAutoOrganizeOptions();
             var fileOrganizationService = PluginEntryPoint.Instance.FileOrganizationService;
 
-
             try
             {
                 await new WatchedFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor,
@@ -68,8 +67,6 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
             {
 
             }
-
-            
 
             progress.Report(100.0);
 

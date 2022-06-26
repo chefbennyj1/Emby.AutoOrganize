@@ -11,7 +11,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 {
     public abstract class BaseFileOrganizer<T>
     {
-        
         protected BaseFileOrganizer(IFileOrganizationService organizationService, IFileSystem fileSystem, ILogger log,
             ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager) { }
 
@@ -19,7 +18,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
-
         }
 
         void PerformFileSorting(AutoOrganizeOptions options, FileOrganizationResult result,
@@ -28,6 +26,5 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         // ReSharper disable once UnusedMember.Local
         void OrganizeWithCorrection(T request, AutoOrganizeOptions options, CancellationToken cancellationToken){}
 
-        
     }
 }

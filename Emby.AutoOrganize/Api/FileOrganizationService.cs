@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
+using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Model.Corrections;
@@ -14,10 +16,23 @@ using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Services;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
+using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 
 namespace Emby.AutoOrganize.Api
 {
+    [Route("/AutoOrganize/CurrentDefaultTvDriveSize", "GET", Summary = "AutoOrganize Default TV Drive Size")]
+    public class GetCurrentDefaultTvDriveSize : IReturn<long>
+    {
+        public long Size { get; set; }
+    }
+    
+    [Route("/AutoOrganize/CurrentDefaultMovieDriveSize", "GET", Summary = "AutoOrganize Default TV Drive Size")]
+    public class GetCurrentDefaultMovieDriveSize : IReturn<long>
+    {
+        public long Size { get; set; }
+    }
+    
     [Route("/Library/FileOrganization", "GET", Summary = "Gets file organization results")]
     public class GetFileOrganizationActivity : IReturn<QueryResult<FileOrganizationResult>>
     {
@@ -214,20 +229,21 @@ namespace Emby.AutoOrganize.Api
         private readonly IHttpResultFactory _resultFactory;
 
         public IRequest Request { get; set; }
-        private ILibraryManager LibraryManager { get; set; }
-        private ILibraryMonitor LibraryMonitor { get; }
+        //private ILibraryManager LibraryManager { get; set; }
+        //private ILibraryMonitor LibraryMonitor { get; }
         private IFileSystem FileSystem { get;  }
-        private IJsonSerializer JsonSerializer { get; }
-
+        //private IJsonSerializer JsonSerializer { get; }
+        private ILogger Log { get; set; }
         private IServerConfigurationManager ServerConfiguration { get; set; }
-        public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IServerConfigurationManager config, IJsonSerializer json)
+        public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IServerConfigurationManager config, IJsonSerializer json, ILogManager log)
         {
             _resultFactory = resultFactory;
-            LibraryManager = libraryManager;
-            LibraryMonitor = libraryMonitor;
+            //LibraryManager = libraryManager;
+            //LibraryMonitor = libraryMonitor;
             FileSystem = fileSystem;
             ServerConfiguration = config;
-            JsonSerializer = json;
+            Log = log.GetLogger("AutoOrganize");
+            //JsonSerializer = json;
         }
 
         private IFileOrganizationService InternalFileOrganizationService => PluginEntryPoint.Instance.FileOrganizationService;
@@ -410,5 +426,21 @@ namespace Emby.AutoOrganize.Api
             }
         }
 
+        public long Get(GetCurrentDefaultTvDriveSize request)
+        {
+            var options = GetAutoOrganizeOptions();
+            return string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) ? 0 : DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name == Path.GetPathRoot(options.DefaultSeriesLibraryPath)).AvailableFreeSpace;
+        }
+
+        public long Get(GetCurrentDefaultMovieDriveSize request)
+        {
+            var options = GetAutoOrganizeOptions();            
+            return string.IsNullOrEmpty(options.DefaultMovieLibraryPath) ? 0 : DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name == Path.GetPathRoot(options.DefaultMovieLibraryPath)).AvailableFreeSpace;
+        }
+        
+        private AutoOrganizeOptions GetAutoOrganizeOptions()
+        {
+            return ServerConfiguration.GetAutoOrganizeOptions();
+        }
     }
 }

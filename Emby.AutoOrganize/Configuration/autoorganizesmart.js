@@ -3,26 +3,25 @@
         'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'
     ],
     function(loading, mainTabsManager, globalize, dialogHelper, formDialogStyle) {
-        'use strict';
+        
 
         ApiClient.getFilePathCorrections = function() {
-            var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
+            const url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
             return this.getJSON(url);
         };
 
         ApiClient.getFileOrganizationResults = function(options) {
 
-            var url = this.getUrl("Library/FileOrganization", options || {});
+            const url = this.getUrl("Library/FileOrganization", options || {});
 
             return this.getJSON(url);
         };
 
 
-        ApiClient.getSmartMatchInfos = function() { //function (options) {
+        ApiClient.getSmartMatchInfos = function() {
 
-            //options = options || {};
 
-            var url = this.getUrl("Library/FileOrganizations/SmartMatches"); //, options);
+            const url = this.getUrl("Library/FileOrganizations/SmartMatches"); 
 
             return this.ajax({
                 type: "GET",
@@ -33,7 +32,7 @@
 
         ApiClient.deleteSmartMatchEntries = function(entry) {
 
-            var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
+            const url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
 
             return this.ajax({
                 type: "POST",
@@ -45,7 +44,7 @@
 
         ApiClient.saveCustomSmartMatchEntry = function(options) {
 
-            var url = this.getUrl("Library/FileOrganizations/SmartMatches/Save");
+            const url = this.getUrl("Library/FileOrganizations/SmartMatches/Save");
 
             var postData = {
                 TargetFolder: options.TargetFolder,
@@ -62,25 +61,25 @@
             });
         };
 
-        var query = {
-            StartIndex: 0,
-            Limit: 100000
-        };
+        //var query = {
+        //    StartIndex: 0,
+        //    Limit: 100000
+        //};
 
-        var currentResult;
+        //var currentResult;
 
-        function parentWithClass(elem, className) {
+        //function parentWithClass(elem, className) {
 
-            while (!elem.classList || !elem.classList.contains(className)) {
-                elem = elem.parentNode;
+        //    while (!elem.classList || !elem.classList.contains(className)) {
+        //        elem = elem.parentNode;
 
-                if (!elem) {
-                    return null;
-                }
-            }
+        //        if (!elem) {
+        //            return null;
+        //        }
+        //    }
 
-            return elem;
-        }
+        //    return elem;
+        //}
 
         async function reloadList(page) {
 
@@ -90,14 +89,10 @@
 
             if (result) {
 
-                currentResult = result;
+                //currentResult = result;
 
                 populateList(page, result);
             }
-
-            
-
-            
 
             loading.hide();
         }
@@ -244,7 +239,7 @@
 
             organizerTypeSelect.addEventListener('change',
                 () => {
-                    if (organizerTypeSelect.value != '') {
+                    if (organizerTypeSelect.value !== '') {
                         var virtualFolders = virtualFolderResult.Items; //|| result;
                         for (var n = 0; n < virtualFolders.length; n++) {
 
@@ -281,20 +276,20 @@
             dlg.querySelector('#cancelButton').addEventListener('click',
                 () => {
                     dialogHelper.close(dlg);
-                })
+                });
 
             dlg.querySelector('#okButton').addEventListener('click',
                 async () => {
 
-                    var targetFolder = targetFolderSelect.options[targetFolderSelect.selectedIndex].value;
+                    var targetFolder  = targetFolderSelect.options[targetFolderSelect.selectedIndex].value;
                     var organizerType = organizerTypeSelect.value;
-                    var keyWords = fileNameContainsInput.value.split(';');
+                    var keyWords      = fileNameContainsInput.value.split(';');
 
                     var options = {
                         TargetFolder: targetFolder,
-                        Matches: keyWords,
-                        Type: organizerType,
-                    }
+                        Matches     : keyWords,
+                        Type        : organizerType,
+                    };
 
                     await ApiClient.saveCustomSmartMatchEntry(options);
 

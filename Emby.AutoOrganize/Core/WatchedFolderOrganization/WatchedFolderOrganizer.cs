@@ -231,8 +231,6 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                         if (_libraryManager.IsSubtitleFile(file.FullName.AsSpan()))
                         {
                             var result = await subtitleOrganizer.OrganizeFile(true, file.FullName, options, cancellationToken);
-
-
                         }
                     }
                     catch (OperationCanceledException)
@@ -248,9 +246,6 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 progress.Report((currentProgress += step) - 1);
                
             }
-
-           
-
         }
 
         private void Clean(IEnumerable<string> paths, List<string> watchLocations, bool deleteEmptyFolders, List<string> deleteExtensions)
