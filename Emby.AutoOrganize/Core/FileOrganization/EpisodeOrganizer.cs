@@ -107,6 +107,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Type                = FileOrganizerType.Episode,
                     FileSize            = FileSystem.GetFileInfo(path).Length,
                     SourceQuality       = RegexExtensions.GetSourceQuality(Path.GetFileName(path)),
+                    
                 };
 
             }
@@ -147,8 +148,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
                 result.Subtitles = mediaInfo.Subtitles;
                 result.ExtractedResolution = mediaInfo.Resolution;
-
-
+                result.AudioChannels = mediaInfo.AudioChannels;
+                result.FileCreationDate = mediaInfo.CreationDate;
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 

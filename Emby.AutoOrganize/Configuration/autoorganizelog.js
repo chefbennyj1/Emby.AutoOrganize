@@ -830,6 +830,14 @@
 
         }
 
+        function calculateFileAge(creationDate) {
+            var now = new Date();
+            var creation = Date.parse(creationDate);
+            var age = now.getTime() - creation;
+            var ageInDays = Math.floor(age / (1000 * 3600 * 24));
+            return ageInDays;
+        }
+        
         function getResultItemTypeIcon(type) {
             switch (type) {
                 case "Unknown": return { path: "" }
@@ -839,6 +847,22 @@
             }
         }
 
+        function getAudioChannelIcon(channels) {
+            if (channels > 0 && channels < 3) {
+                return "M4 7V9H8V11H6C4.9 11 4 11.9 4 13V17H10V15H6V13H8C9.1 13 10 12.1 10 11V9C10 7.9 9.1 7 8 7H4M14 17H12V15H14V17M16 7V9H18V17H20V7H16Z";
+            } 
+            if (channels > 3 && channels < 5) {
+                return "M14 17H12V15H14V17M20 7V17H18V9H16V7H20M10 15C10 16.1 9.1 17 8 17H4V15H8V13H6V11H8V9H4V7H8C9.1 7 10 7.9 10 9V10.5C10 11.3 9.3 12 8.5 12C9.3 12 10 12.7 10 13.5V15"
+            }
+            if (channels > 5 && channels < 7) {
+                return "M14 17H12V15H14V17M20 7V17H18V9H16V7H20M10 7V9H6V11H8C9.1 11 10 11.9 10 13V15C10 16.1 9.1 17 8 17H4V15H8V13H4V7H10Z";
+            }
+            if (channels > 7 && channels < 9) {
+                return "M14 17H12V15H14V17M20 7V17H18V9H16V7H20M4 17L8 9H4V7H10V9L6 17";
+            }
+            return "";
+        }
+        
         function getButtonSvgIconRenderData(btn_icon) {
             switch (btn_icon) {
                 case 'IdentifyBtn': return {
@@ -859,68 +883,111 @@
         function getStatusRenderData(status) {
             switch (status) {
                 case 'Success': return {
-                    path: "M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+                    path: "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",
                     color: "green",
                     text: "Complete",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill:"green",
+                    textColor: "green",
                     active: false
                 };
                 case 'Failure': return {
                     path: "M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z",
                     color: "orangered",
                     text: "Attention - Unidentified",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill:"orangered",
+                    textColor: "orangered",
                     active: false
                 };
                 case 'SkippedExisting': return {
                     path: "M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z",
                     color: "goldenrod",
                     text: "Existing Item",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill:"goldenrod",
+                    textColor: "goldenrod",
                     active: false
                 };
                 case 'Processing': return {
                     path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
                     color: "var(--theme-accent-text-color)",
                     text: "Processing...",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill:"var(--theme-accent-text-color)",
+                    textColor: "var(--theme-accent-text-color)",
                     active: true
                 };
                 case "Checking": return {
                     path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
                     color: "goldenrod",
                     text: "Checking...",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill:"goldenrod",
+                    textColor: "goldenrod",
                     active: false
                 };
                 case "NewResolution": return {
                     path: "M12 5.5L10 8H14L12 5.5M18 10V14L20.5 12L18 10M6 10L3.5 12L6 14V10M14 16H10L12 18.5L14 16M21 3H3C1.9 3 1 3.9 1 5V19C1 20.1 1.9 21 3 21H21C22.1 21 23 20.1 23 19V5C23 3.9 22.1 3 21 3M21 19H3V5H21V19Z",
                     color: "var(--theme-accent-text-color)",
                     text: "New Resolution",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill:"var(--theme-accent-text-color)",
+                    textColor: "var(--theme-text-color)",
                     active: false
                 }
                 case "NotEnoughDiskSpace": return {
                     path: "",
                     color: "orangered",
                     text: "Not Enough Disk Space!",
+                    stroke: "none",
+                    strokeWidth: "0",
+                     fill: "orangered",
+                    textColor: "orangered",
                     active: false
                 }
                 case "InUse": return {
                     path: "M22 12C22 6.46 17.54 2 12 2C10.83 2 9.7 2.19 8.62 2.56L9.32 4.5C10.17 4.16 11.06 3.97 12 3.97C16.41 3.97 20.03 7.59 20.03 12C20.03 16.41 16.41 20.03 12 20.03C7.59 20.03 3.97 16.41 3.97 12C3.97 11.06 4.16 10.12 4.5 9.28L2.56 8.62C2.19 9.7 2 10.83 2 12C2 17.54 6.46 22 12 22C17.54 22 22 17.54 22 12M5.47 7C4.68 7 3.97 6.32 3.97 5.47C3.97 4.68 4.68 3.97 5.47 3.97C6.32 3.97 7 4.68 7 5.47C7 6.32 6.32 7 5.47 7M9 9H11V15H9M13 9H15V15H13",
                     color: "goldenrod",
                     text: "File in use",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill: "goldenrod",
+                    textColor: "goldenrod",
                     active: false
                 }
                 case 'UserInputRequired': return {
                     path: "M21.7,13.35L20.7,14.35L18.65,12.3L19.65,11.3C19.86,11.09 20.21,11.09 20.42,11.3L21.7,12.58C21.91,12.79 21.91,13.14 21.7,13.35M12,18.94L18.06,12.88L20.11,14.93L14.06,21H12V18.94M12,14C7.58,14 4,15.79 4,18V20H10V18.11L14,14.11C13.34,14.03 12.67,14 12,14M12,4A4,4 0 0,0 8,8A4,4 0 0,0 12,12A4,4 0 0,0 16,8A4,4 0 0,0 12,4Z",
                     color: "goldenrod",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    fill: "goldenrod",
+                    textColor: "goldenrod",
                     text: "Pending...",
                     active: false
                 }
                 case "NewMedia": return {
-                    path: "M20,4C21.11,4 22,4.89 22,6V18C22,19.11 21.11,20 20,20H4C2.89,20 2,19.11 2,18V6C2,4.89 2.89,4 4,4H20M8.5,15V9H7.25V12.5L4.75,9H3.5V15H4.75V11.5L7.3,15H8.5M13.5,10.26V9H9.5V15H13.5V13.75H11V12.64H13.5V11.38H11V10.26H13.5M20.5,14V9H19.25V13.5H18.13V10H16.88V13.5H15.75V9H14.5V14A1,1 0 0,0 15.5,15H19.5A1,1 0 0,0 20.5,14Z",
-                    color: "green",
-                    text: "New Media",
+                    path: "M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    color: "gold",
+                    textColor: "var(--theme-text-color)",
+                    fill: "rgb(131,131,131)",
+                    text: "New",
                     active: false
                 }
                 case "NewEdition": return {
                     path: "M19.65 6.5L16.91 2.96L20.84 2.18L21.62 6.1L19.65 6.5M16.71 7.07L13.97 3.54L12 3.93L14.75 7.46L16.71 7.07M19 13C20.1 13 21.12 13.3 22 13.81V10H2V20C2 21.11 2.9 22 4 22H13.81C13.3 21.12 13 20.1 13 19C13 15.69 15.69 13 19 13M11.81 8.05L9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05M4.16 5.5L3.18 5.69C2.1 5.91 1.4 6.96 1.61 8.04L2 10L6.9 9.03L4.16 5.5M20 18V15H18V18H15V20H18V23H20V20H23V18H20Z",
                     color: "var(--theme-accent-text-color)",
+                    stroke: "none",
+                    strokeWidth: "0",
+                    textColor: "var(--theme-text-color)",
                     text: "New Edition",
                     active: false
                 };
@@ -1018,21 +1085,34 @@
                     ? getStatusRenderData("Processing")
                     : getStatusRenderData(item.Status); //The actual status icon
 
-            //Status Icon
-            html += '<td class="detailTableBodyCell">';
-            html += '<div class="progressIcon">';
-            html += '<svg class="statusIcon" style="width:24px; height:24px;" viewBox="0 0 24 24" data-resultid="' + item.Id + '" data-status="' + item.Status + '" data-active="' + statusRenderData.active + '" data-step="1">';
-            html += '<path fill="' + statusRenderData.color + '" d="' + statusRenderData.path + '"/>';
+            //Media Type Icon (Movie/Episode)
+            var icon = getResultItemTypeIcon(item.Type)
+            html += '<td style="border-spacing:0;padding:.4em">';
+            html += '<div class="type-icon-container">';
+            html += '<svg id="typeIcon" style="width:24px;height:24px" stroke="' + statusRenderData.stroke + '" stroke-width="' + statusRenderData.strokeWidth + '" viewBox="0 0 24 24">';
+            html += '<path fill="' + statusRenderData.fill + '" d="' + icon.path + '"/>';
             html += '</svg>';
             html += '</div>';
             html += '</td>';
 
+            
             //Date
             html += '<td class="detailTableBodyCell" data-title="Date">';
             var date = datetime.parseISO8601Date(item.Date, true);
             html += '<span>' + datetime.toLocaleDateString(date) + '</span>';
             html += '</td>';
 
+            
+            
+            //Status Icon
+            html += '<td class="detailTableBodyCell">';
+            html += '<div class="progressIcon" style="display:flex">';
+            html += '<svg class="statusIcon" style="width:24px; height:24px;" viewBox="0 0 24 24" stroke="' + statusRenderData.stroke + '" stroke-width="' + statusRenderData.strokeWidth + '" data-resultid="' + item.Id + '" data-status="' + item.Status + '" data-active="' + statusRenderData.active + '" data-step="1">';
+            html += '<path fill="' + statusRenderData.color + '" d="' + statusRenderData.path + '"/>';
+            html += '</svg>';
+            html += '</div>';
+            html += '</td>';
+            
             //Status
             html += '<td data-resultid="' + item.Id + '" class= class="fileCell" style="white-space:normal; border-spacing:0;padding:.4em">';
             html += '<span>' + statusRenderData.text + '</span>';
@@ -1089,7 +1169,7 @@
             html += '</td>';
 
             //Audio
-            html += '<td class="fileCell" data-title="Audio" style="border-spacing:0;padding:.4em">';
+            html += '<td class="fileCell" data-title="Audio" style="border-spacing:0;padding:.4em;display: flex;justify-content: space-evenly;align-content: stretch;flex-direction: column;">';
             if (item.AudioStreamCodecs.length) {
 
                 html += '<div style="display:flex; flex-direction:column">'
@@ -1097,6 +1177,13 @@
                 //html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px; margin:2px; font-size: 11px;">' + item.AudioStreamCodecs[1].toLocaleUpperCase() + '</span>';
                 html += '</div>';
 
+            }
+            if (item.AudioChannels) {
+                html += '<div style="display:flex;align-items: center;background-color: rgb(131,131,131);border-radius: 5px;justify-content: center;">'
+                html += '<svg style="width:20px;height:20px;" viewBox="0 0 24 24">';
+                html += '<path fill="white" d="' + getAudioChannelIcon(item.AudioChannels) + '"  />';
+                html += '</svg>';
+                html += '</div>';
             }
 
             html += '</td>';
@@ -1131,19 +1218,15 @@
             html += '<span>' + formatBytes(item.FileSize) + '</span>';
             html += '</td>';
 
-            //Media Type Icon (Movie/Episode)
-            var icon = getResultItemTypeIcon(item.Type)
-            html += '<td style="border-spacing:0;padding:.4em">';
-            html += '<div class="type-icon-container">';
-            html += '<svg id="typeIcon" style="width:24px;height:24px" viewBox="0 0 24 24">';
-            html += '<path fill="' + statusRenderData.color + '" d="' + icon.path + '"/>';
-            html += '</svg>';
-            html += '</div>';
+            //File Age
+            html += '<td class="detailTableBodyCell" data-title="Date">';
+            var age = calculateFileAge(item.FileCreationDate);
+            html += '<span>' + age + ' day(s)</span>';
             html += '</td>';
 
             //Source file path
             html += '<td data-title="Source" class="fileCell" style="border-spacing:0;padding:.4em; white-space: normal">';
-            html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + ';white-space: normal;" href="#" class="button-link btnShowStatusMessage">';
+            html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.textColor + ';white-space: normal;" href="#" class="button-link btnShowStatusMessage">';
             html += item.OriginalFileName.replaceAll('.', '<wbr>.'); //<== Add a word break opportunity to file names because they may be really long, and cause the table to go off screen.
             html += '</a>';
             html += '</td>';

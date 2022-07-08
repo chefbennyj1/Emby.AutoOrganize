@@ -50,8 +50,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             //Instance            = this;
         }
 
-       
-
         public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {                
             Log.Info("Sorting file {0}", path);
@@ -90,7 +88,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Type = FileOrganizerType.Movie,
                     FileSize = FileSystem.GetFileInfo(path).Length,
                     SourceQuality = RegexExtensions.GetSourceQuality(Path.GetFileName(path)),
-                    ExtractedResolution = new Resolution()
+                    ExtractedResolution = new Resolution(),
+                    
                 };
             }
             
@@ -127,7 +126,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
                 result.Subtitles = mediaInfo.Subtitles;
                 result.ExtractedResolution = mediaInfo.Resolution;
-
+                result.AudioChannels = mediaInfo.AudioChannels;
+                result.FileCreationDate = mediaInfo.CreationDate;
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 

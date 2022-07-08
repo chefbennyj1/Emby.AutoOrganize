@@ -5,9 +5,9 @@
 
     <TargetFrameworks>netstandard2.0;</TargetFrameworks>
 
-    <AssemblyVersion>1.6.41.30</AssemblyVersion>
+    <AssemblyVersion>1.6.41.31</AssemblyVersion>
 
-    <FileVersion>1.6.41.30</FileVersion>
+    <FileVersion>1.6.41.31</FileVersion>
 
   </PropertyGroup>
 
@@ -51,6 +51,7 @@
     <PackageReference Include="mediabrowser.server.core" Version="4.7.1" />
     <PackageReference Include="SQLitePCL.pretty.core" Version="1.2.2" />
     <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="sharpcompress" Version="0.24.0" />
   </ItemGroup>
 
 </Project>

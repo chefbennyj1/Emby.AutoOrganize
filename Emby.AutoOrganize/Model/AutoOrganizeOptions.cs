@@ -30,6 +30,8 @@ namespace Emby.AutoOrganize.Model
         public string MovieFolderPattern                      { get; set; }
         public string[] OverwriteExistingEpisodeFilesKeyWords { get; set; }
         public string[] OverwriteExistingMovieFilesKeyWords   { get; set; }
+        public string PreProcessingFolderPath { get; set; }
+        public bool EnablePreProcessing { get; set; }
         public AutoOrganizeOptions()
         {
             MinFileSizeMb                         = 50;
@@ -52,6 +54,7 @@ namespace Emby.AutoOrganize.Model
             LeftOverFileExtensionsToDelete        = new string[] { };
             OverwriteExistingEpisodeFilesKeyWords = new string[] { };
             OverwriteExistingMovieFilesKeyWords   = new string[] { };
+            EnablePreProcessing                   = false;
         }
     }
 }

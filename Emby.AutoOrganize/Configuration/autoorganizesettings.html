@@ -20,7 +20,7 @@
 
                     <div class="fldSelectSeriesFolder selectContainer">
                         <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:" required="required"></select>
-	                    <div class="fieldDescription">New series folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span><span class="tvDriveSize"></span></div>
+	                    <div class="fieldDescription">New series folders will be created here by default. The Library Folder path can be edited during sorting <span style="font-weight:bolder">(required)</span>.<span class="tvDriveSize"></span></div>
                     </div>
 
                     <!--Series-->
@@ -215,7 +215,7 @@
 
                 </div>
             </div>
-
+        <hr />
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Movie Options</h2>
 
@@ -231,8 +231,8 @@
                     <p class="benefits">Supported movie naming <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming" target="_blank">Learn more</a>.</p>
 
                     <div class="fldSelectMovieFolder selectContainer">
-                        <select id="selectMovieFolder" is="emby-select" label="Default Movie library:" required="required"></select>
-                        <div class="fieldDescription">New movie folders will be created here by default. The Library Folder path can be edited during sorting, when auto detection is turned off. <span style="color:orangered">(required)</span><span class="movieDriveSize"></span></div>
+                        <select id="selectMovieFolder" is="emby-select" label="Default Movie library  folder:" required="required"></select>
+                        <div class="fieldDescription">New movie folders will be created here by default. The Library Folder path can be edited during sorting <span style="font-weight:bolder">(required)</span>.<span class="movieDriveSize"></span></div>
                     </div>
 
                     <div class="fldSubMovieFolder checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
@@ -377,7 +377,7 @@
 
                 </div>
             </div>
-
+        <hr />
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Subtitle Options</h2>
                 <p class="benefits">Supported subtitle naming and extensions <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159160-subtitles" target="_blank">Learn more</a>.</p>
@@ -389,10 +389,9 @@
                     <div class="fieldDescription toggleFieldDescription">Smart organization automatically sorts detected external subtitle files in the monitored folder.</div>
                 </div>
             </div>
-
+        <hr />
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2 class="checkboxListLabel">Source Folder Options</h2>
-
 
                 <div is="emby-collapse" title="Watch folders" class="verticalSection-extrabottompadding" style="padding: 1em 0 2em 0;">
                     <div class="collapseContent">
@@ -401,16 +400,43 @@
                             <button type="button" is="paper-icon-button-light" id="btnSelectWatchFolder" title="Add directory" class="autoSize fab"><i class="md-icon">add</i></button>
                             <label class="flex-grow">Add Folder</label>
                         </div>
+                        <div class="fieldDescription">These folders will be monitored for new files.</div>
 
                         <div is="emby-itemscontainer" class="watchFolderListContainer itemsContainer flex flex-grow centered scrollY padded-right vertical-list verticalSection-extrabottompadding" data-virtualscrolllayout="vertical-grid">
 
                         </div>
 
-                        <div class="fieldDescription">These folders will be monitored for new files.</div>
+                        <br />
+
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                            <label style="width: auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkEnablePreProcessingOptions" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Pre-process watched folder files</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Enable if watched folder paths are pointing directly to recording folders that contain compressed files (.rar, .zip extensions). Files in the watched folders will be decompressed for organization.</div>
+                        </div>
+
+                        <br />
+
+                        <div class="inputContainer hide">
+                            <div class="flex align-items-center">
+                                <div class="flex-grow">
+                                    <label class="inputLabel" for="txtPreProcessingFolderPath">Pre-processing folder path:</label>
+                                    <input is="emby-input" id="txtPreProcessingFolderPath" label="Pre-processing folder path:" autocomplete="off" class="emby-input">
+                                </div>
+                                <button type="button" is="paper-icon-button-light" id="btnSelectPreProcessingFolderPath" title="Select Directory" aria-label="Select Directory" class="emby-input-iconbutton paper-icon-button-light"><i class="md-icon">search</i></button>
+                            </div>
+                            <div class="fieldDescription">Select a custom pre-processing folder path. Files from the watched folder locations will be managed here for organization in the emby library <span style="font-weight:bolder">(required)</span>.</div>
+                        </div>
+
+                        <br />
+
                     </div>
                 </div>
 
-                <div class="selectContainer">
+                
+
+	            <div class="selectContainer">
                     <select is="emby-select" id="copyOrMoveFile" label="Transfer method:">
                         <option value="true">Copy</option>
                         <option value="false">Move</option>
@@ -449,7 +475,7 @@
                     <div class="fieldDescription checkboxFieldDescription">Clean empty folders from watch folders when <b>all files have been sorted</b>.</div>
                 </div>
             </div>
-
+        <hr />
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2 class="checkboxListLabel">Destination Folder Options</h2>
 

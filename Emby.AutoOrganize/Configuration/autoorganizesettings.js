@@ -1,20 +1,19 @@
-﻿define(['mainTabsManager', 'globalize','emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize) {
+﻿define(['mainTabsManager', 'globalize','loading', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize, loading) {
     
     ApiClient.getFilePathCorrections = function() {
         const url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
         return this.getJSON(url);
     };
 
-    ApiClient.getDefaultMovieDriveSize = function() {
-        const url = this.getUrl("AutoOrganize/CurrentDefaultMovieDriveSize");
+    ApiClient.getAvailableSpace = function(drive) {
+        
+        const options = {
+            Location: drive
+        };
+        const url = this.getUrl("AutoOrganize/AvailableSpace", options);
         return this.getJSON(url);
     }
     
-    ApiClient.getDefaultTvDriveSize = function() {
-        const url = this.getUrl("AutoOrganize/CurrentDefaultTvDriveSize");
-        return this.getJSON(url);
-    }
-
     //https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
     function formatBytes(bytes, decimals = 2) {
         if (bytes === 0) return '0 Bytes';
@@ -138,6 +137,9 @@
                 async (e) => await removeWatchedFolder(e, view)));
         }
 
+        view.querySelector('#chkEnablePreProcessingOptions').checked = config.EnablePreProcessing;
+
+        view.querySelector('#txtPreProcessingFolderPath').value = config.PreProcessingFolderPath || "";
 
         view.querySelector('#txtEpisodePattern').value = config.EpisodeNamePattern;
 
@@ -171,11 +173,6 @@
 
         view.querySelector('#selectMovieFolder').value = config.DefaultMovieLibraryPath;
 
-        var tvDriveSize = await ApiClient.getDefaultTvDriveSize();
-        view.querySelector('.tvDriveSize').innerHTML = "<br>Space Available:" + formatBytes(tvDriveSize);
-
-        var movieDriveSize = await ApiClient.getDefaultMovieDriveSize();
-        view.querySelector('.movieDriveSize').innerHTML = "<br>Space Available:" + formatBytes(movieDriveSize);
     }
 
     function onSubmit(view) {
@@ -262,6 +259,10 @@
 
             config.MoviePattern = view.querySelector('#txtMoviePattern').value;
 
+            config.EnablePreProcessing = view.querySelector('#chkEnablePreProcessingOptions').checked;
+
+            config.PreProcessingFolderPath = view.querySelector('#txtPreProcessingFolderPath').value;
+            
             ApiClient.updateNamedConfiguration('autoorganize', config).then(Dashboard.processServerConfigurationUpdateResult, Dashboard.processErrorResponse);
         });
 
@@ -387,6 +388,44 @@
             view.querySelector('.multiEpisodePatternDescription').innerHTML = replacementHtmlResult;
         }
 
+        function togglePreProcessingOptions() {
+            const preProcessingFolderPathContainer = view.querySelector('#txtPreProcessingFolderPath').closest('.inputContainer');
+            if (view.querySelector('#chkEnablePreProcessingOptions').checked) {
+                preProcessingFolderPathContainer.classList.remove('hide');
+                view.querySelector('#txtPreProcessingFolderPath').setAttribute("required", "");
+            } else {
+                preProcessingFolderPathContainer.classList.add('hide');
+                view.querySelector('#txtPreProcessingFolderPath').removeAttribute("required");
+            }
+        }
+
+        function selectPreProcessingFolder() {
+            require(['directorybrowser'], function (DirectoryBrowser) {
+
+                var picker = new DirectoryBrowser();
+
+                picker.show({
+
+                    callback: async function (path) {
+
+                        if (path) {
+                            //var config = await ApiClient.getNamedConfiguration('autoorganize');
+                            //config.PreProcessingFolderPath = path;
+                            //ApiClient.updateNamedConfiguration('autoorganize', config).then(() => {
+                            //    Dashboard.processServerConfigurationUpdateResult;
+                            //    var preProcessingFolder = view.querySelector('#txtPreProcessingFolderPath');
+                            //    preProcessingFolder.value = config.PreProcessingFolderPath;
+                            //});
+                            view.querySelector('#txtPreProcessingFolderPath').value = path;
+                        }
+                        picker.close();
+                    },
+                    header: 'Select Pre-processing Folder',
+                    validateWriteable: true
+                });
+            });
+        }
+        
         function selectWatchFolder() {
 
             require(['directorybrowser'], function (DirectoryBrowser) {
@@ -461,42 +500,45 @@
             }
         }
 
-        function populateSeriesLocation(config) {
+        async function populateSeriesLocation(config) {
 
-            ApiClient.getVirtualFolders().then(function (result) {
+            var result = await ApiClient.getVirtualFolders();
 
-                var mediasLocations = [];
-                result = result.Items || result;
-                for (var n = 0; n < result.length; n++) {
+            var mediasLocations = [];
+            result = result.Items || result;
+            for (var n = 0; n < result.length; n++) {
 
-                    var virtualFolder = result[n];
+                var virtualFolder = result[n];
 
-                    for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
-                        var location = {
-                            value: virtualFolder.Locations[i],
-                            display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
-                        };
+               
+                
+                for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
+                    var availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]); 
+                    var location = {
+                        value: virtualFolder.Locations[i],
+                        display: '(Available space: ' + formatBytes(availableSpace)  + ') ' + virtualFolder.Name + ': ' + virtualFolder.Locations[i]
+                    };
 
-                        if (virtualFolder.CollectionType === 'tvshows') {
-                            mediasLocations.push(location);
-                        }
+                    if (virtualFolder.CollectionType === 'tvshows') {
+                        mediasLocations.push(location);
                     }
                 }
+            }
 
-                var mediasFolderHtml = mediasLocations.map(function (s) {
-                    return '<option value="' + s.value + '">' + s.display + '</option>';
-                }).join('');
+            var mediasFolderHtml = mediasLocations.map(function (s) {
+                return '<option value="' + s.value + '">' + s.display + '</option>';
+            }).join('');
 
-                if (mediasLocations.length > 1) {
-                    // If the user has multiple folders, add an empty item to enforce a manual selection
-                    mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
-                }
+            if (mediasLocations.length > 1) {
+                // If the user has multiple folders, add an empty item to enforce a manual selection
+                mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
+            }
 
-                view.querySelector('#selectSeriesFolder').innerHTML = mediasFolderHtml;
+            view.querySelector('#selectSeriesFolder').innerHTML = mediasFolderHtml;
 
-                view.querySelector('#selectSeriesFolder').value = config.DefaultSeriesLibraryPath;
+            view.querySelector('#selectSeriesFolder').value = config.DefaultSeriesLibraryPath;
 
-            }, onApiFailure);
+
         }
 
         function updateMoviePatternHelp() {
@@ -531,43 +573,44 @@
             }
         }
 
+        async function populateMovieLocation(config) {
 
-        function populateMovieLocation(config) {
+            var result = await ApiClient.getVirtualFolders();
 
-            ApiClient.getVirtualFolders().then(function (result) {
+            var mediasLocations = [];
+            result = result.Items || result;
+            for (let n = 0; n < result.length; n++) {
 
-                var mediasLocations = [];
-                result = result.Items || result;
-                for (let n = 0; n < result.length; n++) {
+                const virtualFolder = result[n];
+               
+                for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
+                    
+                    var availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]);                    
+                    var location = {
+                        value: virtualFolder.Locations[i],
+                        display: '(Available space: ' + formatBytes(availableSpace) + ') ' + virtualFolder.Name + ': ' + virtualFolder.Locations[i] 
+                    };
 
-                    const virtualFolder = result[n];
-
-                    for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
-                        var location = {
-                            value: virtualFolder.Locations[i],
-                            display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
-                        };
-
-                        if (virtualFolder.CollectionType === 'movies') {
-                            mediasLocations.push(location);
-                        }
+                    if (virtualFolder.CollectionType === 'movies') {
+                        mediasLocations.push(location);
                     }
                 }
+            }
 
-                var mediasFolderHtml = mediasLocations.map(function (s) {
-                    return '<option value="' + s.value + '">' + s.display + '</option>';
-                }).join('');
+            var mediasFolderHtml = mediasLocations.map(function (s) {
+                return '<option value="' + s.value + '">' + s.display + '</option>';
+            }).join('');
 
-                if (mediasLocations.length > 1) {
-                    // If the user has multiple folders, add an empty item to enforce a manual selection
-                    mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
-                }
+            if (mediasLocations.length > 1) {
+                // If the user has multiple folders, add an empty item to enforce a manual selection
+                mediasFolderHtml = '<option value=""></option>' + mediasFolderHtml;
+            }
 
-                view.querySelector('#selectMovieFolder').innerHTML = mediasFolderHtml;
+            view.querySelector('#selectMovieFolder').innerHTML = mediasFolderHtml;
 
-                view.querySelector('#selectMovieFolder').value = config.DefaultMovieLibraryPath;
+            view.querySelector('#selectMovieFolder').value = config.DefaultMovieLibraryPath;
 
-            }, onApiFailure);
+
         }
            
         view.querySelector('#txtSeriesPattern').addEventListener('change', updateSeriesPatternHelp);
@@ -578,7 +621,6 @@
         view.querySelector('#txtEpisodePattern').addEventListener('keyup', updateEpisodePatternHelp);
         view.querySelector('#txtMultiEpisodePattern').addEventListener('change', updateMultiEpisodePatternHelp);
         view.querySelector('#txtMultiEpisodePattern').addEventListener('keyup', updateMultiEpisodePatternHelp);
-        
         view.querySelector('#btnSelectWatchFolder').addEventListener('click', selectWatchFolder);
 
 
@@ -606,6 +648,13 @@
             return false;
         });
 
+        view.querySelector('#chkEnablePreProcessingOptions').addEventListener('change', () => {
+            togglePreProcessingOptions();
+            return false;
+        });
+        
+        view.querySelector('#btnSelectPreProcessingFolderPath').addEventListener('click', selectPreProcessingFolder);
+        
         view.querySelector('#txtMoviePattern').addEventListener('change', updateMoviePatternHelp);
         view.querySelector('#txtMoviePattern').addEventListener('keyup', updateMoviePatternHelp);
 
@@ -621,10 +670,10 @@
             onSubmit(view);
             
         });
+        
         view.querySelector('#txtMovieFolderPattern').addEventListener('change', updateMovieFolderPatternHelp);
         view.querySelector('#txtMovieFolderPattern').addEventListener('keyup', updateMovieFolderPatternHelp);
-
-
+         
         view.querySelector('.libraryFileOrganizerForm').addEventListener('submit', function (e) {
             
             e.preventDefault();
@@ -634,6 +683,7 @@
 
         view.addEventListener('viewshow', async function () {
 
+            loading.show();
             //Figure out if we should show the corrections tab
             const correction = await ApiClient.getFilePathCorrections();
             addCorrectionsTab = correction.Items.length > 0;
@@ -648,14 +698,17 @@
             updateSeasonPatternHelp();
             updateEpisodePatternHelp();
             updateMultiEpisodePatternHelp();
-            populateSeriesLocation(config);
+            await populateSeriesLocation(config);
             updateMoviePatternHelp();
             updateMovieFolderPatternHelp();
-            populateMovieLocation(config); 
+            await populateMovieLocation(config); 
             toggleMovieFolderPattern();
             toggleSortExistingSeriesOnly();
             toggleMovieOptions();
             toggleTelevisionOptions();
+            togglePreProcessingOptions();
+
+            loading.hide();
         });
     };
 });

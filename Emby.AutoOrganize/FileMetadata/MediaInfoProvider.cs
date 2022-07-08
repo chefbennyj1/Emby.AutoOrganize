@@ -70,16 +70,12 @@ namespace Emby.AutoOrganize.FileMetadata
         public int refs { get; set; }
         public string is_avc { get; set; }
         public string nal_length_size { get; set; }
-
         public string bits_per_raw_sample { get; set; }
-
         public string dmix_mode { get; set; }
-       
         public string ltrt_cmixlev { get; set; }
         public string ltrt_surmixlev { get; set; }
         public string loro_cmixlev { get; set; }
         public string loro_surmixlev { get; set; }
-
         public int width { get; set; }
         public int height { get; set; }
         public int index { get; set; }
@@ -113,6 +109,8 @@ namespace Emby.AutoOrganize.FileMetadata
         public string major_brand { get; set; }
         public string minor_version { get; set; }
         public string compatible_brands { get; set; }
+        public DateTime? creation_time { get; set; }
+        
     }
     
     public class MediaInfoProvider : IServerEntryPoint

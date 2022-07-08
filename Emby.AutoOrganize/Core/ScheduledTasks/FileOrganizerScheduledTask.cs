@@ -14,7 +14,7 @@ using MediaBrowser.Model.Tasks;
 
 namespace Emby.AutoOrganize.Core.ScheduledTasks
 {
-    public class OrganizerScheduledTask : IScheduledTask, IConfigurableScheduledTask
+    public class FileOrganizerScheduledTask : IScheduledTask, IConfigurableScheduledTask
     {
         private readonly ILibraryMonitor _libraryMonitor;
         private readonly ILibraryManager _libraryManager;
@@ -23,7 +23,7 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
         private readonly IServerConfigurationManager _config;
         private readonly IProviderManager _providerManager;
 
-        public OrganizerScheduledTask(ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, IServerConfigurationManager config, IProviderManager providerManager)
+        public FileOrganizerScheduledTask(ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, IServerConfigurationManager config, IProviderManager providerManager)
         {
             _libraryMonitor = libraryMonitor;
             _libraryManager = libraryManager;

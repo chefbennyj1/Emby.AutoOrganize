@@ -51,7 +51,7 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
             };
         }
 
-        public string Name => "AutoOrganize File Name Corrections";
+        public string Name => "File Name Corrections";
         public string Key => "AutoOrganizeFileNameCorrections";
         public string Description => "Locate files in the file system which names don't match the user defined pattern";
         public string Category => "Library";

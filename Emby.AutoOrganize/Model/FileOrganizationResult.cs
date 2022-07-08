@@ -132,11 +132,14 @@ namespace Emby.AutoOrganize.Model
 
         public List<string> AudioStreamCodecs { get; set; }
 
+        public int AudioChannels { get; set; }
+        
         public List<string> Subtitles { get; set; }
 
         public long ExistingInternalId{ get; set; }
 
-
+        public DateTime FileCreationDate { get; set; }
+        
         public FileOrganizationResult()
         {
             DuplicatePaths        = new List<string>();

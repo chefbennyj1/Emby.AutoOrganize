@@ -55,7 +55,7 @@ namespace Emby.AutoOrganize.Core
 
         public void BeginProcessNewFiles()
         {
-            _taskManager.CancelIfRunningAndQueue<OrganizerScheduledTask>();
+            _taskManager.CancelIfRunningAndQueue<FileOrganizerScheduledTask>();
         }
 
         public void SaveResult(FileOrganizationResult result, CancellationToken cancellationToken)

@@ -26,9 +26,9 @@
             var html = '';
 
             const groupBySeries = corrections.reduce((group, correction) => {
-                const { seriesName } = correction;
-                group[seriesName] = group[seriesName] ?? [];
-                group[seriesName].push(correction);
+                const { SeriesName } = correction;
+                group[SeriesName] = group[SeriesName] ?? [];
+                group[SeriesName].push(correction);
                 return group;
             }, {});
 

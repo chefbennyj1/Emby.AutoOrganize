@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -21,18 +22,14 @@ using MediaBrowser.Model.Serialization;
 
 namespace Emby.AutoOrganize.Api
 {
-    [Route("/AutoOrganize/CurrentDefaultTvDriveSize", "GET", Summary = "AutoOrganize Default TV Drive Size")]
-    public class GetCurrentDefaultTvDriveSize : IReturn<long>
+    [Route("/AutoOrganize/AvailableSpace", "GET", Summary = "AutoOrganize Drive Size")]
+    public class GetAvailableSpace : IReturn<long>
     {
-        public long Size { get; set; }
+        [ApiMember(Name = "Location", Description = "Optional. The drive location to get available space", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        public string Location { get; set; }
+        
     }
-    
-    [Route("/AutoOrganize/CurrentDefaultMovieDriveSize", "GET", Summary = "AutoOrganize Default TV Drive Size")]
-    public class GetCurrentDefaultMovieDriveSize : IReturn<long>
-    {
-        public long Size { get; set; }
-    }
-    
+
     [Route("/Library/FileOrganization", "GET", Summary = "Gets file organization results")]
     public class GetFileOrganizationActivity : IReturn<QueryResult<FileOrganizationResult>>
     {
@@ -238,8 +235,6 @@ namespace Emby.AutoOrganize.Api
         public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IServerConfigurationManager config, IJsonSerializer json, ILogManager log)
         {
             _resultFactory = resultFactory;
-            //LibraryManager = libraryManager;
-            //LibraryMonitor = libraryMonitor;
             FileSystem = fileSystem;
             ServerConfiguration = config;
             Log = log.GetLogger("AutoOrganize");
@@ -292,12 +287,9 @@ namespace Emby.AutoOrganize.Api
         
         public void Post(PerformOrganization request)
         {
-            // Don't await this
+           
             InternalFileOrganizationService.PerformOrganization(request.Id, request.RequestToMoveFile);
 
-            // Async processing (close dialog early instead of waiting until the file has been copied)
-            // Wait 2s for exceptions that may occur to have them forwarded to the client for immediate error display
-            //task.Wait(2000);
         }
 
         public void Post(OrganizeEpisode request)
@@ -409,9 +401,8 @@ namespace Emby.AutoOrganize.Api
 
         public void Post(UpdateFileNameCorrectionRequest request)
         {
-            
             var correctionResult = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery());
-            
+
             foreach (var id in request.Ids)
             {
                 var correction = correctionResult.Items.FirstOrDefault(c => c.Id == id);
@@ -419,23 +410,20 @@ namespace Emby.AutoOrganize.Api
                 {
                     InternalFileCorrectionService.CorrectFileName(correction);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Log.Error(ex.Message, "Error correcting file name");
                     InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
+                    return;
+                    //InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
                 }
             }
+
         }
 
-        public long Get(GetCurrentDefaultTvDriveSize request)
+        public long Get(GetAvailableSpace request)
         {
-            var options = GetAutoOrganizeOptions();
-            return string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) ? 0 : DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name == Path.GetPathRoot(options.DefaultSeriesLibraryPath)).AvailableFreeSpace;
-        }
-
-        public long Get(GetCurrentDefaultMovieDriveSize request)
-        {
-            var options = GetAutoOrganizeOptions();            
-            return string.IsNullOrEmpty(options.DefaultMovieLibraryPath) ? 0 : DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name == Path.GetPathRoot(options.DefaultMovieLibraryPath)).AvailableFreeSpace;
+            return DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name == Path.GetPathRoot(request.Location)).AvailableFreeSpace;
         }
         
         private AutoOrganizeOptions GetAutoOrganizeOptions()
