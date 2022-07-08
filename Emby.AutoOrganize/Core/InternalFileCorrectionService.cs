@@ -115,10 +115,7 @@ namespace Emby.AutoOrganize.Core
                     progress.Report(total);
                     var episode = episodes[i];
 
-                    if (episode.Path is null)
-                    {
-                        continue;
-                    }
+                    if (string.IsNullOrEmpty(episode.Path)) continue;
 
                     string correctEpisodeFileName;
                     try
@@ -137,19 +134,16 @@ namespace Emby.AutoOrganize.Core
                         continue;
                     }
 
+                    
                     var result = new FileCorrection()
                     {
-                        CorrectedPath = Path.Combine(Path.GetDirectoryName(episode.Path), correctEpisodeFileName),
-                        CurrentPath = Path.Combine(Path.GetDirectoryName(episode.Path), episode.Path),
+                        CorrectedPath = Path.Combine(Path.GetDirectoryName(episode.Path) ?? string.Empty, correctEpisodeFileName),
+                        CurrentPath = Path.Combine(Path.GetDirectoryName(episode.Path) ?? string.Empty, episode.Path),
                         SeriesName = episode.SeriesName
                     };
                     
                     SaveResult(result, cancellationToken);
-
-                   // FileSystem.MoveFile(path, correctedFilePath);
-
-                    //LibraryMonitor.ReportFileSystemChangeComplete(path, true);
-
+                    
                 } 
             }
 
@@ -157,112 +151,73 @@ namespace Emby.AutoOrganize.Core
 
         }
 
-        public void CorrectFileName(FileCorrection correction)
+        public void CorrectFileNames(FileCorrection correction)
         {
             Log.Info($"Correcting: {correction.CurrentPath}");
             LibraryMonitor.ReportFileSystemChangeBeginning(correction.CurrentPath);
-            var correctionDirectory = Path.GetDirectoryName(correction.CurrentPath);
-
-            if (correctionDirectory is null) return;
-
-            Log.Info($"Beginning file name correction in {correctionDirectory}");
-
-            var eligibleFileToCorrect = new List<string>();
-
-            eligibleFileToCorrect.AddRange(Directory.GetFiles(correctionDirectory));
             
-            //Place the Video file at the top of the list
-            eligibleFileToCorrect = eligibleFileToCorrect.OrderByDescending(f => LibraryManager.IsVideoFile(f.AsSpan())).ToList();
-            
-            //Place the Subtitle file at the bottom of the list
-            eligibleFileToCorrect = eligibleFileToCorrect.OrderBy(f => LibraryManager.IsSubtitleFile(f.AsSpan())).ToList();
-            
+            var workingDirectory = Path.GetDirectoryName(correction.CurrentPath);
+
+            if (workingDirectory is null) return;
+
+            Log.Info($"Beginning file name correction in {workingDirectory}");
+
+            var eligibleFilesToCorrect = GetEligibleFilesToCorrect(workingDirectory);
+
 
             //Attempt to change the video file first. If it fails, we'll not have touched the other files in the directory.
             
             //Fix NFO, and Video File
-            foreach (var fileToCorrect in eligibleFileToCorrect)
+            foreach (var file in eligibleFilesToCorrect)
             {
-                var extension = Path.GetExtension(fileToCorrect);
+                var extension = Path.GetExtension(file);
 
-                if (Path.GetFileNameWithoutExtension(fileToCorrect) == Path.GetFileNameWithoutExtension(correction.CurrentPath))
+                if (Path.GetFileNameWithoutExtension(file) == Path.GetFileNameWithoutExtension(correction.CurrentPath))
                 {
-                    var name = $"{Path.GetFileNameWithoutExtension(correction.CorrectedPath)}{extension}";
-                    var path = Path.Combine(correctionDirectory, name);
-                    Log.Info($"Correcting: {fileToCorrect} to { path }");
-
                     try
                     {
-                        File.Move(fileToCorrect, Path.Combine(correctionDirectory, name));
+                        CorrectFileName(correction, extension, workingDirectory);
                     }
                     catch
                     {
-                        Log.Warn($"Unable to correct {fileToCorrect}");
-                        throw new FileCorrectionException($"Unable to correct {fileToCorrect}");
+                        Log.Warn($"Unable to correct {file}");
+                        throw new FileCorrectionException($"Unable to correct {file}");
                     }
-
-                    if (File.Exists(fileToCorrect))
-                    {
-                        Log.Info($"Correcting: {fileToCorrect} deleted");
-                        File.Delete(fileToCorrect);
-                    }
-
-                    Log.Info($"Successfully corrected: {fileToCorrect}");
+                    
                     continue;
 
                 }
                 
                 //Change the thumb image name
-                if (Path.GetFileNameWithoutExtension(fileToCorrect) == $"{Path.GetFileNameWithoutExtension(correction.CurrentPath)}-thumb")
+                if (Path.GetFileNameWithoutExtension(file) == $"{Path.GetFileNameWithoutExtension(correction.CurrentPath)}-thumb")
                 {
-                    var name = $"{Path.GetFileNameWithoutExtension(correction.CorrectedPath)}-thumb{extension}";
-                    var path = Path.Combine(correctionDirectory, name);
-
-                    Log.Info($"Correcting: {fileToCorrect} to { path }");
-
                     try
                     {
-                        File.Move(fileToCorrect, Path.Combine(correctionDirectory, name));
+                        CorrectFileName(correction, extension, workingDirectory, "-thumb");
                     }
                     catch
                     {
-                        Log.Warn($"Unable to correct {fileToCorrect}");
-                        throw new FileCorrectionException($"Unable to correct {fileToCorrect}");
+                        Log.Warn($"Unable to correct {file}");
+                        throw new FileCorrectionException($"Unable to correct {file}");
                     }
 
-                    if (File.Exists(fileToCorrect))
-                    {
-                        Log.Info($"Correcting: {fileToCorrect} deleted");
-                        File.Delete(fileToCorrect);
-                    }
-                    Log.Info($"Successfully corrected: {fileToCorrect}");
                     continue;
                 }
 
                 //change the subtitle file name
-                if (LibraryManager.IsSubtitleFile(fileToCorrect.AsSpan()))
+                if (LibraryManager.IsSubtitleFile(file.AsSpan()))
                 {
-                    var parts = Path.GetFileNameWithoutExtension(fileToCorrect).Split('.');
+                    var parts = Path.GetFileNameWithoutExtension(file).Split('.');
                     var language = parts[parts.Length - 1];
-                    var name = $"{Path.GetFileNameWithoutExtension(correction.CorrectedPath) + "." + language + Path.GetExtension(fileToCorrect)}";
-                    Log.Info($"Correcting: {fileToCorrect} renamed to {name}");
                     try
                     {
-                        File.Move(fileToCorrect, Path.Combine(correctionDirectory, name));
+                        CorrectFileName(correction, extension, workingDirectory, $".{language}");
                     }
                     catch
                     {
-                        Log.Warn($"Unable to correct {fileToCorrect}");
-                        throw new FileCorrectionException($"Unable to correct {fileToCorrect}");
+                        Log.Warn($"Unable to correct {file}");
+                        throw new FileCorrectionException($"Unable to correct {file}");
                     }
-
-                    if (File.Exists(fileToCorrect))
-                    {
-                        Log.Info($"Correcting: {fileToCorrect} deleted");
-                        File.Delete(fileToCorrect);
-                    }
-                    Log.Info($"Successfully corrected: {fileToCorrect}");
-                    continue;
                 }
 
 
@@ -273,8 +228,51 @@ namespace Emby.AutoOrganize.Core
             LibraryMonitor.ReportFileSystemChangeComplete(correction.CurrentPath, true);
         }
 
+        private void CorrectFileName(FileCorrection correction, string extension, string correctionDirectory, string type = "")
+        {
+            var name = $"{Path.GetFileNameWithoutExtension(correction.CorrectedPath)}{type}{extension}";
+            var path = Path.Combine(correctionDirectory, name);
+
+            Log.Info($"Correcting: {correction.CurrentPath} to {path}");
+
+            try
+            {
+                File.Move(correction.CurrentPath, Path.Combine(correctionDirectory, name));
+            }
+            catch
+            {
+                Log.Warn($"Unable to correct {correction.CurrentPath}");
+                throw new FileCorrectionException($"Unable to correct {correction.CurrentPath}");
+            }
+
+            if (File.Exists(correction.CurrentPath))
+            {
+                Log.Info($"{correction.CurrentPath} deleted");
+                File.Delete(correction.CurrentPath);
+            }
+
+            Log.Info($"Successfully corrected: {correction.CurrentPath}");
+        }
+
+        private List<string> GetEligibleFilesToCorrect(string correctionDirectory)
+        {
+            var eligibleFilesToCorrect = new List<string>();
+
+            eligibleFilesToCorrect.AddRange(Directory.GetFiles(correctionDirectory));
+
+            //Place the Video file at the top of the list
+            eligibleFilesToCorrect =
+                eligibleFilesToCorrect.OrderByDescending(f => LibraryManager.IsVideoFile(f.AsSpan())).ToList();
+
+            //Place the Subtitle file at the bottom of the list
+            eligibleFilesToCorrect = eligibleFilesToCorrect.OrderBy(f => LibraryManager.IsSubtitleFile(f.AsSpan())).ToList();
+            return eligibleFilesToCorrect;
+        }
+
         private string GetEpisodeFileName(Episode episode, AutoOrganizeOptions options)
         {
+            // ReSharper disable twice PossibleInvalidOperationException
+           
             var seriesName          = episode.Parent.Parent.Name;
             var seasonNumber        = episode.Parent.IndexNumber.Value;
             var sourceExtension     = Path.GetExtension(episode.Path).Replace(".", string.Empty).Trim();
@@ -287,6 +285,7 @@ namespace Emby.AutoOrganize.Core
             try
             {
                 resolution = episode.GetMediaStreams().FirstOrDefault(r => r.Type == MediaStreamType.Video)?.DisplayTitle;
+                // ReSharper disable once AssignNullToNotNullAttribute
                 resolution = Regex.Matches(resolution, "[0-9]{3,4}[Pp]")[0].Value;
             }
             catch

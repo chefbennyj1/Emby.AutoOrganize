@@ -335,6 +335,7 @@ namespace Emby.AutoOrganize.Core
         {
             try
             {
+                // ReSharper disable once NotAccessedVariable
                 bool itemValue;
                 var retval = _inProgressItemIds.TryRemove(result.Id, out itemValue);
 

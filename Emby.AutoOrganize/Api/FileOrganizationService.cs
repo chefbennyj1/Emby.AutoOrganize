@@ -408,7 +408,7 @@ namespace Emby.AutoOrganize.Api
                 var correction = correctionResult.Items.FirstOrDefault(c => c.Id == id);
                 try
                 {
-                    InternalFileCorrectionService.CorrectFileName(correction);
+                    InternalFileCorrectionService.CorrectFileNames(correction);
                 }
                 catch (Exception ex)
                 {

@@ -17,7 +17,7 @@ namespace Emby.AutoOrganize.Core
 
         void SaveResult(FileCorrection result, CancellationToken cancellationToken);
 
-        void CorrectFileName(FileCorrection correction);
+        void CorrectFileNames(FileCorrection correction);
 
         void AuditPathCorrections(CancellationToken cancellationToken, IProgress<double> progress);
     }
