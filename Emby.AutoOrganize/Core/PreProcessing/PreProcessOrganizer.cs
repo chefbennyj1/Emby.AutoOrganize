@@ -87,18 +87,17 @@ namespace Emby.AutoOrganize.Core.PreProcessing
                 {
                     //Exaction file is created after the file has been extracted
                     var extractionMarker = Path.Combine(folder.FullName, "####emby.extracted####");
-               
-                
+
                     //Ignore this folder if there is an 'extraction marker' file present. The contents of this folder have already been extracted for sorting.
                     if (FileSystem.FileExists(extractionMarker)) continue;
                
-                    //The following folder will be extracted.
+                    //The following folder contents will be extracted.
                     Logger.Info("New media found for extraction: " + folder.FullName);
 
-                    IEnumerable<FileSystemMetadata> newMediaFiles;
+                    IEnumerable<FileSystemMetadata> eligibleFiles;
                     try
                     {
-                        newMediaFiles = FileSystem.GetFiles(folder.FullName);
+                        eligibleFiles = FileSystem.GetFiles(folder.FullName);
                     }
                     catch(IOException) //The files are in use, get it next time.
                     {
@@ -107,19 +106,27 @@ namespace Emby.AutoOrganize.Core.PreProcessing
 
                     CreateExtractionMarker(folder.FullName, Logger);
 
-                    foreach (var file in newMediaFiles)
+                    foreach (var file in eligibleFiles)
                     {
                         //Ignore Sample files
                         if (file.FullName.IndexOf("sample", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+
+                        //File Extraction class handles decompression/copying of files
+                        //Two events exist there to connect too.
+                        var fileExtraction = new FileExtraction();
+                        fileExtraction.OnProgressChanged += percentage => progress.Report(percentage);
+                        fileExtraction.OnComplete += () => { progress.Report(100.0); };
+
+                        var postProcessingFolderPath = options.PreProcessingFolderPath;
+
+                        string sourcePath = file.FullName;
+                        string destinationPath = Path.Combine(postProcessingFolderPath, Path.GetFileNameWithoutExtension(file.Name));
 
                         //If the file is compressed, extract it.
                         if (file.Extension == ".rar")
                         {
                             Logger.Info("New compressed media file ready for extraction: " + file.Name);
-                            await Task.Run(
-                                () => new CompressedFileExtraction()
-                                    .BeginCompressedFileExtraction(file.FullName, file.Name, Logger, progress, options), cancellationToken);
-                            progress.Report(100.0);
+                            fileExtraction.CompressedFileExtraction(sourcePath, destinationPath);
                             continue;
                         }
 
@@ -128,10 +135,7 @@ namespace Emby.AutoOrganize.Core.PreProcessing
                         if (namingOptions.VideoFileExtensions.Contains(file.Extension))
                         {
                             Logger.Info("New media file ready for extraction: " + file.Name);
-                            var fileCopy = new FileCopy();
-                            fileCopy.OnProgressChanged += percentage => progress.Report(percentage);
-                            fileCopy.OnComplete += () => { progress.Report(100.0); };
-                            fileCopy.BeginFileCopyExtraction(file.FullName, file.Name, options);
+                            fileExtraction.CopyFileExtraction(sourcePath, destinationPath);
                         }
                     }
                 }

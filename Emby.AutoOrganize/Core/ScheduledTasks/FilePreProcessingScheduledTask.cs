@@ -62,7 +62,7 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
 
             var watchLocations = options.WatchLocations.Where(i => IsValidWatchLocation(i, libraryFolderPaths)).ToList();
             
-            //We can't pre process files without these folders being named.
+            //We can't pre process files without these folders being named in the configuration.
             if (!watchLocations.Any() || string.IsNullOrEmpty(options.PreProcessingFolderPath)) return;
 
             var preProcessOrganizer = new PreProcessOrganizer(FileSystem, Logger);
@@ -71,14 +71,6 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
 
         }
         
-        private static void CreateExtractionMarker(string folderPath, ILogger logger)
-        {
-            logger.Info("Creating extraction marker: " + folderPath + "\\####emby.extracted####");
-            using (var sw = new StreamWriter(folderPath + "\\####emby.extracted####"))
-            {
-              sw.Flush();
-            }
-        }
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
