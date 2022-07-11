@@ -1,4 +1,4 @@
-define(['mainTabsManager', 'globalize', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle', 'dialogHelper'], function (mainTabsManager, globalize, dialogHelper) {
+﻿define(['mainTabsManager', 'globalize', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle', 'dialogHelper'], function (mainTabsManager, globalize, dialogHelper) {
     'use strict';
 
     ApiClient.getFilePathCorrections = function() {
@@ -142,6 +142,8 @@ define(['mainTabsManager', 'globalize', 'emby-input', 'emby-select', 'emby-check
             .replace('%ext', 'mkv');
 
         //episode name
+        if (result.includes("%e.n")) episodeTitle = episodeTitle.replaceAll(' ', '.');
+        if (result.includes("%e_n")) episodeTitle = episodeTitle.replaceAll(' ', '_');
         result = result.replace('%en', episodeTitle)
                        .replace('%e.n', episodeTitle.replaceAll(' ', '.'))
                        .replace('%e_n', episodeTitle.replaceAll(' ', '_'))

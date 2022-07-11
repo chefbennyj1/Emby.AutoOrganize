@@ -1,50 +1,15 @@
-
-<div id="libraryFileOrganizerLogPage" data-role="page" is="emby-scroller" class="libraryFileOrganizerLogPage view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY overflowYScroll" data-mousewheel="true" data-horizontal="false" data-centerfocus="card" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeLogJs">
-    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page settingsContainer scrollSliderY">
-
-        <style>
-            .detailTable {
-                border-collapse: collapse;
-                border-spacing: 0;
-                text-align: left;
-                width: 100%;
-                margin: 0 auto;
-            }
-
-            .detailTableBodyCell {
-                border-spacing: 0;
-                padding: .4em;
-            }
-
-            .detailTableHeaderCell {
-                border-spacing: 0;
-                padding: .4em;
-                font-weight: bold;
-                text-align: left;
-                vertical-align: top;
-            }
-
-            .statusIcon {
-                width: 24px;
-                height: 24px;
-                padding-top: 6px;
-                padding-right: 6px;
-            }
-
-            #legendDialog {
-                cursor: pointer;
-            }
-        </style>
-
-        <!--div style="display: flex; justify-content: center; align-items: center; padding: 0 2em 0 2em; margin-bottom: 3em; " class="organizeTaskPanel"-->
+﻿<!--<div id="libraryFileOrganizerLogPage" data-role="page" is="emby-scroller" class="libraryFileOrganizerLogPage view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY overflowYScroll" data-mousewheel="true" data-horizontal="false" data-centerfocus="card" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeLogJs">
+    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page settingsContainer scrollSliderY">-->
+﻿﻿<div is="emby-scroller" class="view flex flex-direction-column scrollFrameY flex-grow withTabs" data-horizontal="false" data-forcescrollbar="true" data-centerfocus="true" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeLogJs">
+    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page">
         <!-- ReSharper disable once CssNotResolved -->
-        <div id="organizeHeaderPanel" style="position: relative; width: 100%;">
-            <div class="organizeTaskPanel">
+        <!--<div id="organizeHeaderPanel" style="position: relative; width: 100%;">-->
+            <div class="organizeTaskPanel focuscontainer-x itemsViewSettingsContainer padded-top padded-bottom">
                 <div style="display: flex; align-items: center;">
 
                     <div class="listTopPaging"></div>
                     <div class="flex-grow"></div>
-                    <div style="display: flex; justify-content: right; line-height: 61px">
+                    <div style="display: flex; justify-content: right; line-height: 55px">
                         Last Organized:&nbsp;<span class="last-execution-time" style="text-align: end"></span>
                     </div>
                 </div>
@@ -94,6 +59,68 @@
                 </div>
 
             </div>
+        <!--</div>-->
+
+
+        <div id="autoorganizelog">
+            <!-- HEAD -->
+            <div id="ao-header" class="row">
+                <div class="head">
+                    <div class="flex-items" id="legendDialog" title="Status Legend">
+                        <svg style="width:24px; height:24px;" viewBox="0 0 24 24" data-step="1">
+                            <path fill="var(--theme-accent-text-color)" d="M9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21L3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19.03 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3L20.34,3.03L15,5.1L9,3M8,5.45V17.15L5,18.31V6.46L8,5.45M10,5.47L14,6.87V18.53L10,17.13V5.47M19,5.7V17.54L16,18.55V6.86L19,5.7M7.46,6.3L5.57,6.97V9.12L7.46,8.45V6.3M7.46,9.05L5.57,9.72V11.87L7.46,11.2V9.05M7.46,11.8L5.57,12.47V14.62L7.46,13.95V11.8M7.46,14.55L5.57,15.22V17.37L7.46,16.7V14.55"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="head">Date</div>
+                <div class="head">Name</div>
+                <div class="head">Release</div>
+                <div class="head">Format</div>
+                <div class="head">File Size</div>
+                <!--<div class="head">Extras</div>-->
+                <div class="head">Source</div>
+                <div class="head">Destination</div>
+                <div class="head">Actions</div>
+            </div>
+
+            <div id="autoorganizelog-results">
+                <!--  ROWS
+                <div class="row">
+                    <div class="cell">Column 1</div>
+                    <div class="cell">Column 2</div>
+                    <div class="cell">Column 3</div>
+                    <div class="cell">Column 4</div>
+                    <div class="cell">Column 5</div>
+                    <div class="cell">Column 6</div>
+                    <div class="cell">Column 7</div>
+                    <div class="cell">Column 8</div>
+                    <div class="cell">Column 9</div>
+                    <div class="cell">Column 10</div>
+                </div>-->
+            </div>
+        </div>
+
+        <div class="flex-container" id="autoorganizelog">
+
+            <div class="flex-container" id="ao-header">
+
+
+                <div class="flex-items" id="legendDialog2" title="Status Legend">
+                    <svg style="width:24px; height:24px;" viewBox="0 0 24 24" data-step="1">
+                        <path fill="var(--theme-accent-text-color)" d="M9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21L3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19.03 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3L20.34,3.03L15,5.1L9,3M8,5.45V17.15L5,18.31V6.46L8,5.45M10,5.47L14,6.87V18.53L10,17.13V5.47M19,5.7V17.54L16,18.55V6.86L19,5.7M7.46,6.3L5.57,6.97V9.12L7.46,8.45V6.3M7.46,9.05L5.57,9.72V11.87L7.46,11.2V9.05M7.46,11.8L5.57,12.47V14.62L7.46,13.95V11.8M7.46,14.55L5.57,15.22V17.37L7.46,16.7V14.55"></path>
+                    </svg>
+                </div>
+
+                <div class="flex-items">Date</div>
+                <div class="flex-items">Name</div>
+                <div class="flex-items">Release</div>
+                <div class="flex-items">Format</div>
+                <div class="flex-items">File Size</div>
+                <div class="flex-items">Source</div>
+                <div class="flex-items">Destination</div>
+                <div class="flex-items">Actions</div>
+
+            </div>
         </div>
 
         <div class="autoorganizetable table detailTable">
@@ -102,7 +129,7 @@
                     <tr style="text-align: left;">
                         <th class="detailTableHeaderCell" data-priority="1">
                             <div class="flex-inline">
-                                <div id="legendDialog" title="Status Legend">
+                                <div id="legendDialog2" title="Status Legend">
                                     <svg style="width:24px; height:24px;" viewBox="0 0 24 24" data-step="1">
                                         <path fill="var(--theme-accent-text-color)" d="M9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21L3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19.03 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3L20.34,3.03L15,5.1L9,3M8,5.45V17.15L5,18.31V6.46L8,5.45M10,5.47L14,6.87V18.53L10,17.13V5.47M19,5.7V17.54L16,18.55V6.86L19,5.7M7.46,6.3L5.57,6.97V9.12L7.46,8.45V6.3M7.46,9.05L5.57,9.72V11.87L7.46,11.2V9.05M7.46,11.8L5.57,12.47V14.62L7.46,13.95V11.8M7.46,14.55L5.57,15.22V17.37L7.46,16.7V14.55"></path>
                                     </svg>
@@ -115,10 +142,10 @@
                             </div>
                         </th>
                         <!--<th class="detailTableHeaderCell" data-priority="3" style="min-width:6em">
-                        <div class="status_sort" style="cursor:pointer;  display:flex; align-items:center">
-                            <span>Status</span>
-                        </div>
-                    </th>-->
+                            <div class="status_sort" style="cursor:pointer;  display:flex; align-items:center">
+                                <span>Status</span>
+                            </div>
+                        </th>-->
                         <th class="detailTableHeaderCell" data-priority="3">
                             <div class="name_sort" style="cursor:pointer; display:flex; align-items:center">
                                 <span>Name</span>
@@ -128,9 +155,9 @@
                         <th class="detailTableHeaderCell" data-priority="2">Release/<br>Edition</th>
                         <th class="detailTableHeaderCell" data-priority="3">Format</th>
                         <!--<th class="detailTableHeaderCell" data-priority="1" style="width:8em">Quality</th>
-                    <th class="detailTableHeaderCell" data-priority="1" style="width:10em">Codec</th>
-                    <th class="detailTableHeaderCell" data-priority="1">Audio</th>
-                    <th class="detailTableHeaderCell" data-priority="1">Subtitles</th>>-->
+                        <th class="detailTableHeaderCell" data-priority="1" style="width:10em">Codec</th>
+                        <th class="detailTableHeaderCell" data-priority="1">Audio</th>
+                        <th class="detailTableHeaderCell" data-priority="1">Subtitles</th>>-->
                         <th class="detailTableHeaderCell" data-priority="3">File Size</th>
                         <th class="detailTableHeaderCell" data-priority="3"></th> <!--Type-->
                         <th class="detailTableHeaderCell" data-priority="2">Source</th>

@@ -1,5 +1,19 @@
-define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVersion('4.7.3') ? 'taskButton' : 'scripts/taskbutton'), 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle','emby-linkbutton', 'emby-collapse', 'emby-input'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
-    
+﻿define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVersion('4.7.3') ? 'taskButton' : 'scripts/taskbutton'), 'datetime', 'loading', 'mainTabsManager',  'dialogHelper', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'emby-collapse', 'emby-input', 'emby-select', 'emby-button', 'emby-scroller'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
+    function loadEmbeddedCss(name) {
+        if (document.getElementById(name)) { //dont load if element exists
+            return
+        }
+        url = [Dashboard.getConfigurationResourceUrl(name)];
+        var link = document.createElement("link");
+        link.type = "text/css";
+        link.rel = "stylesheet";
+        link.id = name;
+        link.href = url;
+        document.getElementsByTagName("head")[0].appendChild(link);
+        console.log('Loaded embedded css: ' + url)
+    }
+    loadEmbeddedCss('AutoOrganizeCss');
+
     ApiClient.getFilePathCorrections = function() {
         var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
         return this.getJSON(url);
@@ -321,6 +335,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
 
         html += '<div class="formDialogContent flex flex-direction-column" style="text-align:center; display:flex; justify-content:center;align-items:center">';
         html += 'Once items have been removed from the logs they cannot be restored.';
+        html += '<br/><br/>';
 
         html += '<div class="flex flex-direction-row" style="align-items: center">'
         html += '<button is="emby-button" type="button" id="btnClearCompleted" class="raised emby-button button-icon-left" style="margin-right: 1em;">';
@@ -338,10 +353,6 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '</div>';
         html += '</div>';
 
-        html += '<div class="formDialogFooter" style="position:relative" >';
-        html += '<button id="cancelButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Cancel</button>';
-        html += '</div>';
-
         dlg.innerHTML = html;
 
         
@@ -349,11 +360,6 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             () => {
                 dialogHelper.close(dlg);
             });
-            
-        dlg.querySelector('#cancelButton').addEventListener('click',
-            () => {
-                dialogHelper.close(dlg);
-            })
 
         dlg.querySelector('#btnClearCompleted').addEventListener('click', function () {
             ApiClient.clearOrganizationCompletedLog().then(async function () {
@@ -393,7 +399,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light button-icon-left" tabindex="-1"><i class="md-icon"></i></button><h3 class="formDialogHeaderTitle">Legend</h3>';
         html += '</div>';
 
-        html += '<div class="formDialogContent flex flex-direction-column emby-scroller scrollY overflowscrolly" style="text-align:center; display:flex; justify-content:center;align-items:center">';
+        html += '<div class="formDialogContent flex flex-direction-column emby-scroller scrollY overflowscrolly" style="text-align:center; align-items:center">';
         html += renderLegend();
         html += '</div>';
 
@@ -409,31 +415,35 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
     }
 
     async function openComparisonDialog(id) {
+       //HERE
         var sourceResult = await ApiClient.getFileOrganizationResults(query)
         var item = sourceResult.Items.filter(r => r.Id == id)[0];
+        window.y = item;
         var libraryResult = await ApiClient.getJSON( await ApiClient.getUrl('Items?Recursive=true&Fields=MediaStreams&IncludeItemTypes=' + item.Type + '&Ids=' + item.ExistingInternalId))
 
+        window.ttt = libraryResult;
+        //var libraryItem = t.Items[0];
         var libraryItem = libraryResult.Items[0];
         if (!libraryResult.Items[0]) return;
 
-
+        console.log(libraryItem.MediaSources[0])
         var libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
         if (libraryItemResolution !== undefined) {
             libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
-        }
+        } { libraryItemResolution = "120" }
         var sourceResolution = parseInt(item.ExtractedResolution.Name.replace('p', ''));
 
 
         var dlg = dialogHelper.createDialog({
             size: "small",
             removeOnClose: !1,
-            scrollY: !0
+            scrollY: true
         });
 
         dlg.classList.add("formDialog");
         dlg.classList.add("ui-body-a");
         dlg.classList.add("background-theme-a");
-        dlg.style.height = "20em";
+        dlg.style.height = "200em";
 
 
         var html = '';
@@ -459,9 +469,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '<th class="detailTableHeaderCell" data-priority="3">Location</th>'
         html += '<th class="detailTableHeaderCell" data-priority="3">File Size</th>'
         html += '<th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>'
-        if (libraryItemResolution !== undefined) {
-            html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
-        }
+        html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
         html += '<th class="detailTableHeaderCell" data-priority="1"></th> '   //Quality is up or down
         html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
         html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
@@ -502,22 +510,20 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
         html += '</td>';
 
-        if (libraryItemResolution !== undefined) {
-            //Quality is up or down
-            html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+        //Quality is up or down
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
 
-            if (sourceResolution == libraryItemResolution) {
-                html += '<path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" />';
-            }
-            else if (sourceResolution > libraryItemResolution) {
-                html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
-            } else {
-                html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
-            }
-            html += '</svg>';
-            html += '</td>';
+        if (sourceResolution == libraryItemResolution) {
+            html += '<path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" />';
         }
+        else if (sourceResolution > libraryItemResolution) {
+            html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
+        } else {
+            html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
+        }
+        html += '</svg>';
+        html += '</td>';
 
         //Codec
         html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
@@ -532,7 +538,6 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             for(var i = 0; i < item.AudioStreamCodecs.length - 1; i++) {
                 html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[i] + '</span>';
             }
-            
         }
         html += '</td>';
         
@@ -565,13 +570,14 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
 
         html += '</tr>';
 
+        window.x = libraryResult
         for (let index = 0; index < libraryResult.Items.length; ++index) 
         {
             libraryItem = libraryResult.Items[index];
             libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
             if (libraryItemResolution !== undefined) {
                 libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
-            }
+            } { libraryItemResolution = "120" }
             //Library Item
             html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
 
@@ -588,12 +594,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
             switch (item.Type) {
                 case "Episode":
-
-                    if (libraryItemResolution !== undefined) {
-                        html += '<span>' + libraryItem.ParentIndexNumber + 'x' + (libraryItem.IndexNumber <= 9 ? `0${libraryItem.IndexNumber}` : libraryItem.IndexNumber) + '</span>';
-                    } else {
-                        html += '<span>Processing...</span>'
-                    }
+                    html += '<span>' + libraryItem.ParentIndexNumber + 'x' + (libraryItem.IndexNumber <= 9 ? `0${libraryItem.IndexNumber}` : libraryItem.IndexNumber) + '</span>';
                 case "Movie":
                     html += '<span>' + "" + '</span>';
             }
@@ -601,7 +602,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
 
             //Quality
             var quality = 'und';
-            if (libraryItemResolution !== undefined) { quality = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0] }
+            quality = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0]
             html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
             html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + quality + '</span>';
             html += '</td>';
@@ -626,14 +627,14 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
 
             //Codec
             var codectemp = 'und';
-            if (libraryItemResolution !== undefined) { codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase() }
+            codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase()
             html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
             html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + codectemp + '</span>';
             html += '</td>';
 
             //Audio
             var audiotemp = 'und';
-            if (libraryItemResolution !== undefined) { codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase() }
+            codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase()
             html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
             html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + audiotemp + '</span>';
             html += '</td>';
@@ -694,16 +695,19 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             loading.show();
         }
 
-        //Search Term from Search Box.
-        if (searchTerm != "") { searchTerm = pageGlobal.querySelector('#txtSearch').value }
+        query.Limit = 50;
+        //Always use search Term from Search Box.
+        if (pageGlobal.querySelector('#txtSearch').value != "") {
+            searchTerm = pageGlobal.querySelector('#txtSearch').value
+            query.Limit = 200;
+        }
         query.NameStartsWith = encodeURI(searchTerm);
-        
 
         var result = await ApiClient.getFileOrganizationResults(query)
-
+        console.log(result);
         currentResult = result;
 
-        await renderResults(page, result);
+        await renderResults(page, result, (searchTerm == ""));
 
         pageGlobal.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
             btn.addEventListener('click',
@@ -751,6 +755,8 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         pageGlobal.querySelectorAll('.btnShowSubtitleList').forEach(btn => btn.addEventListener('click',
             (e) => {
                 let id = e.target.getAttribute('data-resultid');
+                window.id = id;
+                window.currentResult = currentResult;
                 var subtitles = currentResult.Items.filter(function (i) { return i.Id === id; })[0].Subtitles;
                 var msg = "";
                 subtitles.forEach(t => {
@@ -762,7 +768,8 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
                 });
             }));
 
-        /*var statusIcons = [...pageGlobal.querySelectorAll('.statusIcon')];
+        /* Delete later ?*/
+        var statusIcons = [...pageGlobal.querySelectorAll('.statusIcon')];
         var itemsToCompare = statusIcons.filter(icon => icon.dataset.status === "SkippedExisting" ||
             icon.dataset.status === "NewEdition" ||
             icon.dataset.status === "NewResolution");
@@ -775,7 +782,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
                     await openComparisonDialog(id);
                 })
 
-        })*/
+        })
         
         loading.hide();
     }
@@ -821,18 +828,22 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             "NotEnoughDiskSpace", "Failure", "SkippedExisting"
         ];
 
-        html = '';
+        html = '<div class="grid grid-legend">';
         statusArray.forEach(function (status) {
             statusRenderData = getStatusRenderData(status);
-            html += '<div class="flex flex-direction-row">';
-                html += '<div class="">';
+            html += '<div class="row-legend">';
+            html += '<div class="cell grid">';
+                    html += '<div>';
                         html += '<svg class="statusIcon" viewBox="0 0 24 24">';
                             html += '<path fill="' + statusRenderData.color + '" d="' + statusRenderData.path + '"/>';
                         html += '</svg>';
-                        html += '<span style="padding-left:0.25em;">' + statusRenderData.text + '</span>'; 
+                    html += '</div>';
+                    html += '<div>';
+                        html += '<span style="color:' + statusRenderData.color + ';padding-left:0.25em;font-weight:bold;">' + statusRenderData.text + '</span>'; 
+                    html += '</div>';
                 html += '</div>';
-                html += '<div class="flex-grow">';
-                    html += statusRenderData.description;
+                html += '<div class="cell">';
+                        html += statusRenderData.description;
                 html += '</div>';
             html += '</div>';
         });
@@ -840,19 +851,31 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         return html;
     }
 
-    function renderResults(page, result) {
+    function renderResults(page, result, paginiate=true) {
 
         if (Object.prototype.toString.call(page) !== "[object Window]") {
 
             var items = result.Items;
 
+            var grid = page.querySelector('#autoorganizelog-results');
             var table = page.querySelector('.autoorganizetable');
             var mobileCardsContainer = page.querySelector('.mobileOrganizeMobileCardsContainer');
             var mobileCards = page.querySelector('.autoOrganizeMobileCards');
-            //var organizeTaskPanel = page.querySelector('.organizeTaskPanel');
-            //if (document.body.clientWidth > 12) {
-            if (document.body.clientWidth > 1200) {
+            if (document.body.clientWidth > 12) {
+                table.classList.add('hide');
+                mobileCardsContainer.classList.add('hide');
 
+                grid.innerHTML = '';
+
+                items.forEach(async item => {
+                    var html = '<div class="row">';
+                    html += await renderGridItem(item);
+                    html += '</div>';
+                    grid.innerHTML += html;
+                })
+                //var organizeTaskPanel = page.querySelector('.organizeTaskPanel');
+                //if (document.body.clientWidth > 1200) {
+            } else if(document.body.clientWidth > 1200) {
                 //We are rendering fullscreen table results
                 //organizeTaskPanel.style.width = "90%";
 
@@ -959,63 +982,68 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             //        });
             //    }));
 
+            if (paginiate == false) {
+                //dont creat pages if filtering
+                var topPaging = page.querySelector('.listTopPaging');
+                topPaging.innerHTML = 'Displaying top ' + query.Limit + ' results.';
 
-            var pagingHtml = getQueryPagingHtml({
-                startIndex: query.StartIndex,
-                limit: query.Limit,
-                totalRecordCount: result.TotalRecordCount,
-                showLimit: false,
-                updatePageSizeSetting: false
-            });
-
-            var topPaging = page.querySelector('.listTopPaging');
-            topPaging.innerHTML = pagingHtml;
-
-            var bottomPaging = page.querySelector('.listBottomPaging');
-            bottomPaging.innerHTML = pagingHtml;
-
-            var btnNextTop = topPaging.querySelector(".btnNextPage");
-            var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
-            var btnPrevTop = topPaging.querySelector(".btnPreviousPage");
-            var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
-
-            if (btnNextTop) {
-                btnNextTop.addEventListener('click', async function () {
-                    query.StartIndex += query.Limit;
-                    await reloadItems(page, true);
-                    window.scrollTo(0, 0);
+                var bottomPaging = page.querySelector('.listBottomPaging');
+                bottomPaging.innerHTML = '';
+            } else {
+                var pagingHtml = getQueryPagingHtml({
+                    startIndex: query.StartIndex,
+                    limit: query.Limit,
+                    totalRecordCount: result.TotalRecordCount,
+                    showLimit: false,
+                    updatePageSizeSetting: false
                 });
-            }
 
-            if (btnNextBottom) {
-               btnNextBottom.addEventListener('click', async function () {
-                    query.StartIndex += query.Limit;
-                   await reloadItems(page, true);
-                   window.scrollTo(0, 0);
-                });
-            }
+                var topPaging = page.querySelector('.listTopPaging');
+                topPaging.innerHTML = pagingHtml;
 
-            if (btnPrevTop) {
-                btnPrevTop.addEventListener('click', async function () {
-                    query.StartIndex -= query.Limit;
-                    await reloadItems(page, true);
-                    window.scrollTo(0, 0);
-                });
-            }
+                var bottomPaging = page.querySelector('.listBottomPaging');
+                bottomPaging.innerHTML = pagingHtml;
 
-            if (btnPrevBottom) {
-                btnPrevBottom.addEventListener('click', async function () {
-                    query.StartIndex -= query.Limit;
-                    await reloadItems(page, true);
-                    window.scrollTo(0, 0);
-                });
-            }
+                var btnNextTop = topPaging.querySelector(".btnNextPage");
+                var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
+                var btnPrevTop = topPaging.querySelector(".btnPreviousPage");
+                var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
 
+                if (btnNextTop) {
+                    btnNextTop.addEventListener('click', async function () {
+                        query.StartIndex += query.Limit;
+                        await reloadItems(page, true);
+                        window.scrollTo(0, 0);
+                    });
+                }
+
+                if (btnNextBottom) {
+                    btnNextBottom.addEventListener('click', async function () {
+                        query.StartIndex += query.Limit;
+                        await reloadItems(page, true);
+                        window.scrollTo(0, 0);
+                    });
+                }
+
+                if (btnPrevTop) {
+                    btnPrevTop.addEventListener('click', async function () {
+                        query.StartIndex -= query.Limit;
+                        await reloadItems(page, true);
+                        window.scrollTo(0, 0);
+                    });
+                }
+
+                if (btnPrevBottom) {
+                    btnPrevBottom.addEventListener('click', async function () {
+                        query.StartIndex -= query.Limit;
+                        await reloadItems(page, true);
+                        window.scrollTo(0, 0);
+                    });
+                }
+            }
         }
 
     }
-
-   
 
     function getResultItemTypeIcon(type) {
         switch (type) {
@@ -1067,7 +1095,7 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
                 path: "M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z",
                 color: "orangered",
                 text: "Existing Item",
-                description: "Items that exist both in the watched folder and Emby. You can let Auto Orgaize resolve these or manually rectify."
+                description: "Items that exist both in the watched folder and Emby. You can let Auto Organize resolve these or manually rectify."
             };
             case 'Processing': return {
                 path: "M22 8V13.81C21.12 13.3 20.1 13 19 13C15.69 13 13 15.69 13 19C13 19.34 13.04 19.67 13.09 20H4C2.9 20 2 19.11 2 18V6C2 4.89 2.89 4 4 4H10L12 6H20C21.1 6 22 6.89 22 8M17 22L22 19L17 16V22Z",
@@ -1228,6 +1256,141 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         return html;
     }
 
+    async function renderGridItem(item) {
+
+        var statusRenderData = getStatusRenderData(item.Status);
+
+        html = '';
+
+        //html += '<div class="subrow subrow1">';
+
+        //Status Icon
+        var icon = getResultItemTypeIcon(item.Type)
+        html += '<div class="cell" data-type="Icon">';
+        html += '<div title="' + item.Type + '">';
+        html += '<svg class="typeIcon" viewBox="0 0 24 24">';
+        html += '<path fill="' + statusRenderData.color + '" d="' + icon.path + '"/>';
+        html += '</svg>';
+        html += '</div>';
+        html += '<div title="' + statusRenderData.text + '">';
+        html += '<svg class="statusIcon" viewBox="0 0 24 24" data-resultid="' + item.Id + '" data-status="' + item.Status + '" data-active="' + statusRenderData.active + '">';
+        html += '<path fill="' + statusRenderData.color + '" d="' + statusRenderData.path + '"/>';
+        html += '</svg>';
+        html += '</div>';
+        html += '</div>';
+
+        //Date
+        html += '<div class="cell" data-type="Date">';
+        var date = datetime.parseISO8601Date(item.Date, true);
+        html += '<span>' + datetime.toLocaleDateString(date) + '</span>';
+        html += '</div>';
+
+        //Name
+        html += '<div class="cell" data-type="Name" id="cell_name_' + item.Id + '" data-resultid="' + item.Id + '">';
+        html += '<span id="string_name_' + item.Id + '">' + formatItemName(item.ExtractedName ?? "") + '</span>';
+        html += '</div>';
+
+        //Release
+        html += '<div class="cell" data-type="Release">';
+        switch (item.Type) {
+            case "Episode":
+                if (item.ExtractedSeasonNumber && item.ExtractedEpisodeNumber) {
+                    html += '<span>';
+                    html += item.ExtractedSeasonNumber + 'x' + (item.ExtractedEpisodeNumber <= 9 ? `0${item.ExtractedEpisodeNumber}` : item.ExtractedEpisodeNumber);
+                    if (item.ExtractedEndingEpisodeNumber) {
+                        html += '-' + (item.ExtractedEndingEpisodeNumber <= 9 ? `0${item.ExtractedEndingEpisodeNumber}` : item.ExtractedEndingEpisodeNumber)
+                    }
+                    html += '</span>';
+                }
+                break
+            case "Movie":
+                html += '<span>' + item.ExtractedEdition ?? "" + '</span>';
+                break
+        }
+        html += '</div>';
+
+        //html += '</div>';//end subrow
+
+        //html += '<div class="subrow subrow2">';
+
+        //Format
+        html += '<div class="cell" data-type="Format">';
+
+        html += '<span class="formatIcon" style="background-color: var(--theme-accent-text-color);">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "") + '</span>';
+        if (item.VideoStreamCodecs.length) {
+            for (var i = 0; i <= item.VideoStreamCodecs.length - 1; i++) {
+                //      if (i > 1 && i % 2 === 0) {
+                //         html += '</div>';
+                ////         html += '<div style="display:flex; flex-direction:column">'
+                //     }
+                html += '<span class="formatIcon videoFormat">' + item.VideoStreamCodecs[i] + '</span>';
+            }
+        }
+        if (item.AudioStreamCodecs.length) {
+            for (var i = 0; i <= item.AudioStreamCodecs.length - 1; i++) {
+                html += '<span class="formatIcon audioFormat">' + item.AudioStreamCodecs[i].toLocaleUpperCase() + '</span>';
+            }
+        }
+
+        html += '</div>';
+
+        //File Size
+        html += '<div class="cell" data-type="File Size">';
+        html += '<span>' + formatBytes(item.FileSize) + '</span>';
+        if (item.Subtitles.length) {
+            html += '<svg style="width:24px;height:24px; cursor:pointer" viewBox="0 0 24 24" data-resultid="' + item.Id + '" class="btnShowSubtitleList">';
+            html += '<path data-resultid="' + item.Id + '" fill="var(--theme-accent-text-color)" d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"  />';
+            html += '</svg>';
+        }
+        html += '</div>';
+
+        //Extras
+        //html += '<div class="cell" data-type="Extras">';
+       // html += '</div>';
+
+        //html += '</div>';//end subrow
+
+       // html += '<div class="subrow subrow3">';
+
+        //Source
+        html += '<div class="cell" data-type="Source">';
+        //html += '<span>';
+        //html += '<span class="type-icon-container">';
+
+        //html += '</span>';
+       // html += '<span>';
+        html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + ';white-space: normal;" href="#" class="button-link btnShowStatusMessage">';
+        //html += '<svg class="typeIcon" viewBox="0 0 24 24">';
+      //  html += '<path fill="' + statusRenderData.color + '" d="' + icon.path + '"/>';
+      //  html += '</svg>';
+        html += item.OriginalFileName.replaceAll('.', '<wbr>.'); //<== Add a word break opportunity to file names because they may be really long, and cause it to go off screen.
+        html += '</a>';
+       // html += '</span>';
+        html += '</div>';
+
+        //html += '</div>';//end subrow
+
+        //html += '<div class="subrow subrow4">';
+
+        //Destination
+        html += '<div class="cell" data-type="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '">';
+        html += item.TargetPath.replaceAll('.', '<wbr>.') || ''; //.replaceAll('.', '<wbr>.');
+        html += '</div>';
+
+        //html += '</div>';//end subrow
+
+        //html += '<div class="subrow subrow5">';
+
+        //Actions
+        html += '<div class="cell" data-type="Actions">';
+        html += renderActionButtons(item);
+        html += '</div>';
+
+        //html += '</div>';//end subrow
+        
+        return html;
+    }
+
     async function renderTableRow(item) {
         
         var html = '';
@@ -1289,8 +1452,8 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         html += '</td>';
 
         //Detail
-        html += '<td class="detailTableBodyCell fileCell" data-title="Format">';
-
+        html += '<td class="detailTableBodyCell fileCell" data-title="Detail">';
+        window.kkk = item;
         html += '<div class="flex flex-wrap flex-direction-column" >';
         html += '<span style="color: white;background-color: var(--theme-accent-text-color); padding: .5em 1em 0.5em 1em;border-radius: 5px;margin:2px;font-size: 0.7em; text-align:center; min-width: 37px; max-width: 37px;">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "") + '</span>';
         if (item.VideoStreamCodecs.length) {
@@ -1417,6 +1580,17 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
         if (item.Status === "Checking" || item.Status === "Processing" || item.Status === "InUse") {
             return html;
         } else {
+            //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
+            var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
+            html += '<div class="cell" style="order: 2;">';
+            html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="Delete" style="background-color:transparent">';
+            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+            html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
+            html += '</svg>';
+            html += '</button>';
+            html += '</div>';
+                //html += '</td>';
+
             if (item.Status !== 'Success') {
                 if (item.Status !== "Processing") {
                     //Identify Entry Button - This opens the Identify/Lookup modal for the item.
@@ -1442,14 +1616,16 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
                         item.Status === "NewEdition") {
 
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
+                        html += '<div class="cell">';
                         html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button" title="Organize" style="background-color:transparent">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                         html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
                         html += '</svg>';
                         html += '</button>';
+                        html += '</div>';
                     }
 
-                    //TODO : maybe dont want this ?
+                    /*TODO : maybe dont want this ?
                     if (item.Status === "SkippedExisting" || item.Status === "NewEdition" || item.Status === "NewResolution") {
                         //var id = e.target.closest('svg').dataset.resultid;
                         //await openComparisonDialog(id);
@@ -1459,17 +1635,12 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
                         html += '<path fill="var(--focus-background)" d="' + compareBtn.path + '"/>';
                         html += '</svg>';
                         html += '</button>';
-                    }
+                    */
                 }
 
-                //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
-                var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-                html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="Delete" style="background-color:transparent">';
-                html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
-                html += '</svg>';
-                html += '</button>';
-                //html += '</td>';
+            } else {
+                //fake cell needed for padding
+                html += '<div class="cell"></div>';
             }
 
             return html;
@@ -1794,8 +1965,8 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             // on here
             taskButton({
                 mode: 'on',
-                progressElem: view.querySelector('.itemProgressBar'),
                 panel: view.querySelector('.organizeProgress'),
+                progressElem: view.querySelector('.itemProgressBar'),
                 taskKey: 'AutoOrganize',
                 button: view.querySelector('.btnOrganize')
             });
@@ -1827,6 +1998,9 @@ define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVers
             // off here
             taskButton({
                 mode: 'off',
+                panel: view.querySelector('.organizeTaskPanel'),
+                progressElem: view.querySelector('.organizeProgress'),
+                taskKey: 'AutoOrganize',
                 button: view.querySelector('.btnOrganize')
             });
         });
