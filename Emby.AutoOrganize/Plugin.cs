@@ -13,12 +13,9 @@ namespace Emby.AutoOrganize
 {
     public class Plugin : BasePlugin, IHasWebPages, IHasThumbImage
     {
-        
         public override string Name => "Auto Organize";
 
-
-        public override string Description
-            => "Automatically organize new media";
+        public override string Description => "Automatically organize new media";
 
         private Guid _id = new Guid("14f5f69e-4c8d-491b-8917-8e90e8317530");
         public override Guid Id
@@ -104,6 +101,11 @@ namespace Emby.AutoOrganize
                 {
                     Name = "AutoOrganizeCorrections",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.html"
+                },
+                new PluginPageInfo
+                {
+                    Name = "AutoOrganizeCss",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganize.css"
                 },
                 //new PluginPageInfo
                 //{

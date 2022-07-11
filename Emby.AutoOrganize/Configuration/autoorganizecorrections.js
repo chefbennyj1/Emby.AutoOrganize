@@ -1,4 +1,4 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'],
+﻿define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVersion('4.7.3') ? 'taskButton' : 'scripts/taskbutton'), 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'],
     function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
 
 

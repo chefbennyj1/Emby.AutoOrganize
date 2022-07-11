@@ -259,7 +259,7 @@ namespace Emby.AutoOrganize.Core
 
             if (endingEpisodeNumber.HasValue)
             {
-                //doing this isnt great - other option to check media provider for every mylti episode like we do for sorting ?
+                //doing this isnt great - other option is to check media provider for every multi episode like we do for sorting ?
                 //Main issue is if episode name has a comma
                 episodeTitle = episodeTitle.Replace(", ", options.MultiEpisodeNameDeliminator);
                 filename = filename.Replace("%ed", endingEpisodeNumber.Value.ToString(_usCulture))

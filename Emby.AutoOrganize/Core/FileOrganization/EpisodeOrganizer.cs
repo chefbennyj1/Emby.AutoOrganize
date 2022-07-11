@@ -39,7 +39,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private ILibraryMonitor LibraryMonitor               { get; }
         private ILibraryManager LibraryManager               { get; }
         private ILogger Log                                  { get; }
-        private NamingOptions NamingOptions                 { get; set; }
+        private NamingOptions NamingOptions                  { get; set; }
         private IFileSystem FileSystem                       { get; }
         private IFileOrganizationService OrganizationService { get; }
         private IProviderManager ProviderManager             { get; }

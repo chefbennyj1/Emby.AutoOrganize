@@ -137,7 +137,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
                 result.Subtitles = mediaInfo.Subtitles;
                 result.ExtractedResolution = mediaInfo.Resolution;
-
+                //Log.Warn(result.ExtractedResolution);
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 
@@ -1056,8 +1056,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 Log.Info($"Compare Result {result.ExtractedName} and {remoteSearchResults.ToList()[0].Name}");
                 finalResult =
                     remoteSearchResults
-                        .FirstOrDefault(); //.FirstOrDefault(m => RegexExtensions.NormalizeString(m.Name) == RegexExtensions.NormalizeString(result.ExtractedName));
-            }
+                        .FirstOrDefault(m => RegexExtensions.NormalizeString(m.Name) == RegexExtensions.NormalizeString(result.ExtractedName));
+            }//need to sort the results based on name to increase likelyhood of best match
 
             if (finalResult == null) return null;
 

@@ -189,20 +189,20 @@ namespace Emby.AutoOrganize.Data
                     {
                         filterBy = $" WHERE OrganizationType = \"{query.Type}\"";
                     }
+                    commandText += filterBy;
 
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
-                        if (filterBy == "") { filterBy += " WHERE"; } else { filterBy += " AND"; }
-                        filterBy +=
+                        if (filterBy == "") { commandText += " WHERE"; } else { commandText += " AND"; }
+                        commandText +=
                             " ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY " +
                             query.SortBy + " " + query.DataOrderDirection +
                             $" LIMIT {query.StartIndex.Value.ToString(CultureInfo.InvariantCulture)})";
                     }
-                    commandText += filterBy;
 
                     commandText += " ORDER BY " + query.SortBy + " " + query.DataOrderDirection;
 
-                    if (query.Limit.HasValue)
+                    if (query.Limit.HasValue && query.Limit.Value > 0)
                     {
                         commandText += " LIMIT " + query.Limit.Value.ToString(CultureInfo.InvariantCulture);
                     }

@@ -240,7 +240,7 @@ namespace Emby.AutoOrganize.Api
         {
             var result = InternalFileOrganizationService.GetResults(new FileOrganizationResultQuery
             {
-                Limit = request.Limit,
+                Limit = string.IsNullOrEmpty(request.NameStartsWith) ? request.Limit : 0,
                 StartIndex = request.StartIndex,
                 Type = !string.IsNullOrEmpty(request.Type) ? request.Type : "All",
                 DataOrderDirection = request.Ascending ? "ASC" : "DESC",
