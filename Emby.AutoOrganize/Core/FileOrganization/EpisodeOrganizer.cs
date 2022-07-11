@@ -60,7 +60,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             LibraryMonitor      = libraryMonitor;
             ProviderManager     = providerManager;
         }
-
        
         private NamingOptions GetNamingOptionsInternal()
         {
@@ -74,23 +73,22 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             return NamingOptions;
         }
 
-        private string FormatLogMsg(string msg)
+        public string FormatLogMsg(string msg)
         {
-            msg.Replace("<br/>", " ");
-            return msg;
+            return Regex.Replace(msg, @"<br\/>", " ", RegexOptions.IgnoreCase);
         }
-        
-        private bool IsSameEpisode(string sourcePath, string newPath)
+
+        public bool IsSameFile(string sourcePath, string targetPath)
         {
             try
             {
-                if(Path.GetExtension(sourcePath) != Path.GetExtension(newPath))
+                if (Path.GetExtension(sourcePath) != Path.GetExtension(targetPath))
                 {
                     return false;
                 }
 
                 var sourceFileInfo = FileSystem.GetFileInfo(sourcePath);
-                var destinationFileInfo = FileSystem.GetFileInfo(newPath);
+                var destinationFileInfo = FileSystem.GetFileInfo(targetPath);
 
                 if (sourceFileInfo.Length == destinationFileInfo.Length)
                 {
@@ -108,7 +106,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             return false;
         }
-    
+
+
         public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             FileOrganizationResult result = null;
@@ -634,22 +633,22 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             //return;
         }
-    
+
         private async void OrganizeEpisode(bool overwriteFile, Series series, int? seasonNumber, int? episodeNumber, int? endingEpisodeNumber, DateTime? premiereDate, AutoOrganizeOptions options, bool rememberCorrection, FileOrganizationResult result, CancellationToken cancellationToken)
         {
             var sourcePath = result.OriginalPath;
 
             var episode = GetMatchingEpisode(series, seasonNumber, episodeNumber, endingEpisodeNumber, result, premiereDate, cancellationToken);
-
+            
             if (episode is null) 
             {
                 try
                 {
                     episode = await GetEpisodeRemoteProviderData(series, seasonNumber, episodeNumber, endingEpisodeNumber, premiereDate, options, cancellationToken);
                 }
-                catch(Exception)
+                catch(Exception e)
                 {
-                    Log.Warn("Exceeded Provider limits. Try again later...");
+                    Log.Warn($"Exceeded Provider limits. Try again later... {e}");
                 }
             }else
             {
@@ -711,9 +710,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 var existingEpisodeFilesButWithDifferentPath = GetExistingEpisodeFilesButWithDifferentPath(result.TargetPath, series, episode);
                 result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
 
-                var fileExists = IsSameEpisode(sourcePath, result.TargetPath); //check if exact file sorted
+                var fileExists = IsSameFile(sourcePath, result.TargetPath); //check if exact file sorted
                 var episodeExists = fileExists || result.DuplicatePaths.Count > 0; //check for other copies (duplicates)
-
+                var currentLibraryItem = result.TargetPath;
+                if (fileExists == false && episodeExists == true) //file exists under a different name
+                {//doing this to get correct ExistingInternalId
+                    currentLibraryItem = result.DuplicatePaths[0];
+                }
+                
                 //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "InUse"
                 if(IsCopying(sourcePath, FileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
                 {
@@ -761,7 +765,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Log.Info(FormatLogMsg(msg + " Stopping organization"));
                     result.Status = FileSortingStatus.Success;
                     result.StatusMessage = msg;
-                    result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
+                    result.ExistingInternalId = LibraryManager.FindIdByPath(currentLibraryItem, false);
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -774,7 +778,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
-                    result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
+                    result.ExistingInternalId = LibraryManager.FindIdByPath(currentLibraryItem, false);
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -814,7 +818,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
-                    result.ExistingInternalId = LibraryManager.FindIdByPath(result.TargetPath, false);
+                    result.ExistingInternalId = LibraryManager.FindIdByPath(currentLibraryItem, false);
                     result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
                     OrganizationService.SaveResult(result, cancellationToken);
 
@@ -1444,8 +1448,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 }, series, cancellationToken);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Log.Warn($"Internal Error outerEpisode: {e}");
                 throw new Exception(); //We'll catch this later
             }
 
@@ -1484,6 +1489,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     }
                 }
             }
+
+            var msg2 = $"Procesing data {episodeResults.IndexNumberEnd} {series.Name} season {seasonNumber} episode {episodeNumber}-{endingEpisodeNumber} -- {episodeResults.Name}";
+            Log.Info(msg2);
             if (episodeResults == null)
             {
                 var msg = $"No provider metadata found for {series.Name} season {seasonNumber} episode {episodeNumber}";
@@ -1565,9 +1573,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 Log.Info($"Provider results for {seriesName} has {remoteSearchResults.Count()} results");
                 finalResult =
                     remoteSearchResults
-                        .FirstOrDefault(); //.FirstOrDefault(result => RegexExtensions.NormalizeString(result.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName)));
-            }
-            
+                        .FirstOrDefault(result => RegexExtensions.NormalizeString(result.Name).ContainsIgnoreCase(RegexExtensions.NormalizeString(seriesName)));
+            }//need to sort the results based on name to increase likelyhood of best match
+
             if (finalResult != null)
             {
                 // We are in the good position, we can create the item
@@ -1660,7 +1668,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             var sourceExtension = (Path.GetExtension(result.OriginalPath) ?? string.Empty).TrimStart('.');
 
             var pattern = endingEpisodeNumber.HasValue ? options.MultiEpisodeNamePattern : options.EpisodeNamePattern;
-            
+
             if (string.IsNullOrWhiteSpace(pattern))
             {
                 Log.Warn("Configured episode name pattern is empty!");
