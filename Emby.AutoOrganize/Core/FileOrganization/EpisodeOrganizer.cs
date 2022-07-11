@@ -717,7 +717,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 {//doing this to get correct ExistingInternalId
                     currentLibraryItem = result.DuplicatePaths[0];
                 }
-                
+
                 //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "InUse"
                 if(IsCopying(sourcePath, FileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
                 {
@@ -1448,9 +1448,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 }, series, cancellationToken);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Log.Warn($"Internal Error outerEpisode: {e}");
                 throw new Exception(); //We'll catch this later
             }
 
@@ -1490,8 +1489,6 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
             }
 
-            var msg2 = $"Procesing data {episodeResults.IndexNumberEnd} {series.Name} season {seasonNumber} episode {episodeNumber}-{endingEpisodeNumber} -- {episodeResults.Name}";
-            Log.Info(msg2);
             if (episodeResults == null)
             {
                 var msg = $"No provider metadata found for {series.Name} season {seasonNumber} episode {episodeNumber}";
