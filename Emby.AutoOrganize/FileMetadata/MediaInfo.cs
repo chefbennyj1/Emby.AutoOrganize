@@ -49,11 +49,17 @@ namespace Emby.AutoOrganize.FileMetadata
 
             mediaInfo.CreationDate = DateTime.UtcNow;
 
-
-            if (mediaInfoProvider.format.tags.creation_time.HasValue)
+            if (mediaInfoProvider.format != null)
             {
-                mediaInfo.CreationDate = mediaInfoProvider.format.tags.creation_time.Value;
+                if (mediaInfoProvider.format.tags != null)
+                {
+                    if (mediaInfoProvider.format.tags.creation_time.HasValue)
+                    {
+                        mediaInfo.CreationDate = mediaInfoProvider.format.tags.creation_time.Value;
+                    }
+                }
             }
+            
 
             foreach (var stream in mediaInfoProvider.streams)
             {

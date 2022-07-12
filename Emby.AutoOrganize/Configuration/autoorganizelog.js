@@ -1218,11 +1218,11 @@
             html += '<span>' + formatBytes(item.FileSize) + '</span>';
             html += '</td>';
 
-            //File Age
-            html += '<td class="detailTableBodyCell" data-title="Date">';
-            var age = calculateFileAge(item.FileCreationDate);
-            html += '<span>' + age + ' day(s)</span>';
-            html += '</td>';
+            ////File Age
+            //html += '<td class="detailTableBodyCell" data-title="Date">';
+            //var age = calculateFileAge(item.FileCreationDate);
+            //html += '<span>' + age + ' day(s)</span>';
+            //html += '</td>';
 
             //Source file path
             html += '<td data-title="Source" class="fileCell" style="border-spacing:0;padding:.4em; white-space: normal">';

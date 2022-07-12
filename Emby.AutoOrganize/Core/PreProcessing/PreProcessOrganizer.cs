@@ -104,29 +104,29 @@ namespace Emby.AutoOrganize.Core.PreProcessing
                         continue;
                     }
 
-                    CreateExtractionMarker(folder.FullName, Logger);
+                    
 
                     foreach (var file in eligibleFiles)
                     {
                         //Ignore Sample files
                         if (file.FullName.IndexOf("sample", StringComparison.OrdinalIgnoreCase) >= 0) continue;
 
-                        //File Extraction class handles decompression/copying of files
-                        //Two events exist there to connect too.
-                        var fileExtraction = new FileExtraction();
-                        fileExtraction.OnProgressChanged += percentage => progress.Report(percentage);
-                        fileExtraction.OnComplete += () => { progress.Report(100.0); };
+                       
+                        var preProcessingFolderPath = options.PreProcessingFolderPath;
 
-                        var postProcessingFolderPath = options.PreProcessingFolderPath;
+                        string source = file.FullName;
+                        string destination = Path.Combine(preProcessingFolderPath, Path.GetFileNameWithoutExtension(file.Name), file.Name);
 
-                        string sourcePath = file.FullName;
-                        string destinationPath = Path.Combine(postProcessingFolderPath, Path.GetFileNameWithoutExtension(file.Name));
+                        Logger.Info($"Creating destination file: {destination}");
 
                         //If the file is compressed, extract it.
                         if (file.Extension == ".rar")
                         {
+                            var fileExtraction = new FileExtraction();
+                            fileExtraction.OnProgressChanged += percentage => progress.Report(percentage);
+                            fileExtraction.OnComplete += () => { progress.Report(100.0); };
                             Logger.Info("New compressed media file ready for extraction: " + file.Name);
-                            fileExtraction.CompressedFileExtraction(sourcePath, destinationPath);
+                            fileExtraction.CompressedFileExtraction(source, destination);
                             continue;
                         }
 
@@ -134,9 +134,14 @@ namespace Emby.AutoOrganize.Core.PreProcessing
                         var namingOptions = new NamingOptions();
                         if (namingOptions.VideoFileExtensions.Contains(file.Extension))
                         {
-                            Logger.Info("New media file ready for extraction: " + file.Name);
-                            fileExtraction.CopyFileExtraction(sourcePath, destinationPath);
+                            var fileExtraction = new FileExtraction();
+                            fileExtraction.OnProgressChanged += percentage => progress.Report(percentage);
+                            fileExtraction.OnComplete += () => { progress.Report(100.0); };
+                            Logger.Info("New media file ready for extraction: " + file.FullName);
+                            fileExtraction.CopyFileExtraction(source, destination);
                         }
+
+                        CreateExtractionMarker(folder.FullName, Logger);
                     }
                 }
                 

@@ -278,8 +278,14 @@ namespace Emby.AutoOrganize.Core
             var sourceExtension     = Path.GetExtension(episode.Path).Replace(".", string.Empty).Trim();
             var episodeNumber       = episode.IndexNumber.Value;
             var endingEpisodeNumber = episode.IndexNumberEnd;
-            var episodeTitle        = FileSystem.GetValidFilename(episode.Name.Replace("/", ", ")).Trim();
             var resolution          = string.Empty;
+
+            //The episode may have a "/" in it's name.
+            //Example: Archer (2009) S5:E13 - Arrival/Departure
+            //Incorrect path: D:\TV\Archer (2009)\Season 5\Archer (2009) - 5x13 - Arrival/Departure.mkv <== without replacing the slash, the folder "Season 5\Archer (2009) - 5x13 - Arrival" is created.
+            //Ensure Path is: D:\TV\Archer (2009)\Season 5\Archer (2009) - 5x13 - Arrival, Departure.mkv
+            var episodeTitle        = FileSystem.GetValidFilename(episode.Name.Replace("/", ", ")).Trim(); 
+            
             
 
             try
