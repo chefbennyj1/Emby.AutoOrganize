@@ -35,7 +35,7 @@
     transform: translateY(-1px);
 }
 
-#legendDialog {
+#legendDialog, .date_sort, .name_sort, .status_sort {
     cursor: pointer;
 }
 
