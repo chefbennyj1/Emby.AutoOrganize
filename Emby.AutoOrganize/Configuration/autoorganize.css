@@ -35,8 +35,12 @@
     transform: translateY(-1px);
 }
 
-#legendDialog, .date_sort, .name_sort, .status_sort {
+.date_sort, .name_sort, .status_sort {
     cursor: pointer;
+}
+#legendDialog {
+    cursor: pointer;
+    padding-left: 10px;
 }
 
 [data-title="Source"] {
