@@ -206,6 +206,10 @@
             .replace('%fn', fullName);
     }
 
+    function safeFileName(value) {
+        return value.replace(/[/\\?*:|"<>]/g, '');//allow % /[/\\?%*:|"<>]/g
+    }
+
     async function loadPage(view, config) {
 
         
@@ -296,15 +300,15 @@
 
             config.MinFileSizeMb = view.querySelector('#txtMinFileSize').value;
 
-            config.SeasonFolderPattern = view.querySelector('#txtSeasonFolderPattern').value;
+            config.SeasonFolderPattern = safeFileName(view.querySelector('#txtSeasonFolderPattern').value);
 
-            config.SeasonZeroFolderName = view.querySelector('#txtSeasonZeroName').value;
+            config.SeasonZeroFolderName = safeFileName(view.querySelector('#txtSeasonZeroName').value);
 
-            config.EpisodeNamePattern = view.querySelector('#txtEpisodePattern').value;
+            config.EpisodeNamePattern = safeFileName(view.querySelector('#txtEpisodePattern').value);
 
-            config.MultiEpisodeNamePattern = view.querySelector('#txtMultiEpisodePattern').value;
+            config.MultiEpisodeNamePattern = safeFileName(view.querySelector('#txtMultiEpisodePattern').value);
 
-            config.MultiEpisodeNameDeliminator = view.querySelector('#txtMultiEpisodeDeliminator').value;
+            config.MultiEpisodeNameDeliminator = safeFileName(view.querySelector('#txtMultiEpisodeDeliminator').value);
 
             config.AutoDetectSeries = view.querySelector('#chkEnableSeriesAutoDetect').checked;
 
@@ -455,7 +459,7 @@
 
         function updateSeriesPatternHelp() {
 
-            var value = view.querySelector('#txtSeriesPattern').value;
+            var value = safeFileName(view.querySelector('#txtSeriesPattern').value);
             value = getSeriesDirectoryName(value);
 
             const replacementHtmlResult = 'Result: ' + value;
@@ -465,7 +469,7 @@
 
         function updateSeasonPatternHelp() {
 
-            var value = view.querySelector('#txtSeasonFolderPattern').value;
+            var value = safeFileName(view.querySelector('#txtSeasonFolderPattern').value);
             value = value.replace('%s', '1').replace('%0s', '01').replace('%00s', '001');
 
             var replacementHtmlResult = 'Result: ' + value;
@@ -475,7 +479,7 @@
 
         function updateEpisodePatternHelp() {
 
-            var value = view.querySelector('#txtEpisodePattern').value;
+            var value = safeFileName(view.querySelector('#txtEpisodePattern').value);
             var fileName = getEpisodeFileName(value, false, '');
 
             var replacementHtmlResult = 'Result: ' + fileName;
@@ -485,8 +489,8 @@
 
         function updateMultiEpisodePatternHelp() {
 
-            var value = view.querySelector('#txtMultiEpisodePattern').value;
-            var delim = view.querySelector('#txtMultiEpisodeDeliminator').value;
+            var value = safeFileName(view.querySelector('#txtMultiEpisodePattern').value);
+            var delim = safeFileName(view.querySelector('#txtMultiEpisodeDeliminator').value);
             var fileName = getEpisodeFileName(value, true, delim);
 
             var replacementHtmlResult = 'Result: ' + fileName;
