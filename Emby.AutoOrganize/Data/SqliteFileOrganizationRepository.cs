@@ -8,7 +8,6 @@ using Emby.AutoOrganize.FileMetadata;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Model.Corrections;
 using Emby.AutoOrganize.Model.Organization;
-using Emby.AutoOrganize.Model.SmartLists;
 using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Controller;
 using MediaBrowser.Model.Logging;
@@ -41,7 +40,7 @@ namespace Emby.AutoOrganize.Data
 
                 string[] queries =
                 {
-                    "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedEpisodeName TEXT, ExtractedEndingEpisodeName TEXT, ExtractedResolution TEXT null, VideoStreamCodecs TEXT null, AudioStreamCodecs TEXT null, SourceQuality TEXT null, Subtitles TEXT null, ExtractedEdition TEXT null, ExternalSubtitlePaths TEXT null, DuplicatePaths TEXT int null, ExistingInternalId INT)",
+                    "create table if not exists FileOrganizerResults (ResultId GUID PRIMARY KEY, OriginalPath TEXT, TargetPath TEXT, FileLength INT, OrganizationDate datetime, FileCreationDate datetime, Status TEXT, OrganizationType TEXT, StatusMessage TEXT, ExtractedName TEXT, ExtractedYear int null, ExtractedSeasonNumber int null, ExtractedEpisodeNumber int null, ExtractedEndingEpisodeNumber, ExtractedEpisodeName TEXT, ExtractedEndingEpisodeName TEXT, ExtractedResolution TEXT null, VideoStreamCodecs TEXT null, AudioStreamCodecs TEXT null, AudioChannels INT null, SourceQuality TEXT null, Subtitles TEXT null, ExtractedEdition TEXT null, ExternalSubtitlePaths TEXT null, DuplicatePaths TEXT int null, ExistingInternalId INT)",
                     "create index if not exists idx_FileOrganizerResults on FileOrganizerResults(ResultId)",
                     "create table if not exists SmartMatch (Id GUID PRIMARY KEY, Name TEXT, OrganizerType TEXT, MatchStrings TEXT null, TargetFolder TEXT null, IsCustomUserDefinedEntry TEXT null)",
                     "create index if not exists idx_SmartMatch on SmartMatch(Id)",
@@ -71,7 +70,7 @@ namespace Emby.AutoOrganize.Data
                     connection.RunInTransaction(db =>
                     {
                         var commandText =
-                            "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @ExtractedEpisodeName,@ExtractedEndingEpisodeName, @ExtractedResolution, @VideoStreamCodecs, @AudioStreamCodecs, @SourceQuality, @Subtitles, @ExtractedEdition, @ExternalSubtitlePaths, @DuplicatePaths, @ExistingInternalId)";
+                            "replace into FileOrganizerResults (ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, FileCreationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, AudioChannels, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId) values (@ResultId, @OriginalPath, @TargetPath, @FileLength, @OrganizationDate, @FileCreationDate, @Status, @OrganizationType, @StatusMessage, @ExtractedName, @ExtractedYear, @ExtractedSeasonNumber, @ExtractedEpisodeNumber, @ExtractedEndingEpisodeNumber, @ExtractedEpisodeName,@ExtractedEndingEpisodeName, @ExtractedResolution, @VideoStreamCodecs, @AudioStreamCodecs, @AudioChannels, @SourceQuality, @Subtitles, @ExtractedEdition, @ExternalSubtitlePaths, @DuplicatePaths, @ExistingInternalId)";
 
                         using (var statement = db.PrepareStatement(commandText))
                         {
@@ -80,6 +79,7 @@ namespace Emby.AutoOrganize.Data
                             statement.TryBind("@TargetPath", result.TargetPath);
                             statement.TryBind("@FileLength", result.FileSize);
                             statement.TryBind("@OrganizationDate", result.Date.ToDateTimeParamValue());
+                            statement.TryBind("@FileCreationDate", result.FileCreationDate.ToDateTimeParamValue());
                             statement.TryBind("@Status", result.Status.ToString());
                             statement.TryBind("@OrganizationType", result.Type.ToString());
                             statement.TryBind("@StatusMessage", result.StatusMessage);
@@ -90,17 +90,14 @@ namespace Emby.AutoOrganize.Data
                             statement.TryBind("@ExtractedEndingEpisodeNumber", result.ExtractedEndingEpisodeNumber);
                             statement.TryBind("@ExtractedEpisodeName", result.ExtractedEpisodeName);
                             statement.TryBind("@ExtractedEndingEpisodeName", result.ExtractedEndingEpisodeName);
-                            statement.TryBind("@ExtractedResolution",
-                                _json.SerializeToString(result.ExtractedResolution));
-                            statement.TryBind("@VideoStreamCodecs",
-                                string.Join("|", result.VideoStreamCodecs.ToArray()));
-                            statement.TryBind("@AudioStreamCodecs",
-                                string.Join("|", result.AudioStreamCodecs.ToArray()));
+                            statement.TryBind("@ExtractedResolution", _json.SerializeToString(result.ExtractedResolution));
+                            statement.TryBind("@VideoStreamCodecs", string.Join("|", result.VideoStreamCodecs.ToArray()));
+                            statement.TryBind("@AudioStreamCodecs", string.Join("|", result.AudioStreamCodecs.ToArray()));
+                            statement.TryBind("@AudioChannels", result.AudioChannels);
                             statement.TryBind("@SourceQuality", result.SourceQuality);
                             statement.TryBind("@Subtitles", string.Join("|", result.Subtitles.ToArray()));
                             statement.TryBind("@ExtractedEdition", result.ExtractedEdition);
-                            statement.TryBind("@ExternalSubtitlePaths",
-                                string.Join("|", result.ExternalSubtitlePaths.ToArray()));
+                            statement.TryBind("@ExternalSubtitlePaths", string.Join("|", result.ExternalSubtitlePaths.ToArray()));
                             statement.TryBind("@DuplicatePaths", string.Join("|", result.DuplicatePaths.ToArray()));
                             statement.TryBind("@ExistingInternalId", result.ExistingInternalId);
 
@@ -182,7 +179,7 @@ namespace Emby.AutoOrganize.Data
                 using (var connection = CreateConnection(true))
                 {
                     var commandText =
-                        "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults";
+                        "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, FileCreationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, AudioChannels, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults";
 
                     var filterBy = "";
                     if (!string.IsNullOrEmpty(query.Type) && query.Type != "All")
@@ -245,7 +242,7 @@ namespace Emby.AutoOrganize.Data
                 using (var connection = CreateConnection(true))
                 {
                     using (var statement = connection.PrepareStatement(
-                        "select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults where ResultId=@ResultId")
+                        "select ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, FileCreationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, AudioChannels, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults where ResultId=@ResultId")
                     )
                     {
                         statement.TryBind("@ResultId", id.ToGuidBlob());
@@ -288,6 +285,9 @@ namespace Emby.AutoOrganize.Data
             index++;
             result.Date = reader.ReadDateTime(index);
 
+            index++;
+            result.FileCreationDate = reader.ReadDateTime(index);
+            
             index++;
             result.Status = (FileSortingStatus) Enum.Parse(typeof(FileSortingStatus), reader.GetString(index), true);
 
@@ -366,6 +366,12 @@ namespace Emby.AutoOrganize.Data
                     reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
             }
 
+            index++;
+            if (!reader.IsDBNull(index))
+            {
+                result.AudioChannels = reader.GetInt(index);
+            }
+            
             index++;
             if (!reader.IsDBNull(index))
             {

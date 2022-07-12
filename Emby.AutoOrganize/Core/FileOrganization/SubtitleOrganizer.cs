@@ -10,7 +10,6 @@ using Emby.AutoOrganize.Model.Organization;
 using Emby.AutoOrganize.Naming;
 using Emby.AutoOrganize.Naming.Common;
 using Emby.AutoOrganize.Naming.TV;
-using Emby.Naming.TV;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
@@ -31,7 +30,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         private ILibraryMonitor LibraryMonitor               { get; }
         private ILibraryManager LibraryManager               { get; }
         private ILogger Log                                  { get; }
-        private NamingOptions NamingOptions                 { get; set; }
+        private NamingOptions NamingOptions                  { get; set; }
         private IFileSystem FileSystem                       { get; }
         private IFileOrganizationService OrganizationService { get; }
         private IProviderManager ProviderManager             { get; }

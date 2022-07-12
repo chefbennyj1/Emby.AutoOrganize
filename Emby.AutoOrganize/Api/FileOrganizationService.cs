@@ -1,26 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
+using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Model.Corrections;
 using Emby.AutoOrganize.Model.Organization;
-using Emby.AutoOrganize.Model.SmartLists;
 using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Common.Extensions;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
-using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Services;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
+using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 
 namespace Emby.AutoOrganize.Api
 {
+    [Route("/AutoOrganize/AvailableSpace", "GET", Summary = "AutoOrganize Drive Size")]
+    public class GetAvailableSpace : IReturn<long>
+    {
+        [ApiMember(Name = "Location", Description = "Optional. The drive location to get available space", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        public string Location { get; set; }
+        
+    }
+
     [Route("/Library/FileOrganization", "GET", Summary = "Gets file organization results")]
     public class GetFileOrganizationActivity : IReturn<QueryResult<FileOrganizationResult>>
     {
@@ -120,7 +129,7 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
 
-        [ApiMember(Name = "RequestToMoveFile", Description = "Overwrite Existing File", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        [ApiMember(Name = "RequestToMoveFile", Description = "Force sorting of the file", IsRequired = true, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToMoveFile { get; set; }
 
         [ApiMember(Name = "CreateNewDestination", Description = "Create New Destination Folder", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
@@ -217,20 +226,19 @@ namespace Emby.AutoOrganize.Api
         private readonly IHttpResultFactory _resultFactory;
 
         public IRequest Request { get; set; }
-        private ILibraryManager LibraryManager { get; set; }
-        private ILibraryMonitor LibraryMonitor { get; }
+        //private ILibraryManager LibraryManager { get; set; }
+        //private ILibraryMonitor LibraryMonitor { get; }
         private IFileSystem FileSystem { get;  }
-        private IJsonSerializer JsonSerializer { get; }
-
+        //private IJsonSerializer JsonSerializer { get; }
+        private ILogger Log { get; set; }
         private IServerConfigurationManager ServerConfiguration { get; set; }
-        public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IServerConfigurationManager config, IJsonSerializer json)
+        public FileOrganizationService(IHttpResultFactory resultFactory, ILibraryManager libraryManager, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IServerConfigurationManager config, IJsonSerializer json, ILogManager log)
         {
             _resultFactory = resultFactory;
-            LibraryManager = libraryManager;
-            LibraryMonitor = libraryMonitor;
             FileSystem = fileSystem;
             ServerConfiguration = config;
-            JsonSerializer = json;
+            Log = log.GetLogger("AutoOrganize");
+            //JsonSerializer = json;
         }
 
         private IFileOrganizationService InternalFileOrganizationService => PluginEntryPoint.Instance.FileOrganizationService;
@@ -279,12 +287,9 @@ namespace Emby.AutoOrganize.Api
         
         public void Post(PerformOrganization request)
         {
-            // Don't await this
+           
             InternalFileOrganizationService.PerformOrganization(request.Id, request.RequestToMoveFile);
 
-            // Async processing (close dialog early instead of waiting until the file has been copied)
-            // Wait 2s for exceptions that may occur to have them forwarded to the client for immediate error display
-            //task.Wait(2000);
         }
 
         public void Post(OrganizeEpisode request)
@@ -304,7 +309,7 @@ namespace Emby.AutoOrganize.Api
                 RememberCorrection              = request.RememberCorrection,
                 ResultId                        = request.Id,
                 SeasonNumber                    = request.SeasonNumber,
-                SeriesId                        = request.SeriesId,
+                SeriesId                        = request.SeriesId ?? string.Empty,
                 Name                            = request.Name,
                 Year                            = request.Year,
                 ProviderIds                     = dicNewProviderIds,
@@ -396,22 +401,34 @@ namespace Emby.AutoOrganize.Api
 
         public void Post(UpdateFileNameCorrectionRequest request)
         {
-            
             var correctionResult = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery());
-            
+
             foreach (var id in request.Ids)
             {
                 var correction = correctionResult.Items.FirstOrDefault(c => c.Id == id);
                 try
                 {
-                    InternalFileCorrectionService.CorrectFileName(correction);
+                    InternalFileCorrectionService.CorrectFileNames(correction);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    
+                    Log.Error(ex.Message, "Error correcting file name");
+                    InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
+                    return;
+                    //InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
                 }
             }
+
         }
 
+        public long Get(GetAvailableSpace request)
+        {
+            return DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name == Path.GetPathRoot(request.Location)).AvailableFreeSpace;
+        }
+        
+        private AutoOrganizeOptions GetAutoOrganizeOptions()
+        {
+            return ServerConfiguration.GetAutoOrganizeOptions();
+        }
     }
 }

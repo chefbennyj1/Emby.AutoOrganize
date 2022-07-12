@@ -8,7 +8,6 @@ using Emby.AutoOrganize.Core.ScheduledTasks;
 using Emby.AutoOrganize.Data;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Model.Organization;
-using Emby.AutoOrganize.Model.SmartLists;
 using Emby.AutoOrganize.Model.SmartMatch;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Common.Extensions;
@@ -56,7 +55,7 @@ namespace Emby.AutoOrganize.Core
 
         public void BeginProcessNewFiles()
         {
-            _taskManager.CancelIfRunningAndQueue<OrganizerScheduledTask>();
+            _taskManager.CancelIfRunningAndQueue<FileOrganizerScheduledTask>();
         }
 
         public void SaveResult(FileOrganizationResult result, CancellationToken cancellationToken)
@@ -336,6 +335,7 @@ namespace Emby.AutoOrganize.Core
         {
             try
             {
+                // ReSharper disable once NotAccessedVariable
                 bool itemValue;
                 var retVal = _inProgressItemIds.TryRemove(result.Id, out itemValue);
 

@@ -77,7 +77,26 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             
             var libraryFolderPaths = _libraryManager.GetVirtualFolders().SelectMany(i => i.Locations).ToList();
 
-            var watchLocations = options.WatchLocations.Where(i => IsValidWatchLocation(i, libraryFolderPaths)).ToList();
+            var watchLocations = new List<string>();
+            
+            if (!options.EnablePreProcessing)
+            {
+                watchLocations = options.WatchLocations.Where(i => IsValidWatchLocation(i, libraryFolderPaths)).ToList();
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(options.PreProcessingFolderPath))
+                {
+                    watchLocations.Add(options.PreProcessingFolderPath);
+                }
+                else
+                {
+                    _logger.Warn("Pre-processing is enabled but no pre-processing folder is configured. No files will be organized.");
+                    return;
+                }
+                
+            }
+            
 
             _logger.Info($"Auto Organize Watched Locations: {watchLocations.Count} folder(s)");
            
@@ -86,8 +105,6 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             
             var step = 100.0 / eligibleFiles.Count;
             var currentProgress = 0.0;
-
-            
 
             _logger.Info($"Eligible file count {eligibleFiles.Count}");
 
@@ -248,9 +265,6 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 progress.Report((currentProgress += step) - 1);
                
             }
-
-           
-
         }
 
         private void Clean(IEnumerable<string> paths, List<string> watchLocations, bool deleteEmptyFolders, List<string> deleteExtensions)

@@ -1,9 +1,8 @@
 ﻿define(['dialogHelper', 'loading', 'globalize', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller'], function (dialogHelper, loading, globalize) {
-    'use strict';
-
+    
     ApiClient.getFileOrganizationResults = function (options) {
 
-        var url = this.getUrl("Library/FileOrganization", options || {});
+        const url = this.getUrl("Library/FileOrganization", options || {});
 
         return this.getJSON(url);
     };
@@ -11,7 +10,7 @@
     
     ApiClient.performEpisodeOrganization = function (id, options) {
 
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
+        const url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
         
         return this.ajax({
             type: "POST",
@@ -23,7 +22,7 @@
 
     ApiClient.performMovieOrganization = function (id, options) {
 
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
+        const url = this.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
 
         return this.ajax({
             type: "POST",
@@ -33,44 +32,11 @@
         });
     };
 
-    //ApiClient.getSmartMatchInfos = function (options) {
-
-    //    options = options || {};
-
-    //    var url = this.getUrl("Library/FileOrganizations/SmartMatches", options);
-
-    //    return this.ajax({
-    //        type: "GET",
-    //        url: url,
-    //        dataType: "json"
-    //    });
-    //};
-
-    //ApiClient.deleteSmartMatchEntries = function (entries) {
-
-    //    var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
-
-    //    var postData = {
-    //        Entries: entries
-    //    };
-
-    //    return this.ajax({
-
-    //        type: "POST",
-    //        url: url,
-    //        data: JSON.stringify(postData),
-    //        contentType: "application/json"
-    //    });
-    //};
-     
-
     var chosenType;
     var extractedName;
     var extractedYear;
     var currentNewItem;
-    //var existingMediasHtml;
-    //var virtualFolderLocationsCount = 0;
-
+   
     function normalizeString(input) {
         if (input === "") return input;
         if (!input) return "";
@@ -78,24 +44,13 @@
         const normalized =  input.replace(pattern, "").toLocaleLowerCase();
         return normalized;
     }
-
-    //function onApiFailure(e) {
-
-    //    loading.hide();
-
-    //    require(['alert'], function (alert) {
-    //        alert({
-    //            title: 'Error',
-    //            text: 'Error: ' + e.headers.get("X-Application-Error-Code")
-    //        });
-    //    });
-    //}
-
+                                               
     function getIconSvg(icon) {
         switch (icon) {
             case "text-box-search-outline": return "M15.5,12C18,12 20,14 20,16.5C20,17.38 19.75,18.21 19.31,18.9L22.39,22L21,23.39L17.88,20.32C17.19,20.75 16.37,21 15.5,21C13,21 11,19 11,16.5C11,14 13,12 15.5,12M15.5,14A2.5,2.5 0 0,0 13,16.5A2.5,2.5 0 0,0 15.5,19A2.5,2.5 0 0,0 18,16.5A2.5,2.5 0 0,0 15.5,14M5,3H19C20.11,3 21,3.89 21,5V13.03C20.5,12.23 19.81,11.54 19,11V5H5V19H9.5C9.81,19.75 10.26,20.42 10.81,21H5C3.89,21 3,20.11 3,19V5C3,3.89 3.89,3 5,3M7,7H17V9H7V7M7,11H12.03C11.23,11.5 10.54,12.19 10,13H7V11M7,15H9.17C9.06,15.5 9,16 9,16.5V17H7V15Z";
             default: "";
         }
+        return "";
     }
 
     function initBaseForm(context, item) {
@@ -114,11 +69,10 @@
         extractedYear = item.ExtractedYear;
     }
 
-   
-
     async function populateBaseItems(context, item = "") {
 
         loading.show();
+        
         var baseItemsSelect = context.querySelector('#selectBaseItems');
         var rootFolderSelect = context.querySelector('#selectRootFolder');
 
@@ -212,7 +166,7 @@
 
         if (item.Status !== "UserInputRequired" && libraryItem) {
             if (virtualFolderLocations) {
-                let itemLocationFolder = virtualFolderLocations.filter(l => libraryItem.Path.substring(0, l.value.length) === l.value)
+                let itemLocationFolder = virtualFolderLocations.filter(l => libraryItem.Path.substring(0, l.value.length) === l.value);
                 rootFolderSelect.value = itemLocationFolder[0].value || "";
             }
         }
@@ -220,7 +174,7 @@
         //Attach an event to the base item select, so when the base item changes we attempt to match the root folder for the user. It's a courtesy. They can change it.
         baseItemsSelect.addEventListener('change', () => {
             if (baseItemsSelect.value !== "") {
-                var baseItem = libraryItems.filter(i => i.Id == baseItemsSelect.value)[0];
+                var baseItem = libraryItems.filter(base => base.Id === baseItemsSelect.value)[0];
                 if (baseItem && baseItem.Path) {
                     let itemLocationFolder = virtualFolderLocations.filter(l => baseItem.Path.substring(0, l.value.length) === l.value)[0];
                     if (itemLocationFolder) {
@@ -278,7 +232,7 @@
         //var newMediaName = null;
         //var newMediaYear = null;
 
-        if (mediaId == "##NEW##" && currentNewItem != null) {
+        if (mediaId === "##NEW##" && currentNewItem != null) {
             mediaId = ""; //Empty
             //newMediaName = currentNewItem.Name;
             //newMediaYear = currentNewItem.ProductionYear;
@@ -291,7 +245,7 @@
             Name                 : baseItemSelect.options[baseItemSelect.selectedIndex].dataset.name,
             Year                 : baseItemSelect.options[baseItemSelect.selectedIndex].dataset.year,
             ProviderIds          : currentNewItem ? currentNewItem.ProviderIds : []
-        }
+        };
 
         switch (chosenType) {
             case "Series":
@@ -311,7 +265,7 @@
                 break;
         }
 
-        if (options.TargetFolder == "") {
+        if (options.TargetFolder === "") {
             Dashboard.alert({
                 title: "Auto Organize",
                 message:"Target folder can not be empty."
@@ -328,24 +282,12 @@
             }
         } 
        
-        console.table(options)
+        console.table(options);
 
         if (options.CreateNewDestination) {
-            message = "The " +
-                chosenType +
-                " " +
-                options.Name +
-                ' ' +
-                (options.Year ?? '') +
-                " current target folder is <br/> " +
-                item.TargetPath.substring(0, options.TargetFolder.length) +
-                "<br/> but the file for the " +
-                chosenType +
-                " will be created in<br/>" +
-                options.TargetFolder +
-                ".";
+            message = `The ${chosenType} ${options.Name} ${options.Year ?? ''} current target folder is <br/> ${item.TargetPath.substring(0, options.TargetFolder.length)}<br/> but the file for the ${chosenType} will be created in<br/>${options.TargetFolder}.`;
         } else {
-            message = 'The following ' + item.Type + ' will be moved to: ' + options.TargetFolder;
+            message = `The following ${item.Type} will be moved to: ${options.TargetFolder}`;
         }
 
         //This is a new item without a target path figured out yet.
@@ -368,8 +310,7 @@
                             dialogHelper.close(dlg);
 
                         });
-                        //dlg.submitted = true;
-                        //dialogHelper.close(dlg);
+                        
                         break;
 
                     case "Series":
@@ -380,8 +321,7 @@
                             dialogHelper.close(dlg);
                             
                         });
-                        //dlg.submitted = true;
-                        //dialogHelper.close(dlg);
+                        
                         break;
                 }
             });
@@ -413,7 +353,7 @@
                     currentNewItem = newItem;
 
                     if (selectBaseItems.options.length > 0) {
-                        const itemToSelect = [...selectBaseItems.options].filter(o => normalizeString(o.dataset.name) == normalizeString(newItem.Name) && o.dataset.year == newItem.ProductionYear);
+                        const itemToSelect = [...selectBaseItems.options].filter(o => normalizeString(o.dataset.name) === normalizeString(newItem.Name) && o.dataset.year == newItem.ProductionYear);
                         if (itemToSelect.length) {
                             selectBaseItems.value = itemToSelect[0].value;
                         } else {
@@ -423,8 +363,6 @@
                             } else {
                                 selectBaseItems.innerHTML += '<option selected data-name="' + currentNewItem.Name + '" data-year="' + currentNewItem.ProductionYear + '" value="##NEW##">' + currentNewItem.Name + (currentNewItem.ProductionYear ? ` (${currentNewItem.ProductionYear})` : "") + '</option>';
                             }
-                           
-                            
                         }
                     }
                      
@@ -440,7 +378,7 @@
         var mediaFolderSelect = dlg.querySelector('.selectRootFolderContainer');
 
         
-        if (mediasId.value == "##NEW##" || mediasId.selectedIndex > 0) {
+        if (mediasId.value === "##NEW##" || mediasId.selectedIndex > 0) {
             mediaFolderSelect.classList.remove('hide');
         }
         else {
@@ -449,7 +387,7 @@
     }
 
     async function selectedMediaTypeChanged(dlg, item) {
-        var mediaType = dlg.querySelector('#selectMediaType').value;
+        const mediaType = dlg.querySelector('#selectMediaType').value;
 
         switch (mediaType) {
             case "":
@@ -494,12 +432,11 @@
                 extractedName = null;
                 extractedYear = null;
                 currentNewItem = null;
-                /*existingMediasHtml = null;*/
 
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', Dashboard.getConfigurationResourceUrl('FileOrganizerHtml'), true);
 
-                xhr.onload = async function (e) {
+                xhr.onload = async function () {
 
                     var template = this.response;
                     var dlg = dialogHelper.createDialog({
@@ -531,25 +468,25 @@
                         }
                     });
 
-                    dlg.querySelector('.btnCancel').addEventListener('click', function (e) {
+                    dlg.querySelector('.btnCancel').addEventListener('click', function () {
 
                         dialogHelper.close(dlg);
                     });
 
-                    dlg.querySelector('form').addEventListener('submit', function (e) {
+                    dlg.querySelector('form').addEventListener('submit', function (elem) {
 
                         submitMediaForm(dlg, item);
 
-                        e.preventDefault();
+                        elem.preventDefault();
                         return false;
                     });
 
-                    dlg.querySelector('#btnNewMedia').addEventListener('click', function (e) {
+                    dlg.querySelector('#btnNewMedia').addEventListener('click', function () {
 
                         showNewMediaDialog(dlg);
                     });
 
-                    dlg.querySelector('#selectBaseItems').addEventListener('change', async function (e) {
+                    dlg.querySelector('#selectBaseItems').addEventListener('change', async function () {
 
                         await selectedMediasChanged(dlg);
                     });
@@ -564,7 +501,7 @@
 
                     // Init media type
                     await selectedMediaTypeChanged(dlg, item);
-                }
+                };
 
                 xhr.send();
             });

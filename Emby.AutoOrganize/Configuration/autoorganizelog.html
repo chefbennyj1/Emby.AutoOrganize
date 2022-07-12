@@ -65,15 +65,15 @@
         <div id="autoorganizelog">
             <!-- HEAD -->
             <div id="ao-header" class="row">
-                <div class="head">
+                <div class="head status_sort">
                     <div class="flex-items" id="legendDialog" title="Status Legend">
                         <svg style="width:24px; height:24px;" viewBox="0 0 24 24" data-step="1">
                             <path fill="var(--theme-accent-text-color)" d="M9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21L3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19.03 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3L20.34,3.03L15,5.1L9,3M8,5.45V17.15L5,18.31V6.46L8,5.45M10,5.47L14,6.87V18.53L10,17.13V5.47M19,5.7V17.54L16,18.55V6.86L19,5.7M7.46,6.3L5.57,6.97V9.12L7.46,8.45V6.3M7.46,9.05L5.57,9.72V11.87L7.46,11.2V9.05M7.46,11.8L5.57,12.47V14.62L7.46,13.95V11.8M7.46,14.55L5.57,15.22V17.37L7.46,16.7V14.55"></path>
                         </svg>
                     </div>
                 </div>
-                <div class="head">Date</div>
-                <div class="head">Name</div>
+                <div class="head date_sort">Date</div>
+                <div class="head name_sort">Name</div>
                 <div class="head">Release</div>
                 <div class="head">Format</div>
                 <div class="head">File Size</div>
@@ -83,24 +83,10 @@
                 <div class="head">Actions</div>
             </div>
 
-            <div id="autoorganizelog-results">
-                <!--  ROWS
-                <div class="row">
-                    <div class="cell">Column 1</div>
-                    <div class="cell">Column 2</div>
-                    <div class="cell">Column 3</div>
-                    <div class="cell">Column 4</div>
-                    <div class="cell">Column 5</div>
-                    <div class="cell">Column 6</div>
-                    <div class="cell">Column 7</div>
-                    <div class="cell">Column 8</div>
-                    <div class="cell">Column 9</div>
-                    <div class="cell">Column 10</div>
-                </div>-->
-            </div>
+            <div id="autoorganizelog-results"></div>
         </div>
 
-        <div class="flex-container" id="autoorganizelog">
+        <!--<div class="flex-container" id="autoorganizelog">
 
             <div class="flex-container" id="ao-header">
 
@@ -121,9 +107,9 @@
                 <div class="flex-items">Actions</div>
 
             </div>
-        </div>
+        </div>-->
 
-        <div class="autoorganizetable table detailTable">
+        <!--<div class="autoorganizetable table detailTable">
             <table class="tblOrganizationResults" style="width:100%">
                 <thead>
                     <tr style="text-align: left;">
@@ -135,8 +121,20 @@
                                     </svg>
                                 </div>
                             </div>
-                        </th> <!--Status Icon-->
+                        </th>
                         <th class="detailTableHeaderCell" data-priority="3">
+	            <div class="listTopPaging">
+	            </div>
+            </div>
+        </div>-->
+        
+
+        <div class="autoorganizetable table hide" style="padding-bottom: 2em; margin-top: 23em; border-collapse: collapse; border-spacing: 0; text-align: left; width: 100%;">
+            <table class="tblOrganizationResults" style="width:100%">
+                <thead>
+                    <tr style="text-align: left;">
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1"></th> <!--Type-->
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="2">
                             <div class="date_sort" style="cursor:pointer;  display:flex; align-items:center">
                                 <span>Date</span>
                             </div>
@@ -145,25 +143,45 @@
                             <div class="status_sort" style="cursor:pointer;  display:flex; align-items:center">
                                 <span>Status</span>
                             </div>
-                        </th>-->
-                        <th class="detailTableHeaderCell" data-priority="3">
+                        </th>
+                        <th class="detailTableHeaderCell" data-priority="3">-->
+
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1"></th> <!--Status Icon-->
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top; min-width: 6em" data-priority="3">
+                            <div class="status_sort" style="cursor:pointer;  display:flex; align-items:center">
+                                <span>Status</span>
+                            </div>
+                        </th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="3">
                             <div class="name_sort" style="cursor:pointer; display:flex; align-items:center">
                                 <span>Name</span>
                             </div>
                         </th>
 
-                        <th class="detailTableHeaderCell" data-priority="2">Release/<br>Edition</th>
+                        <!--<th class="detailTableHeaderCell" data-priority="2">Release/<br>Edition</th>
                         <th class="detailTableHeaderCell" data-priority="3">Format</th>
-                        <!--<th class="detailTableHeaderCell" data-priority="1" style="width:8em">Quality</th>
+                        <th class="detailTableHeaderCell" data-priority="1" style="width:8em">Quality</th>
                         <th class="detailTableHeaderCell" data-priority="1" style="width:10em">Codec</th>
                         <th class="detailTableHeaderCell" data-priority="1">Audio</th>
-                        <th class="detailTableHeaderCell" data-priority="1">Subtitles</th>>-->
+                        <th class="detailTableHeaderCell" data-priority="1">Subtitles</th>>--
                         <th class="detailTableHeaderCell" data-priority="3">File Size</th>
-                        <th class="detailTableHeaderCell" data-priority="3"></th> <!--Type-->
+                        <th class="detailTableHeaderCell" data-priority="3"></th> <!--Type--
                         <th class="detailTableHeaderCell" data-priority="2">Source</th>
                         <th class="detailTableHeaderCell" data-priority="2">Destination</th>
                         <th class="detailTableHeaderCell" data-priority="3">Actions</th> <!--Sorting option buttons - we'll call them Actions in the UI-->
+
                         <!--<th class="detailTableHeaderCell" data-priority="1"></th>-->
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Release/<br>Edition</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top; width: 8em" data-priority="1">Quality</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top; width: 10em" data-priority="1">Codec</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Audio</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Subtitles</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">File Size</th>
+	                    <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Age</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top; width: 15%" data-priority="2">Source</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top; width: 25%" data-priority="2">Destination</th>
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top; width: 12em" data-priority="3">Actions</th> <!--Sorting option buttons - we'll call them Actions in the UI-->
+                        <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1"></th>
 
 
                     </tr>
