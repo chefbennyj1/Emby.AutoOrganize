@@ -164,8 +164,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 result.Status = FileSortingStatus.InUse;
                 result.Date = DateTime.UtcNow; //Update the Date so that it moves to the top of the list in the UI (UI table is sorted by date)
-                result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                Log.Info("Auto organize Path is locked by other processes. Please try again later.");
+                var msg = $"File {result.OriginalPath} is locked by other processes and unable to be sorted.<br/><br/>Please try again later. (REF:1)";
+                result.StatusMessage = msg;
+                Log.Info(FormatLogMsg(msg));
                 
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
@@ -180,12 +181,22 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 {
                     mediaInfo = await mediaInfo.GetMediaInfo(result.OriginalPath);
                 }
-                catch
+                catch(Exception ex)
                 {
                     //Hmmm... repetitive code.
+                    //kingy444 - I checked, not repetitive - geting in here with a null reference and not receiving the above (REF:1) but not sure why
+                    // updated logging to reflect which block we are in
+                    // ffprobe is cheking file fine for me outside of emby
+                    // made a copy of affected files and have same issue - havent found cause
+                    /*
+                     System.NullReferenceException: Object reference not set to an instance of an object.
+   at Emby.AutoOrganize.FileMetadata.MediaInfo.GetMediaInfo(String filePath)
+   at Emby.AutoOrganize.Core.FileOrganization.EpisodeOrganizer.OrganizeFile(Boolean requestToMoveFile, String path, AutoOrganizeOptions options, CancellationToken cancellationToken)
+                     */
                     result.Status = FileSortingStatus.InUse;
-                    result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                    Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                    var msg = $"File {result.OriginalPath} is locked by other processes and unable to be sorted.<br/><br/>Please try again later. (REF:2)";
+                    result.StatusMessage = msg;
+                    Log.Info(FormatLogMsg(msg + " Exception: " + ex));
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                     return result; 
@@ -391,7 +402,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     //otherwise fail.
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = ex.Message;
-                    Log.Warn("Error organizing file", ex);
+                    Log.Warn("Error organizing file" + ex);
                 }
                 
             }
