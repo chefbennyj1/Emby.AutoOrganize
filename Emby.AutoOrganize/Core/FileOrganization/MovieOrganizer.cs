@@ -193,6 +193,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     {
                         var msg = $"Unable to determine movie name from {path}";
                         result.Status = FileSortingStatus.Failure;
+                        if (result.ExtractedYear is null) { result.Type = FileOrganizerType.Unknown; } //no year in filename so we dont know what it is
                         result.StatusMessage = msg;
                         Log.Warn(msg);
                         OrganizationService.SaveResult(result, cancellationToken);
@@ -368,6 +369,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     //Nope none of it did. Fail the movie sorting. The user will have to sort with corrections.
                     var msg = $"Unable to determine movie name from {path}";
                     result.Status = FileSortingStatus.Failure;
+                    if (result.ExtractedYear is null) { result.Type = FileOrganizerType.Unknown; } //no year in filename so we dont know what it is
                     result.StatusMessage = msg;
                     Log.Warn(msg);
                     OrganizationService.SaveResult(result, cancellationToken);

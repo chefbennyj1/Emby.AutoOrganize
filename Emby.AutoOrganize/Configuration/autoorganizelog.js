@@ -233,11 +233,6 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         dlg.style.maxHeight = "60%";
         dlg.style.maxWidth = "40%";
     
-        dlg.classList.add("formDialog");
-        dlg.classList.add("ui-body-a");
-        dlg.classList.add("background-theme-a");
-        dlg.style.maxHeight = "60%";
-        dlg.style.maxWidth = "40%";
     
         var html = '';
         html += '<div class="formDialogHeader" style="display:flex">';

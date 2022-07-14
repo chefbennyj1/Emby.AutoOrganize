@@ -45,7 +45,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 
                 return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && 
                        fileInfo.Length >= minFileBytes && 
-                       !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList())|| 
+                       !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList()) || 
                        _libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan());
             }
             catch (Exception ex)
@@ -293,18 +293,19 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
         {
             try
             {
-                return _fileSystem.GetFiles(path, true).ToList();
+                var result = new List<FileSystemMetadata>();
+                result = _fileSystem.GetFiles(path, true).ToList();
+                _logger.Info("Auto-Organize watch folder added: {0}", path);
+                return result;
             }
             catch (DirectoryNotFoundException)
             {
-                _logger.Info("Auto-Organize watch folder does not exist: {0}", path);
-
+                _logger.Warn("Auto-Organize watch folder does not exist: {0}", path);
                 return new List<FileSystemMetadata>();
             }
             catch (IOException ex)
             {
                 _logger.ErrorException("Error getting files from {0}", ex, path);
-
                 return new List<FileSystemMetadata>();
             }
         }
