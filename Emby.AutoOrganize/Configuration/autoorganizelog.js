@@ -147,6 +147,10 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         }
     }
 
+    function wbr(value) {
+        return value.replaceAll(".", "<wbr>.")
+    }
+
     function formatItemName(file_name) {
 
         try { //If a subtitle file makes it through during scanning process, we'll throw an error here. Could happen.
@@ -246,9 +250,8 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
     
         message += '<br/>' + globalize.translate("MessageSureYouWishToProceed");
     
-    
-        html += message + '</div>';
-    
+        html += wbr(message) + '</div>';
+        
         html += '<div class="formDialogFooter" style="position:relative" >';
         html += '<div style="display:flex;align-items:center;justify-content:center">'
         html += '<button id="okButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button button-icon-left">';
@@ -270,7 +273,6 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         html += '<button id="cancelButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Cancel</button>';
         html += '</div>';
         html += '</div>';
-    
     
         html += '</div>';
     
@@ -304,6 +306,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
     
         dialogHelper.open(dlg);
     }
+
 
     async function openComparisonDialog(id) {
 
@@ -652,11 +655,15 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
                 }
             case "Movie":
                 html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
+            html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
+                html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
             }
             html += '</td>';
      
             //Quality
             html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
+        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
             html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
             html += '</td>';
      
@@ -721,6 +728,8 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
             html += '</tr>';
      
             window.x = libraryResult
+            for (let index = 0; index < libraryResult.Items.length; ++index) 
+        for (let index = 0; index < libraryResult.Items.length; ++index) 
             for (let index = 0; index < libraryResult.Items.length; ++index) 
             {
                 libraryItem = libraryResult.Items[index];
@@ -1411,7 +1420,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         //html += '<svg class="typeIcon" viewBox="0 0 24 24">';
         //  html += '<path fill="' + statusRenderData.color + '" d="' + icon.path + '"/>';
         //  html += '</svg>';
-        html += item.OriginalFileName.replaceAll('.', '<wbr>.'); //<== Add a word break opportunity to file names because they may be really long, and cause it to go off screen.
+        html += wbr(item.OriginalFileName); //<== Add a word break opportunity to file names because they may be really long, and cause it to go off screen.
         html += '</a>';
         // html += '</span>';
         html += '</div>';
@@ -1423,7 +1432,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         //Destination
         html += '<div class="cell" data-type="Destination" data-type="' + item.Type + '" data-name="' + item.ExtractedName + '" data-season="' + (item.ExtractedSeasonNumber ?? '') + '" data-episode="' + (item.ExtractedEpisodeNumber ?? '') + '">';
         var tp = item.TargetPath || '';
-        html += tp.replaceAll('.', '<wbr>.');
+        html += wbr(tp);
         html += '</div>';
     
         //html += '</div>';//end subrow
@@ -1440,7 +1449,6 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         return html;
     }
 
-
     function calculateFileAge(creationDate) {
         var now = new Date();
         var creation = Date.parse(creationDate);
@@ -1448,7 +1456,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         var ageInDays = Math.floor(age / (1000 * 3600 * 24));
         return ageInDays;
     }
-        
+
     function getResultItemTypeIcon(type) {
         switch (type) {
             case "Unknown": return { path: "" }
@@ -1879,7 +1887,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         //Source file path
         html += '<td data-title="Source" class="fileCell" style="border-spacing:0;padding:.4em; white-space: normal">';
         html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.textColor + ';white-space: normal;" href="#" class="button-link btnShowStatusMessage">';
-        html += item.OriginalFileName.replaceAll('.', '<wbr>.'); //<== Add a word break opportunity to file names because they may be really long, and cause the table to go off screen.
+        html += wbr(item.OriginalFileName); //<== Add a word break opportunity to file names because they may be really long, and cause the table to go off screen.
         html += '</a>';
         html += '</td>';
 
