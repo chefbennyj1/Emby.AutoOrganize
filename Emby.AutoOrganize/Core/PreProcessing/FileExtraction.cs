@@ -18,7 +18,9 @@ namespace Emby.AutoOrganize.Core.PreProcessing
         public void CompressedFileExtraction(string sourcePath, string destinationPath)
         {
 
-            Directory.CreateDirectory(destinationPath);
+            if (string.IsNullOrEmpty(destinationPath)) return;
+            // ReSharper disable once AssignNullToNotNullAttribute <== it will not be null or empty here
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
 
             var archive = ArchiveFactory.Open(sourcePath);
             
@@ -29,7 +31,7 @@ namespace Emby.AutoOrganize.Core.PreProcessing
                 archive.EntryExtractionEnd += FileMoveSuccess;
                 archive.CompressedBytesRead += Archive_CompressedBytesRead;
 
-                entry.WriteToDirectory(destinationPath, new ExtractionOptions
+                entry.WriteToDirectory(Path.GetDirectoryName(destinationPath), new ExtractionOptions
                 {
                     ExtractFullPath = true,
                     Overwrite = true
@@ -39,13 +41,16 @@ namespace Emby.AutoOrganize.Core.PreProcessing
 
         public void CopyFileExtraction(string sourcePath, string destinationPath)
         {
+            if (string.IsNullOrEmpty(destinationPath)) return;
+           
 
             var source      = new FileInfo(fileName: sourcePath);
-            var destination = new FileInfo(Path.Combine(destinationPath, destinationPath));
+            var destination = new FileInfo(destinationPath);
 
             if (destination.Exists) destination.Delete();
 
-            Directory.CreateDirectory(destinationPath);
+            // ReSharper disable once AssignNullToNotNullAttribute <== it will not be null or empty here
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
             
             CopyFile(source, destination);
         }
