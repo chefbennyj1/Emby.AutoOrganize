@@ -233,6 +233,11 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         dlg.style.maxHeight = "60%";
         dlg.style.maxWidth = "40%";
     
+        dlg.classList.add("formDialog");
+        dlg.classList.add("ui-body-a");
+        dlg.classList.add("background-theme-a");
+        dlg.style.maxHeight = "60%";
+        dlg.style.maxWidth = "40%";
     
         var html = '';
         html += '<div class="formDialogHeader" style="display:flex">';
@@ -569,283 +574,277 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
     async function openComparisonDialog2(id) {
         //THIS was being worked ok - using chef code atm
         //will need to reassess this
-            var sourceResult = await ApiClient.getFileOrganizationResults(query)
-            var item = sourceResult.Items.filter(r => r.Id == id)[0];
-            window.y = item;
-            var libraryResult = await ApiClient.getJSON( await ApiClient.getUrl('Items?Recursive=true&Fields=MediaStreams&IncludeItemTypes=' + item.Type + '&Ids=' + item.ExistingInternalId))
+        var sourceResult = await ApiClient.getFileOrganizationResults(query)
+        var item = sourceResult.Items.filter(r => r.Id == id)[0];
+        window.y = item;
+        var libraryResult = await ApiClient.getJSON( await ApiClient.getUrl('Items?Recursive=true&Fields=MediaStreams&IncludeItemTypes=' + item.Type + '&Ids=' + item.ExistingInternalId))
      
-            window.ttt = libraryResult;
-            //var libraryItem = t.Items[0];
-            var libraryItem = libraryResult.Items[0];
-            if (!libraryResult.Items[0]) return;
+        window.ttt = libraryResult;
+        //var libraryItem = t.Items[0];
+        var libraryItem = libraryResult.Items[0];
+        if (!libraryResult.Items[0]) return;
      
-            console.log(libraryItem.MediaSources[0])
-            var libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
+        console.log(libraryItem.MediaSources[0])
+        var libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
+        if (libraryItemResolution !== undefined) {
+            libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
+        } { libraryItemResolution = "120" }
+        var sourceResolution = parseInt(item.ExtractedResolution.Name.replace('p', ''));
+     
+     
+        var dlg = dialogHelper.createDialog({
+            size: "small",
+            removeOnClose: !1,
+            scrollY: true
+        });
+     
+        dlg.classList.add("formDialog");
+        dlg.classList.add("ui-body-a");
+        dlg.classList.add("background-theme-a");
+        dlg.style.height = "200em";
+     
+     
+        var html = '';
+        html += '<div class="formDialogHeader" style="display:flex">';
+        html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light " tabindex="-1"><i class="md-icon"></i></button>';
+             
+        if (item.Type === "Episode") {
+            html += '<h3 class="formDialogHeaderTitle">' + item.ExtractedName + ' Season ' + item.ExtractedSeasonNumber + ' Episode ' + item.ExtractedEpisodeNumber + '</h3>';
+        }
+            
+        if (item.Type === "Movie") {
+            html += '<h3 class="formDialogHeaderTitle">' + libraryItem.Name + '</h3>';
+        }
+     
+        html += '</div>';
+     
+        html += '<div class="formDialogContent" style="margin:2em;">';
+     
+        html += '<table class="tblOrganizationResults table detailTable ui-responsive">'
+        html += '<thead> ';
+        html += '<tr style="text-align: left;">';
+             
+        html += '<th class="detailTableHeaderCell" data-priority="3">Location</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="3">File Size</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1"></th> '   //Quality is up or down
+        html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
+        html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
+        //html += '<th class="detailTableHeaderCell" data-priority="1">Subtitles</th>'
+        html += '<th class="detailTableHeaderCell" data-priority="1">Action</th>'
+        html += '</tr>';
+        html += '</thead>';
+        html += '<tbody class="resultBody">';
+     
+        //Source Folder Icon
+        html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
+             
+        html += '<td class="detailTableBodyCell fileCell">';
+        html += 'Source Folder'
+        html += '</td>';
+     
+        //File Size
+        html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
+        html += '<span>' + formatBytes(item.FileSize) + '</span>';
+        html += '</td>';
+     
+        //Release Edition
+        html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
+        switch(item.Type) {
+        case "Episode":
+            if (item.ExtractedSeasonNumber && item.ExtractedEpisodeNumber) {
+                html += '<span>' + item.ExtractedSeasonNumber + 'x' + (item.ExtractedEpisodeNumber <= 9 ? `0${item.ExtractedEpisodeNumber}` : item.ExtractedEpisodeNumber) + '</span>';
+            } else {
+                html += '';
+            }
+        case "Movie":
+            html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
+        }
+        html += '</td>';
+     
+        //Quality
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
+        html += '</td>';
+     
+        //Quality is up or down
+        html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+     
+        if (sourceResolution == libraryItemResolution) {
+            html += '<path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" />';
+        }
+        else if (sourceResolution > libraryItemResolution) {
+            html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
+        } else {
+            html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
+        }
+        html += '</svg>';
+        html += '</td>';
+     
+        //Codec
+        html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
+        if (item.VideoStreamCodecs.length) {
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px; border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.VideoStreamCodecs[0] + '</span>';
+        }
+        html += '</td>';
+     
+        //Audio
+        html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
+        if (item.AudioStreamCodecs.length) {
+            for(var i = 0; i < item.AudioStreamCodecs.length - 1; i++) {
+                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[i] + '</span>';
+            }
+        }
+        html += '</td>';
+             
+     
+        ////Internal Subtitles
+        //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
+        //if (item.Subtitles && item.Subtitles.length) {
+        //    html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[0].toLocaleUpperCase() + '</span>';
+        //}
+             
+        html += '</td>';
+             
+     
+        //Action
+        html += '<td class="detailTableBodyCell fileCell" data-title="Action">';
+        var processBtn = getButtonSvgIconRenderData("ProcessBtn");
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button button-icon-left" title="Organize" style="background-color:transparent">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+        html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
+        html += '</svg>';
+        html += '</button>';
+     
+        var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button button-icon-left" title="Delete" style="background-color:transparent">';
+        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+        html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
+        html += '</svg>';
+        html += '</button>';
+        html += '</td>';
+     
+        html += '</tr>';
+     
+        window.x = libraryResult
+        for (let index = 0; index < libraryResult.Items.length; ++index) 
+        {
+            libraryItem = libraryResult.Items[index];
+            libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
             if (libraryItemResolution !== undefined) {
                 libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
             } { libraryItemResolution = "120" }
-            var sourceResolution = parseInt(item.ExtractedResolution.Name.replace('p', ''));
-     
-     
-            var dlg = dialogHelper.createDialog({
-                size: "small",
-                removeOnClose: !1,
-                scrollY: true
-            });
-     
-            dlg.classList.add("formDialog");
-            dlg.classList.add("ui-body-a");
-            dlg.classList.add("background-theme-a");
-            dlg.style.height = "200em";
-     
-     
-            var html = '';
-            html += '<div class="formDialogHeader" style="display:flex">';
-            html += '<button is="paper-icon-button-light" class="btnCloseDialog autoSize paper-icon-button-light " tabindex="-1"><i class="md-icon"></i></button>';
-             
-            if (item.Type === "Episode") {
-                html += '<h3 class="formDialogHeaderTitle">' + item.ExtractedName + ' Season ' + item.ExtractedSeasonNumber + ' Episode ' + item.ExtractedEpisodeNumber + '</h3>';
-            }
-            
-            if (item.Type === "Movie") {
-                html += '<h3 class="formDialogHeaderTitle">' + libraryItem.Name + '</h3>';
-            }
-     
-            html += '</div>';
-     
-            html += '<div class="formDialogContent" style="margin:2em;">';
-     
-            html += '<table class="tblOrganizationResults table detailTable ui-responsive">'
-            html += '<thead> ';
-            html += '<tr style="text-align: left;">';
-             
-            html += '<th class="detailTableHeaderCell" data-priority="3">Location</th>'
-            html += '<th class="detailTableHeaderCell" data-priority="3">File Size</th>'
-            html += '<th class="detailTableHeaderCell" data-priority="1">Release/<br>Edition</th>'
-            html += '<th class="detailTableHeaderCell" data-priority="1">Quality</th>'
-            html += '<th class="detailTableHeaderCell" data-priority="1"></th> '   //Quality is up or down
-            html += '<th class="detailTableHeaderCell" data-priority="1">Codec</th> '
-            html += '<th class="detailTableHeaderCell" data-priority="1">Audio</th>'
-            //html += '<th class="detailTableHeaderCell" data-priority="1">Subtitles</th>'
-            html += '<th class="detailTableHeaderCell" data-priority="1">Action</th>'
-            html += '</tr>';
-            html += '</thead>';
-            html += '<tbody class="resultBody">';
-     
-            //Source Folder Icon
+            //Library Item
             html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
-             
+     
             html += '<td class="detailTableBodyCell fileCell">';
-            html += 'Source Folder'
+            html += 'Library'
             html += '</td>';
      
             //File Size
             html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
-            html += '<span>' + formatBytes(item.FileSize) + '</span>';
+            html += '<span>' + formatBytes(libraryItem.MediaSources[0].Size) + '</span>';
             html += '</td>';
      
             //Release Edition
             html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
-            switch(item.Type) {
-            case "Episode":
-                if (item.ExtractedSeasonNumber && item.ExtractedEpisodeNumber) {
-                    html += '<span>' + item.ExtractedSeasonNumber + 'x' + (item.ExtractedEpisodeNumber <= 9 ? `0${item.ExtractedEpisodeNumber}` : item.ExtractedEpisodeNumber) + '</span>';
-                } else {
-                    html += '';
-                }
-            case "Movie":
-                html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
-            html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
-                html += '<span>' + item.ExtractedEdition ?? "" + '</span>';  
+            switch (item.Type) {
+                case "Episode":
+                    html += '<span>' + libraryItem.ParentIndexNumber + 'x' + (libraryItem.IndexNumber <= 9 ? `0${libraryItem.IndexNumber}` : libraryItem.IndexNumber) + '</span>';
+                case "Movie":
+                    html += '<span>' + "" + '</span>';
             }
             html += '</td>';
      
             //Quality
+            var quality = 'und';
+            quality = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0]
             html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
-        html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
-            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + item.ExtractedResolution.Name ?? ""  + '</span>';  
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + quality + '</span>';
             html += '</td>';
      
-            //Quality is up or down
-            html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+            if (libraryItemResolution !== undefined) {
+                //Quality is up or down
+                html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
+                html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
      
-            if (sourceResolution == libraryItemResolution) {
-                html += '<path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" />';
+                if (libraryItemResolution == sourceResolution) {
+                    html += ' <path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" /> ';
+                }
+                else if (libraryItemResolution > sourceResolution) {
+                    html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
+                }
+                else {
+                    html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
+                }
+                html += '</svg>';
+                html += '</td>';
             }
-            else if (sourceResolution > libraryItemResolution) {
-                html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
-            } else {
-                html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
-            }
-            html += '</svg>';
-            html += '</td>';
      
             //Codec
+            var codectemp = 'und';
+            codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase()
             html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
-            if (item.VideoStreamCodecs.length) {
-                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px; border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.VideoStreamCodecs[0] + '</span>';
-            }
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + codectemp + '</span>';
             html += '</td>';
      
             //Audio
+            var audiotemp = 'und';
+            codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase()
             html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
-            if (item.AudioStreamCodecs.length) {
-                for(var i = 0; i < item.AudioStreamCodecs.length - 1; i++) {
-                    html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + item.AudioStreamCodecs[i] + '</span>';
-                }
-            }
+            html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + audiotemp + '</span>';
             html += '</td>';
-             
      
-            ////Internal Subtitles
-            //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitles">';
-            //if (item.Subtitles && item.Subtitles.length) {
-            //    html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[0].toLocaleUpperCase() + '</span>';
-            //}
-             
-            html += '</td>';
-             
+            ////Internal Subtitle
+            //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
+            //var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
+            //var subtitleLabel = subtitles && !subtitles.IsExternal ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
+            //html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
+            //html += '</td>';
      
             //Action
-            html += '<td class="detailTableBodyCell fileCell" data-title="Action">';
-            var processBtn = getButtonSvgIconRenderData("ProcessBtn");
-            html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button button-icon-left" title="Organize" style="background-color:transparent">';
-            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-            html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
-            html += '</svg>';
-            html += '</button>';
+            html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
      
-            var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-            html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button button-icon-left" title="Delete" style="background-color:transparent">';
-            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-            html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
-            html += '</svg>';
-            html += '</button>';
             html += '</td>';
      
             html += '</tr>';
+        }
+        html += '</tbody>'
+        html += '</table>';
      
-            window.x = libraryResult
-            for (let index = 0; index < libraryResult.Items.length; ++index) 
-        for (let index = 0; index < libraryResult.Items.length; ++index) 
-            for (let index = 0; index < libraryResult.Items.length; ++index) 
-            {
-                libraryItem = libraryResult.Items[index];
-                libraryItemResolution = libraryItem.MediaSources[0].DisplayTitle;
-                if (libraryItemResolution !== undefined) {
-                    libraryItemResolution = parseInt(libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0].replace('p', ''))
-                } { libraryItemResolution = "120" }
-                //Library Item
-                html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded">';
+        html += '</div>';
      
-                html += '<td class="detailTableBodyCell fileCell">';
-                html += 'Library'
-                html += '</td>';
+        dlg.innerHTML = html;
      
-                //File Size
-                html += '<td class="detailTableBodyCell fileCell" data-title="File Size">';
-                html += '<span>' + formatBytes(libraryItem.MediaSources[0].Size) + '</span>';
-                html += '</td>';
-     
-                //Release Edition
-                html += '<td class="detailTableBodyCell fileCell" data-title="Edition">';
-                switch (item.Type) {
-                    case "Episode":
-                        html += '<span>' + libraryItem.ParentIndexNumber + 'x' + (libraryItem.IndexNumber <= 9 ? `0${libraryItem.IndexNumber}` : libraryItem.IndexNumber) + '</span>';
-                    case "Movie":
-                        html += '<span>' + "" + '</span>';
-                }
-                html += '</td>';
-     
-                //Quality
-                var quality = 'und';
-                quality = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].DisplayTitle.split(' ')[0]
-                html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;font-size: 11px;">' + quality + '</span>';
-                html += '</td>';
-     
-                if (libraryItemResolution !== undefined) {
-                    //Quality is up or down
-                    html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-                    html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-     
-                    if (libraryItemResolution == sourceResolution) {
-                        html += ' <path fill="green" d="M19,10H5V8H19V10M19,16H5V14H19V16Z" /> ';
-                    }
-                    else if (libraryItemResolution > sourceResolution) {
-                        html += '<path fill="green" d="M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z" />';
-                    }
-                    else {
-                        html += ' <path fill="red" d="M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z" />';
-                    }
-                    html += '</svg>';
-                    html += '</td>';
-                }
-     
-                //Codec
-                var codectemp = 'und';
-                codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Video")[0].Codec.toLocaleUpperCase()
-                html += '<td class="detailTableBodyCell fileCell" data-title="Codec">';
-                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + codectemp + '</span>';
-                html += '</td>';
-     
-                //Audio
-                var audiotemp = 'und';
-                codectemp = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Audio")[0].Codec.toLocaleUpperCase()
-                html += '<td class="detailTableBodyCell fileCell" data-title="Audio">';
-                html += '<span style="color: white;background-color: rgb(131,131,131); padding: 5px 10px 5px 10px;border-radius: 5px; margin:2px; font-size: 11px; text-align:center">' + audiotemp + '</span>';
-                html += '</td>';
-     
-                ////Internal Subtitle
-                //html += '<td class="detailTableBodyCell fileCell" data-title="Subtitle">';
-                //var subtitles = libraryItem.MediaSources[0].MediaStreams.filter(s => s.Type === "Subtitle")[0]
-                //var subtitleLabel = subtitles && !subtitles.IsExternal ? subtitles.DisplayLanguage.toLocaleUpperCase() : "";
-                //html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + subtitleLabel + '</span>';
-                //html += '</td>';
-     
-                //Action
-                html += '<td class="detailTableBodyCell fileCell" data-title="Resolution">';
-     
-                html += '</td>';
-     
-                html += '</tr>';
-            }
-            html += '</tbody>'
-            html += '</table>';
-     
-            html += '</div>';
-     
-            dlg.innerHTML = html;
-     
-            dlg.querySelector('.btnCloseDialog').addEventListener('click',
-                () => {
-                    dialogHelper.close(dlg);
-                });
-     
-            dlg.querySelectorAll('.btnProcessResult').forEach(btn => {
-                btn.addEventListener('click',
-                    async (e) => {
-                        //let id = e.target.closest('button').getAttribute('data-resultid');
-                        organizeFile(e.view, id);
-                        await reloadItems(view, false)
-                        dialogHelper.close(dlg);
-                    })
+        dlg.querySelector('.btnCloseDialog').addEventListener('click',
+            function () {
+                dialogHelper.close(dlg);
             });
      
-            dlg.querySelectorAll('.btnDeleteResult').forEach(btn => {
-                btn.addEventListener('click',
-                    async (e) => {
-                        //let id = e.target.closest('button').getAttribute('data-resultid');
-                        deleteOriginalFile(e.view, id);
-                        await reloadItems(view, false)
-                        dialogHelper.close(dlg);
-                    });
-            })
+        dlg.querySelectorAll('.btnProcessResult').forEach(function(btn) {
+            btn.addEventListener('click',
+                async function (e) {
+                    //let id = e.target.closest('button').getAttribute('data-resultid');
+                    organizeFile(e.view, id);
+                    await reloadItems(view, false)
+                    dialogHelper.close(dlg);
+                })
+        });
      
-            dialogHelper.open(dlg);
-        }
+        dlg.querySelectorAll('.btnDeleteResult').forEach(function(btn) {
+            btn.addEventListener('click',
+                async function (e) {
+                    //let id = e.target.closest('button').getAttribute('data-resultid');
+                    deleteOriginalFile(e.view, id);
+                    await reloadItems(view, false)
+                    dialogHelper.close(dlg);
+                });
+        })
+     
+        dialogHelper.open(dlg);
+    }
 
     function openClearDialog() {
         var dlg = dialogHelper.createDialog({
