@@ -191,7 +191,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     //User will have to sort with corrections.
                     if (string.IsNullOrEmpty(movieInfoFromFile.Name) && string.IsNullOrEmpty(movieInfoFromParentFolder.Name))
                     {
-                        var msg = $"Unable to determine movie name from {path}";
+                        var msg = $"Unable to determine movie name from {path}, Unknown file type";
                         result.Status = FileSortingStatus.Failure;
                         if (result.ExtractedYear is null) { result.Type = FileOrganizerType.Unknown; } //no year in filename so we dont know what it is
                         result.StatusMessage = msg;
@@ -367,7 +367,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (movie is null)
                 {
                     //Nope none of it did. Fail the movie sorting. The user will have to sort with corrections.
-                    var msg = $"Unable to determine movie name from {path}";
+                    var msg = $"Unable to determine movie name from {path}, Unknown file type";
                     result.Status = FileSortingStatus.Failure;
                     if (result.ExtractedYear is null) { result.Type = FileOrganizerType.Unknown; } //no year in filename so we dont know what it is
                     result.StatusMessage = msg;
