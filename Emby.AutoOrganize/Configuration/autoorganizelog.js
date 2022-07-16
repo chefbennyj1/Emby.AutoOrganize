@@ -1367,7 +1367,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         //Format
         html += '<div class="cell" data-type="Format">';
         if (item.VideoStreamCodecs.length) {
-            html += '<span class="formatIcon" style="background-color: var(--theme-accent-text-color);">' + (item.SourceQuality ? item.SourceQuality.toLocaleUpperCase() : "") + " " + (item.ExtractedResolution.Name ?? "") + '</span>';
+            html += '<span class="formatIcon" style="background-color: var(--theme-accent-text-color);">' + (item.ExtractedResolution.Name ?? "") + '</span>';
             
             for (var i = 0; i <= item.VideoStreamCodecs.length - 1; i++) {
                 //      if (i > 1 && i % 2 === 0) {
@@ -1453,7 +1453,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
 
     function getResultItemTypeIcon(type) {
         switch (type) {
-            case "Unknown": return { path: "" }
+            case "Unknown": return { path: "M11,18H13V16H11V18M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3Z" }
             case "Movie": return { path: "M20.84 2.18L16.91 2.96L19.65 6.5L21.62 6.1L20.84 2.18M13.97 3.54L12 3.93L14.75 7.46L16.71 7.07L13.97 3.54M9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05L9.07 4.5M4.16 5.5L3.18 5.69A2 2 0 0 0 1.61 8.04L2 10L6.9 9.03L4.16 5.5M2 10V20C2 21.11 2.9 22 4 22H20C21.11 22 22 21.11 22 20V10H2Z" }
             case "Episode": return { path: "M8.16,3L6.75,4.41L9.34,7H4C2.89,7 2,7.89 2,9V19C2,20.11 2.89,21 4,21H20C21.11,21 22,20.11 22,19V9C22,7.89 21.11,7 20,7H14.66L17.25,4.41L15.84,3L12,6.84L8.16,3M4,9H17V19H4V9M19.5,9A1,1 0 0,1 20.5,10A1,1 0 0,1 19.5,11A1,1 0 0,1 18.5,10A1,1 0 0,1 19.5,9M19.5,12A1,1 0 0,1 20.5,13A1,1 0 0,1 19.5,14A1,1 0 0,1 18.5,13A1,1 0 0,1 19.5,12Z" }
             case "Song": return { path: "M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z" }
@@ -1928,12 +1928,13 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
                 if (item.Status === "Failure" || (item.Status === "UserInputRequired")) { 
                         
                     var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
-                        
+                    html += '<div class="cell">';
                     html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="Identify" style="background-color:transparent">';
                     html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                     html += '<path fill="var(--focus-background)" d="' + identifyBtn.path + '"/>';
                     html += '</svg>';
                     html += '</button>';
+                    html += '</div>';
                         
                 }
 
