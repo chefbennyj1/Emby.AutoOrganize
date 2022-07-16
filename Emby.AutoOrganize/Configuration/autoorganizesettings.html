@@ -1,4 +1,4 @@
-﻿<div id="libraryFileOrganizerPage" data-role="page" is="emby-scroller" class="libraryFileOrganizerPage view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY overflowYScroll" data-mousewheel="true" data-horizontal="false" data-centerfocus="card" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeSettingsJs">
+<div id="libraryFileOrganizerPage" data-role="page" is="emby-scroller" class="libraryFileOrganizerPage view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY overflowYScroll" data-mousewheel="true" data-horizontal="false" data-centerfocus="card" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeSettingsJs">
     <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page settingsContainer scrollSliderY">
         <style>
             .ui-responsive {
@@ -23,7 +23,7 @@
 
                     <div class="fldSelectSeriesFolder selectContainer">
                         <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:" required="required"></select>
-	                    <div class="fieldDescription">New series folders will be created here by default. The Library Folder path can be edited during sorting <span style="font-weight:bolder">(required)</span>.<span class="tvDriveSize"></span></div>
+                        <div class="fieldDescription">New series folders will be created here by default. The Library Folder path can be edited during sorting <span style="font-weight:bolder">(required)</span>.<span class="tvDriveSize"></span></div>
                     </div>
 
                     <!--Series-->
@@ -105,7 +105,7 @@
                                 <div class="fieldDescription multiEpisodePatternDescription"></div>
                             </div>
                             <div class="inputContainer">
-                                <input is="emby-input" id="txtMultiEpisodeDeliminator" type="text" label="Multi-episode deliminator:" required maxlength = "3" />
+                                <input is="emby-input" id="txtMultiEpisodeDeliminator" type="text" label="Multi-episode deliminator:" required maxlength="3" />
                                 <div class="fieldDescription txtMultiEpisodeDeliminatorDescription">This is the text used to seperate the names of each episode. Patterns are not supported.</div>
                             </div>
 
@@ -487,13 +487,13 @@
                         <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingEpisodeItems" class="emby-toggle emby-toggle-focusring">
                         <span class="toggleLabel">Overwrite existing library episode files</span>
                     </label>
-                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing episode files in the library folders with any new versions in the watched folder.</div>
+                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing episode files in the library with any new versions in the watched folder.</div>
                 </div>
 
                 <br />
 
                 <div class="fldOverWriteExistingEpisodeFilesKeyWords inputContainer">
-                    <input is="emby-input" id="txtOverWriteExistingEpisodeFilesKeyWords" type="text" label="Overwrite existing episode files in the library folders when files contain the following key words:" />
+                    <input is="emby-input" id="txtOverWriteExistingEpisodeFilesKeyWords" type="text" label="Restrict overwriting existing library files to only files that contain the following key words:" />
                     <div class="fieldDescription">Each value separated by ;</div>
                 </div>
 
@@ -504,13 +504,13 @@
                         <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingMovieItems" class="emby-toggle emby-toggle-focusring">
                         <span class="toggleLabel">Overwrite existing library movie files</span>
                     </label>
-                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library folders with any new versions in the watched folder.</div>
+                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library with any new versions in the watched folder.</div>
                 </div>
 
                 <br />
 
                 <div class="fldOverWriteExistingMovieFilesKeyWords inputContainer">
-                    <input is="emby-input" id="txtOverWriteExistingMovieFilesKeyWords" type="text" label="Overwrite existing movie files in the library folders when files contain the following key words:" />
+                    <input is="emby-input" id="txtOverWriteExistingMovieFilesKeyWords" type="text" label="Restrict overwriting existing library files to only files that contain the following key words:" />
                     <div class="fieldDescription">Each value separated by ;</div>
                 </div>
 
