@@ -1086,7 +1086,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         const statusArray = [
             "Success", "Checking", "Processing", "InUse",
             "NewResolution", "NewMedia", "NewEdition", "UserInputRequired", 
-            "NotEnoughDiskSpace", "Failure", "SkippedExisting"
+            "SkippedExisting", "NotEnoughDiskSpace", "Failure"
         ];
     
         html = '<div class="grid grid-legend">';
@@ -1537,7 +1537,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
             case 'Failure': return {
                 path: "M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z",
                 color: "orangered",
-                text: "Attention - Unidentified",
+                text: "Sorting Failed",
                 description: "The file name can not be fully parsed and the media can not be understood automatically.",
                 active:false,
                 stroke: "none",
