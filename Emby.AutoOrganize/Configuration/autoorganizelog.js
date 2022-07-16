@@ -1118,6 +1118,13 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
 
             var items = result.Items;
 
+            var optionUnknownMedia = items.filter(function (i) { return i.Type === 'Unknown'; })
+            if (optionUnknownMedia.length > 0) { //if no unknown media hide it from the filter list
+                page.querySelector('#optionUnknownMedia').classList.remove('hide');
+            } else {
+                page.querySelector('#optionUnknownMedia').classList.remove('add');
+            }
+
             var grid = page.querySelector('#autoorganizelog-results');
             var table = page.querySelector('.autoorganizetable');
             var mobileCardsContainer = page.querySelector('.mobileOrganizeMobileCardsContainer');
