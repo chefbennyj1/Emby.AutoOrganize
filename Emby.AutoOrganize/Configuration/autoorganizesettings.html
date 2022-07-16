@@ -208,15 +208,17 @@
                         <div class="fieldDescription toggleFieldDescription">Smart organization automatically, and detects and sorts new episode files.</div>
                     </div>
 
-                    <div class="fldSortExistingSeriesOnly checkboxContainer checkboxContainer-withDescription hide" style="margin-top: 1em; margin-left:3.5em">
+                    <div class="fldEnableNewSeriesCreation checkboxContainer checkboxContainer-withDescription hide" style="margin-top: 1em; margin-left:3.5em">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="chkSortExistingSeriesOnly" class="emby-checkbox">
-                            <span class="checkboxLabel">Auto sort episode for existing series only.</span>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableNewSeriesCreation" class="emby-checkbox">
+                            <span class="checkboxLabel">Enable new series creation</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Auto sort new episode into series that already exist in the library. New Series will not be created in the library.
+                            Create new series folders when matches are not found within the library.<br/> 
+                            By default episodes will only sort when the Series exists in your library.
                         </div>
                     </div>
+
 
                 </div>
             </div>

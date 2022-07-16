@@ -256,7 +256,7 @@
 
         view.querySelector('#chkEnableSeriesAutoDetect').checked = config.AutoDetectSeries;
 
-        view.querySelector('#chkSortExistingSeriesOnly').checked = config.SortExistingSeriesOnly;
+        view.querySelector('#chkEnableNewSeriesCreation').checked = config.EnableNewSeriesCreation;
 
         view.querySelector('#txtSeriesPattern').value = config.SeriesFolderPattern;
 
@@ -312,11 +312,11 @@
 
             config.AutoDetectSeries = view.querySelector('#chkEnableSeriesAutoDetect').checked;
 
-            //Only set this value to it checked state if the use has enabled auto sorting
+            //Only set this value to it checked state if the user has enabled auto sorting
             if (config.AutoDetectSeries) {
-                config.SortExistingSeriesOnly = view.querySelector('#chkSortExistingSeriesOnly').checked;
+                config.EnableNewSeriesCreation = view.querySelector('#chkEnableNewSeriesCreation').checked;
             } else {
-                config.SortExistingSeriesOnly = false;
+                config.EnableNewSeriesCreation = false;
             }
 
             config.EnableSubtitleOrganization = view.querySelector('#chkEnableSubtitleSorting').checked;
@@ -588,11 +588,11 @@
             }
         }
 
-        function toggleSortExistingSeriesOnly() {
+        function toggleEnableNewSeriesCreation() {
             if (view.querySelector('#chkEnableSeriesAutoDetect').checked) {
-                view.querySelector('.fldSortExistingSeriesOnly').classList.remove('hide');
+                view.querySelector('.fldEnableNewSeriesCreation').classList.remove('hide');
             } else {
-                view.querySelector('.fldSortExistingSeriesOnly').classList.add('hide');
+                view.querySelector('.fldEnableNewSeriesCreation').classList.add('hide');
             }
         }
 
@@ -771,20 +771,17 @@
         view.querySelector('#txtMoviePattern').addEventListener('keyup', updateMoviePatternHelp);
 
         view.querySelector('#chkEnableSeriesAutoDetect').addEventListener('change', () => {
-            
-            toggleSortExistingSeriesOnly();
+            toggleEnableNewSeriesCreation();
         });
 
         view.querySelector('#chkSubMovieFolders').addEventListener('click', () => {
-            
             toggleMovieFolderPattern();
         });
         
         view.querySelector('#txtMovieFolderPattern').addEventListener('change', updateMovieFolderPatternHelp);
         view.querySelector('#txtMovieFolderPattern').addEventListener('keyup', updateMovieFolderPatternHelp);
          
-        view.querySelector('.libraryFileOrganizerForm').addEventListener('submit', function (e) {
-            
+        view.querySelector('.libraryFileOrganizerForm').addEventListener('submit', function (e) {      
             e.preventDefault();
             onSubmit(view);
         });
@@ -811,7 +808,7 @@
             updateMovieFolderPatternHelp();
             await populateMovieLocation(config); 
             toggleMovieFolderPattern();
-            toggleSortExistingSeriesOnly();
+            toggleEnableNewSeriesCreation();
             toggleMovieOptions();
             toggleTelevisionOptions();
             togglePreProcessingOptions();

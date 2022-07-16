@@ -843,7 +843,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //5.
                 if (!episodeExists && options.AutoDetectSeries)
                 {
-                    if (IsNewSeries(series) && options.SortExistingSeriesOnly)
+                    if (IsNewSeries(series) && !options.EnableNewSeriesCreation)
                     {//b
                         var msg = $"Enable new series creation is disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                         Log.Info(FormatLogMsg(FormatLogMsg(msg)));
