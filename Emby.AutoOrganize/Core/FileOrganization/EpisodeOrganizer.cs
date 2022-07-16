@@ -722,14 +722,26 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             try
             {
                 // Proceed to sort the file
-                var existingEpisodeFilesButWithDifferentPath = GetExistingEpisodeFilesButWithDifferentPath(result.TargetPath, series, episode);
-                result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
+                var targetAlreadyExists = FileSystem.FileExists(result.TargetPath); //does the file exist in the library under this filename
+                var libraryFileMatch = IsSameFile(sourcePath, result.TargetPath); //check if exact file sorted already
 
-                var fileExists = IsSameFile(sourcePath, result.TargetPath); //check if exact file sorted
-                var episodeExists = fileExists || result.DuplicatePaths.Count > 0; //check for other copies (duplicates)
+                var existingEpisodeFilesButWithDifferentPath = new List<string>();
+                if (options.AllowMultipleEpisodeVersions == false)
+                { // If the user wants to store multiple copies we just wont populate duplicate paths.
+                    existingEpisodeFilesButWithDifferentPath = GetExistingEpisodeFilesButWithDifferentPath(result.TargetPath, series, episode);
+                    result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
+                }
+
+                var allFilePaths = new List<string>(); //use this for returing all strings to the user (result.TargetPath is excluded otherwise)
+                if (targetAlreadyExists) { allFilePaths.Add(result.TargetPath); } 
+                allFilePaths.AddRange(existingEpisodeFilesButWithDifferentPath);
+
+                var episodeExistsUnderAnyName = targetAlreadyExists || result.DuplicatePaths.Count > 0; //check for other copies (duplicates)
+
+                // confirm if file exists and if it is under a different name or not
                 var currentLibraryItem = result.TargetPath;
-                if (fileExists == false && episodeExists == true) //file exists under a different name
-                {//doing this to get correct ExistingInternalId
+                if (targetAlreadyExists == false && episodeExistsUnderAnyName == true)
+                {   //doing this to get correct ExistingInternalId
                     currentLibraryItem = result.DuplicatePaths[0];
                 }
 
@@ -774,7 +786,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 //6. The file doesn't exist in the library - is new - auto sorting is turned off - Mark the file as NewMedia
 
                 //1.
-                if (options.CopyOriginalFile && fileExists && existingEpisodeFilesButWithDifferentPath.Count == 0)
+                if (options.CopyOriginalFile && libraryFileMatch && existingEpisodeFilesButWithDifferentPath.Count == 0)
                 {
                     var msg = $"Exact Match.<br/>File '{sourcePath}' is the same as '{result.TargetPath}'.";
                     Log.Info(FormatLogMsg(msg + " Stopping organization"));
@@ -787,9 +799,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 //2.
-                if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists)
+                if (!options.OverwriteExistingEpisodeFiles && !options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExistsUnderAnyName)
                 {
-                    var msg = $"Existing Episode & No Overwrite.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
+                    var msg = $"Existing Episode & No Overwrite.<br/>File '{sourcePath}' already exists {(allFilePaths.Count > 1 ? "as" : "at")}:<br/>'{string.Join("'<br/>'", allFilePaths)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                     Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
@@ -800,7 +812,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
                 
                 //3.
-                if (options.OverwriteExistingEpisodeFiles && episodeExists && options.AutoDetectSeries)
+                if (options.OverwriteExistingEpisodeFiles && episodeExistsUnderAnyName && options.AutoDetectSeries)
                 {
                     RemoveExistingLibraryFiles(existingEpisodeFilesButWithDifferentPath, result);
 
@@ -814,7 +826,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 //4.
-                if (!options.OverwriteExistingEpisodeFiles && options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExists && options.AutoDetectSeries)
+                if (!options.OverwriteExistingEpisodeFiles && options.OverwriteExistingEpisodeFilesKeyWords.Any() && episodeExistsUnderAnyName && options.AutoDetectSeries)
                 {
                     if (options.OverwriteExistingEpisodeFilesKeyWords.Any(word => result.OriginalFileName.ContainsIgnoreCase(word)))
                     {
@@ -829,19 +841,18 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         return;
                     }
 
-                    var msg = $"Overwrite restricted to key words.<br/>File '{sourcePath}' already exists {(existingEpisodeFilesButWithDifferentPath.Count > 1 ? "as these" : "at")}:<br/>'{string.Join("'<br/>'", existingEpisodeFilesButWithDifferentPath)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
+                    var msg = $"Overwrite restricted to key words.<br/>File '{sourcePath}' already exists {(allFilePaths.Count > 1 ? "as" : "at")}:<br/>'{string.Join("'<br/>'", allFilePaths)}'.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                     Log.Info(FormatLogMsg(msg));
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.FindIdByPath(currentLibraryItem, false);
-                    result.DuplicatePaths = existingEpisodeFilesButWithDifferentPath;
                     OrganizationService.SaveResult(result, cancellationToken);
                     EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
                 }
 
                 //5.
-                if (!episodeExists && options.AutoDetectSeries)
+                if (!episodeExistsUnderAnyName && options.AutoDetectSeries)
                 {
                     if (IsNewSeries(series) && !options.EnableNewSeriesCreation)
                     {//b
@@ -865,7 +876,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                 //6.
-                if (!options.AutoDetectSeries && !episodeExists)
+                if (!options.AutoDetectSeries && !episodeExistsUnderAnyName)
                 {
                     var msg = $"Smart Series Auto detect disabled.<br/>File '{sourcePath}' will require manual sorting.<br/><br/>Please refer to the actions panel in the Auto Organize log.";
                     Log.Info(FormatLogMsg(msg));

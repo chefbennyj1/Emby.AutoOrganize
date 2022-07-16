@@ -1,4 +1,4 @@
-
+﻿
 namespace Emby.AutoOrganize.Model
 {
     public class AutoOrganizeOptions
@@ -14,6 +14,7 @@ namespace Emby.AutoOrganize.Model
         public string EpisodeNamePattern                      { get; set; }
         public string MultiEpisodeNamePattern                 { get; set; }
         public string MultiEpisodeNameDeliminator             { get; set; }
+        public bool AllowMultipleEpisodeVersions              { get; set; }
         public string[] IgnoredFileNameContains               { get; set; }
         public bool DeleteEmptyFolders                        { get; set; }
         public bool ExtendedClean                             { get; set; }
@@ -50,6 +51,7 @@ namespace Emby.AutoOrganize.Model
             EpisodeNamePattern                    = "%sn - %sx%0e - %en.%ext";
             MultiEpisodeNamePattern               = "%sn - %sx%0e-x%0ed - %en.%ext";
             MultiEpisodeNameDeliminator           = "...";
+            AllowMultipleEpisodeVersions          = false;
             SeasonFolderPattern                   = "Season %s";
             SeasonZeroFolderName                  = "Season 0";
             SeriesFolderPattern                   = "%fn";

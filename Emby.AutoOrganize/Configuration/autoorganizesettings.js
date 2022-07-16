@@ -258,6 +258,8 @@
 
         view.querySelector('#chkEnableNewSeriesCreation').checked = config.EnableNewSeriesCreation;
 
+        view.querySelector('#chkAllowMultipleEpisodeVersions').checked = config.AllowMultipleEpisodeVersions;
+
         view.querySelector('#txtSeriesPattern').value = config.SeriesFolderPattern;
 
         view.querySelector('#txtDeleteLeftOverFiles').value = config.LeftOverFileExtensionsToDelete.join(';');
@@ -318,6 +320,8 @@
             } else {
                 config.EnableNewSeriesCreation = false;
             }
+
+            config.AllowMultipleEpisodeVersions = view.querySelector('#chkAllowMultipleEpisodeVersions').checked;
 
             config.EnableSubtitleOrganization = view.querySelector('#chkEnableSubtitleSorting').checked;
 
