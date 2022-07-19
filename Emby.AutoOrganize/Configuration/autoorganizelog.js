@@ -257,17 +257,19 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         html += '<button id="okButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button button-icon-left">';
         html += '<div class="flex">'
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24"> ';
-        html += '<path fill="white" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />';
+        var ProcessBtn = getButtonSvgIconRenderData("ProcessBtn");
+        html += '<path fill="white" d="' + ProcessBtn.path + '" />';
         html += '</svg> ';
-        html += '<div>Organize</div>'
+        html += '<div style="padding:2px 0 0 2px;">' + ProcessBtn.label +'</div>'
         html += '</div>'
         html += '</button>';
         html += '<button id="editButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button button-icon-left">';
         html += '<div class="flex">'
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24"> ';
-        html += '<path fill="white" d="M10 20H6V4H13V9H18V12.1L20 10.1V8L14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H10V20M20.2 13C20.3 13 20.5 13.1 20.6 13.2L21.9 14.5C22.1 14.7 22.1 15.1 21.9 15.3L20.9 16.3L18.8 14.2L19.8 13.2C19.9 13.1 20 13 20.2 13M20.2 16.9L14.1 23H12V20.9L18.1 14.8L20.2 16.9Z" />';
+        var IdentifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
+        html += '<path fill="white" d="' + IdentifyBtn.path + '" />';
         html += '</svg> ';
-        html += '<div>Override</div>'
+        html += '<div style="padding:2px 0 0 2px;">' + IdentifyBtn.label +'</div>'
         html += '</div>'
         html += '</button>';
         html += '<button id="cancelButton" is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem emby-button">Cancel</button>';
@@ -445,14 +447,14 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         //Action
         html += '<td class="detailTableBodyCell fileCell" data-title="Action">';
         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
-        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button" title="Organize" style="background-color:transparent">';
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button" title="' + processBtn.label + '" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
         html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
         html += '</svg>';
         html += '</button>';
 
         var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button" title="Delete" style="background-color:transparent">';
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button" title="' + deleteBtn.label + '" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
         html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
         html += '</svg>';
@@ -707,14 +709,14 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         //Action
         html += '<td class="detailTableBodyCell fileCell" data-title="Action">';
         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
-        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button button-icon-left" title="Organize" style="background-color:transparent">';
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult autoSize emby-button button-icon-left" title="' + processBtn.label + '" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
         html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
         html += '</svg>';
         html += '</button>';
      
         var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button button-icon-left" title="Delete" style="background-color:transparent">';
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult autoSize emby-button button-icon-left" title="' + deleteBtn.label + '" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
         html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
         html += '</svg>';
@@ -1503,27 +1505,31 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
             ], {duration : 500, iterations: Infinity})
         }
     }
-        
-    
 
-    
+
+
+
     function getButtonSvgIconRenderData(btn_icon) {
         switch (btn_icon) {
             case 'IdentifyBtn': return {
                 path: "M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H13C12.59,21.75 12.2,21.44 11.86,21.1C11.53,20.77 11.25,20.4 11,20H6V4H13V9H18V10.18C18.71,10.34 19.39,10.61 20,11V8L14,2M20.31,18.9C21.64,16.79 21,14 18.91,12.68C16.8,11.35 14,12 12.69,14.08C11.35,16.19 12,18.97 14.09,20.3C15.55,21.23 17.41,21.23 18.88,20.32L22,23.39L23.39,22L20.31,18.9M16.5,19A2.5,2.5 0 0,1 14,16.5A2.5,2.5 0 0,1 16.5,14A2.5,2.5 0 0,1 19,16.5A2.5,2.5 0 0,1 16.5,19Z",
-                color: 'var(--focus-background)'
+                color: 'var(--focus-background)',
+                label: 'Identify'
             }
             case 'DeleteBtn': return {
                 path: "M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z",
-                color: 'var(--focus-background) '
+                color: 'var(--focus-background) ',
+                label: 'Delete'
             }
             case 'ProcessBtn': return {
                 path: "M19,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H19A2,2 0 0,1 21,8H21L4,8V18L6.14,10H23.21L20.93,18.5C20.7,19.37 19.92,20 19,20Z",
-                color: 'var(--focus-background)'
+                color: 'var(--focus-background)',
+                label: 'Organize'
             }
             case 'CompareBtn': return {
                 path: "M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z",
-                color: 'var(--focus-background)'
+                color: 'var(--focus-background)',
+                label: 'Compare'
             }
         }
     }
@@ -1916,7 +1922,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
         //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
         var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
         html += '<div class="cell" style="order: 2;">';
-        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="Delete" style="background-color:transparent">';
+        html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="' + deleteBtn.label + '" style="background-color:transparent">';
         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
         html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
         html += '</svg>';
@@ -1936,7 +1942,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
                         
                     var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
                     html += '<div class="cell">';
-                    html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="Identify" style="background-color:transparent">';
+                    html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="' + identifyBtn.label + '" style="background-color:transparent">';
                     html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                     html += '<path fill="var(--focus-background)" d="' + identifyBtn.path + '"/>';
                     html += '</svg>';
@@ -1953,7 +1959,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
 
                     var processBtn = getButtonSvgIconRenderData("ProcessBtn");
                     html += '<div class="cell">';
-                    html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button" title="Organize" style="background-color:transparent">';
+                    html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button" title="' + processBtn.label + '" style="background-color:transparent">';
                     html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                     html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
                     html += '</svg>';
@@ -1966,7 +1972,7 @@ function (globalize, serverNotifications, events, datetime, loading, mainTabsMan
                     //var id = e.target.closest('svg').dataset.resultid;
                     //await openComparisonDialog(id);
                     var compareBtn = getButtonSvgIconRenderData("CompareBtn");
-                    html += '<button type="button" data-resultid="' + item.Id + '" class="btnCompareResult organizerButton autoSize emby-button" title="Organize" style="background-color:transparent">';
+                    html += '<button type="button" data-resultid="' + item.Id + '" class="btnCompareResult organizerButton autoSize emby-button" title="' + compareBtn.label + '" style="background-color:transparent">';
                     html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                     html += '<path fill="var(--focus-background)" d="' + compareBtn.path + '"/>';
                     html += '</svg>';
