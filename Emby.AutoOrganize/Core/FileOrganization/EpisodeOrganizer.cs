@@ -83,9 +83,10 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     //If the file was "in-use" the last time the task was ran, then the file size was at a point when it wasn't completely copied into the monitored folder.
                     //Update the file size data, and update the result to show the true/current file size.
                     dbResult.FileSize = FileSystem.GetFileInfo(path).Length;
+                    //update the date to move the item to the top of the list                    
+                    dbResult.Date = DateTime.UtcNow;
                     OrganizationService.SaveResult(dbResult, cancellationToken);
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this,
-                        new GenericEventArgs<FileOrganizationResult>(dbResult), Log); //Update the UI
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(dbResult), Log); //Update the UI
 
                     //We are processing, return the result
                     if (dbResult.IsInProgress) return dbResult;
@@ -110,6 +111,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     
                 };
 
+               
             }
                         
 
@@ -135,14 +137,21 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
                 catch
                 {
-                    //Hmmm... repetitive code.
-                    result.Status = FileSortingStatus.InUse;
-                    result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                    Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
-                    OrganizationService.SaveResult(result, cancellationToken);
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
-                    return result; 
-                }
+                    if (Path.GetExtension(result.OriginalPath) != ".iso") //We aren't going to be able to handle .iso files.
+                    {
+                        
+                        //But, if the file is not an .iso, then we aren't able to access it yet, so return "In Use", otherwise the file will return an empty mediaInfo object.
+                        result.Status = FileSortingStatus.InUse;
+                        result.StatusMessage = "Path is locked by other processes. Please try again later.";
+                        Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                        OrganizationService.SaveResult(result, cancellationToken);
+                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+                        return result; 
+
+                    }
+                    
+                   
+                } 
 
                 result.AudioStreamCodecs = mediaInfo.AudioStreamCodecs;
                 result.VideoStreamCodecs = mediaInfo.VideoStreamCodecs;
@@ -1015,7 +1024,59 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             try
             {
-                if (options.CopyOriginalFile)
+                if (options.EnablePreProcessing || !options.CopyOriginalFile)
+                {
+                    Log.Info("Moving File");
+                    try
+                    {
+                        //Remove the existing library file(s) and make room for this new one
+                        if (targetAlreadyExists)
+                        {
+                            RemoveExistingLibraryFiles(result.DuplicatePaths, result);
+                            try
+                            {
+                                FileSystem.DeleteFile(result.TargetPath);
+                            }
+                            catch
+                            {
+
+                            }
+                        }
+
+                        FileSystem.MoveFile(result.OriginalPath, result.TargetPath);
+                        Log.Info($"{result.OriginalPath} has successfully been moved to {result.TargetPath}");
+                    }
+                    catch (Exception ex)
+                    {
+                       if (ex.Message.Contains("disk space"))
+                       {
+                           result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                           result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                       } 
+                       else if (ex.Message.Contains("used by another process"))
+                       {
+                           
+                           result.Status = FileSortingStatus.InUse;
+                           result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
+                       }
+
+                       Log.Warn(ex.Message);
+                       OrganizationService.SaveResult(result, cancellationToken);
+                       OrganizationService.RemoveFromInprogressList(result);
+                       
+                       //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                       LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
+                       return;
+                    } 
+                    result.Status = FileSortingStatus.Success;
+                    result.StatusMessage = string.Empty;
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    OrganizationService.RemoveFromInprogressList(result);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                }
+
+
+                if (options.CopyOriginalFile) 
                 {
                     Log.Info(targetAlreadyExists ? "Overwriting Existing Destination File" : "Copying File");
                     
@@ -1078,60 +1139,15 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
                     }
-                   
+                    result.Status = FileSortingStatus.Success;
+                    result.StatusMessage = string.Empty;
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    OrganizationService.RemoveFromInprogressList(result);
+                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 }
-                else
-                {
-                    Log.Info("Moving File");
-                    try
-                    {
-                        //Remove the existing library file(s) and make room for this new one
-                        if (targetAlreadyExists)
-                        {
-                            RemoveExistingLibraryFiles(result.DuplicatePaths, result);
-                            try
-                            {
-                                FileSystem.DeleteFile(result.TargetPath);
-                            }
-                            catch
-                            {
+                
 
-                            }
-                        }
-
-                        FileSystem.MoveFile(result.OriginalPath, result.TargetPath);
-                        Log.Info($"{result.OriginalPath} has successfully been moved to {result.TargetPath}");
-                    }
-                    catch (Exception ex)
-                    {
-                       if (ex.Message.Contains("disk space"))
-                       {
-                           result.Status = FileSortingStatus.NotEnoughDiskSpace;
-                           result.StatusMessage = "There is not enough disk space on the drive to move this file";
-                       } 
-                       else if (ex.Message.Contains("used by another process"))
-                       {
-                           
-                           result.Status = FileSortingStatus.InUse;
-                           result.StatusMessage = "The file is being streamed to a emby device. Please try again later.";
-                       }
-
-                       Log.Warn(ex.Message);
-                       OrganizationService.SaveResult(result, cancellationToken);
-                       OrganizationService.RemoveFromInprogressList(result);
-                       
-                       //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                       LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
-                       return;
-                    } 
-                   
-                }
-
-                result.Status = FileSortingStatus.Success;
-                result.StatusMessage = string.Empty;
-                OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
-                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                
 
             }
             catch (IOException ex)

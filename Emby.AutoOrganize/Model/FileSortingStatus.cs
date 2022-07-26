@@ -11,6 +11,7 @@
         NotEnoughDiskSpace,
         InUse,
         NewMedia,
-        NewEdition
+        NewEdition,
+        Checking
     }
 }

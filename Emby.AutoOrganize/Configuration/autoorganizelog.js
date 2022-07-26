@@ -544,13 +544,17 @@
                 loading.show();
             }
 
-            //Search Term from Search Box.
+                        
+            query.Limit = 50; //need to reset incase a search was cleared
+            //Always use search Term from Search Box.
+            if (pageGlobal.querySelector('#txtSearch').value != "") {
+                searchTerm = pageGlobal.querySelector('#txtSearch').value
+                query.Limit = 200; //only return top 200
+            }
             query.NameStartsWith = encodeURI(searchTerm);
-
             var result = await ApiClient.getFileOrganizationResults(query);
-
             currentResult = result;
-
+            
             await renderResults(page, result);
 
             page.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
@@ -1531,21 +1535,30 @@
                 })
             }, 1000);
             
-            view.querySelector('.btnAll').addEventListener('click', async () => {
+            view.querySelector('.btnAll').addEventListener('click', async (e) => {
                 query.StartIndex = 0;
                 query.Type = "All";
+                e.target.closest('button').querySelector('path').setAttribute('fill', 'var(--theme-accent-text-color)');
+                view.querySelector('.btnMovie > svg > path').setAttribute('fill', 'var(--focus-background)');
+                view.querySelector('.btnEpisode > svg > path').setAttribute('fill', 'var(--focus-background)');
                 await reloadItems(view, true);
             });
 
-            view.querySelector('.btnMovie').addEventListener('click', async () => {
+            view.querySelector('.btnMovie').addEventListener('click', async (e) => {
                 query.StartIndex = 0;
                 query.Type = "Movie";
+                e.target.closest('button').querySelector('path').setAttribute('fill', 'var(--theme-accent-text-color)');
+                view.querySelector('.btnAll > svg > path').setAttribute('fill', 'var(--focus-background)');
+                view.querySelector('.btnEpisode > svg > path').setAttribute('fill', 'var(--focus-background)');
                 await reloadItems(view, true);
             });
 
-            view.querySelector('.btnEpisode').addEventListener('click', async () => {
+            view.querySelector('.btnEpisode').addEventListener('click', async (e) => {
                 query.StartIndex = 0;
                 query.Type = "Episode";
+                e.target.closest('button').querySelector('path').setAttribute('fill', 'var(--theme-accent-text-color)');
+                view.querySelector('.btnMovie > svg > path').setAttribute('fill', 'var(--focus-background)');
+                view.querySelector('.btnAll > svg > path').setAttribute('fill', 'var(--focus-background)');
                 await reloadItems(view, true);
             });
 

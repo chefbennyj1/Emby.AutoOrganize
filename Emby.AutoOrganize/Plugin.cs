@@ -90,6 +90,7 @@ namespace Emby.AutoOrganize
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.html"
                 },
                 
+                
                 //new PluginPageInfo
                 //{
                 //Name = "Chart.js",

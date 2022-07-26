@@ -114,6 +114,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
                 catch
                 {
+                    
                     result.Status = FileSortingStatus.InUse;
                     result.StatusMessage = "Path is locked by other processes. Please try again later.";
                     Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
@@ -690,7 +691,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         Log.Info(msg);
                         result.Status = FileSortingStatus.NewEdition;
                         result.StatusMessage = msg;
-                        result.ExistingInternalId = movies[0].InternalId;
+                        result.ExistingInternalId = movies.Any() ? movies[0].InternalId : 0;
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                         return;
@@ -858,32 +859,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
             try
             {
-                
-                if (options.CopyOriginalFile)
-                {
-                    try
-                    {
-                        Log.Info(targetAlreadyExists ? "Overwriting Existing Destination File" : "Copying File");
-                        FileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex.Message.Contains("disk space"))
-                        {
-                            Log.Warn(ex.Message);
-                            result.Status = FileSortingStatus.NotEnoughDiskSpace;
-                            result.StatusMessage = "There is not enough disk space on the drive to move this file";
-                            OrganizationService.SaveResult(result, cancellationToken);
-                            OrganizationService.RemoveFromInprogressList(result);
-                            return;
-
-                        }
-                    }
-                    
-                    Log.Info($"{result.OriginalPath} has successfully been placed in the target destination: {result.TargetPath}");
-
-                }
-                else
+                if (options.EnablePreProcessing || !options.CopyOriginalFile)
                 {
                     Log.Info("Moving File");
                     
@@ -915,13 +891,46 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         OrganizationService.RemoveFromInprogressList(result);
                         return;
                     }
+
+                    Log.Info($"{result.OriginalPath} has successfully been moved to {result.TargetPath}");
+                    result.Status = FileSortingStatus.Success;
+                    result.StatusMessage = string.Empty;
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    OrganizationService.RemoveFromInprogressList(result);
                 }
 
-                Log.Info($"{result.OriginalPath} has successfully been moved to {result.TargetPath}");
-                result.Status = FileSortingStatus.Success;
-                result.StatusMessage = string.Empty;
-                OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
+                if (options.CopyOriginalFile) 
+                {
+                    try
+                    {
+                        Log.Info(targetAlreadyExists ? "Overwriting Existing Destination File" : "Copying File");
+                        FileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex.Message.Contains("disk space"))
+                        {
+                            Log.Warn(ex.Message);
+                            result.Status = FileSortingStatus.NotEnoughDiskSpace;
+                            result.StatusMessage = "There is not enough disk space on the drive to move this file";
+                            OrganizationService.SaveResult(result, cancellationToken);
+                            OrganizationService.RemoveFromInprogressList(result);
+                            return;
+
+                        }
+                    }
+                    
+                    Log.Info($"{result.OriginalPath} has successfully been placed in the target destination: {result.TargetPath}");
+
+                    Log.Info($"{result.OriginalPath} has successfully been moved to {result.TargetPath}");
+                    result.Status = FileSortingStatus.Success;
+                    result.StatusMessage = string.Empty;
+                    OrganizationService.SaveResult(result, cancellationToken);
+                    OrganizationService.RemoveFromInprogressList(result);
+
+                }
+
+                
                
             }
             catch (IOException ex)

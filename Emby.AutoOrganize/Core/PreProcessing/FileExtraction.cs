@@ -30,13 +30,23 @@ namespace Emby.AutoOrganize.Core.PreProcessing
             {
                 archive.EntryExtractionEnd += FileMoveSuccess;
                 archive.CompressedBytesRead += Archive_CompressedBytesRead;
-
-                entry.WriteToDirectory(Path.GetDirectoryName(destinationPath), new ExtractionOptions
+                try
                 {
-                    ExtractFullPath = true,
-                    Overwrite = true
-                });
+                    entry.WriteToDirectory(Path.GetDirectoryName(destinationPath), new ExtractionOptions
+                    {
+                        ExtractFullPath = true,
+                        Overwrite = true
+                    });
+                }
+                catch(ExtractionException)
+                {
+                    Directory.Delete(destinationPath);
+                    archive.Dispose();
+                    return;
+                }
+                
             }
+            
         }
 
         public void CopyFileExtraction(string sourcePath, string destinationPath)

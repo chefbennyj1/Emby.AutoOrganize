@@ -5,9 +5,9 @@
 
     <TargetFrameworks>netstandard2.0;</TargetFrameworks>
 
-    <AssemblyVersion>1.6.41.31</AssemblyVersion>
+    <AssemblyVersion>1.6.41.33</AssemblyVersion>
 
-    <FileVersion>1.6.41.31</FileVersion>
+    <FileVersion>1.6.41.33</FileVersion>
 
   </PropertyGroup>
 
@@ -15,6 +15,7 @@
   <ItemGroup>
     <None Remove="Configuration\autoorganizecorrections.html" />
     <None Remove="Configuration\autoorganizecorrections.js" />
+    <None Remove="Configuration\nbxnjlh5.xer~" />
     <None Remove="Core\FileOrganization\5jobyk34.jie~" />
     <None Remove="thumb.gif" />
   </ItemGroup>
