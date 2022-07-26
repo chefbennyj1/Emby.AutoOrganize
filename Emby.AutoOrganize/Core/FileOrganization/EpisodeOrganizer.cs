@@ -44,6 +44,15 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
         private readonly CultureInfo _usCulture = new CultureInfo("en-US");
 
+        //Remove quality (1080p/720p/etc.) from series name if it has been parsed by the LibraryManager
+        //Remove "()" from the name if it has been parsed by the LibraryManager
+        //Remove any characters that are not numbers, or letters from the string if they were parsed by the Library Manager
+        //Replace double spaces with single spaces
+        //Trim any spaces surrounding the name
+        // ReSharper disable once InconsistentNaming
+        private readonly Func<string, string> SeriesNameIrrelevantCharacterReplace = name => Regex.Replace(name, @"[^A-Za-z0-9\s+()]|[(][0-9]{3,4}[Pp][)]|[(]|[)]|[0-9]{3,4}[Pp]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();//SeriesNameReplacePattern = @"[^A-Za-z0-9\s+()]|[(][0-9]{3,4}[Pp][)]|[(]|[)]|[0-9]{3,4}[Pp]";
+
+
         public static event EventHandler<GenericEventArgs<FileOrganizationResult>> ItemUpdated;
 
      
@@ -61,15 +70,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         
         private NamingOptions GetNamingOptionsInternal()
         {
-            if (NamingOptions == null)
-            {
-                var options = new NamingOptions();
-
-                NamingOptions = options;
-            }
-
-            return NamingOptions;
+            return NamingOptions ?? (NamingOptions = new NamingOptions());
         }
+
         public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
             FileOrganizationResult result = null;
@@ -127,9 +130,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 return result;
             }
             
+            //If the current database result item doesn't have any of this metadata. Use ffprobe to add it to the result.
             if (!result.AudioStreamCodecs.Any() || !result.VideoStreamCodecs.Any() || !result.Subtitles.Any())
             {
-
                 var mediaInfo = new MediaInfo();
                 try
                 {
@@ -142,8 +145,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                         
                         //But, if the file is not an .iso, then we aren't able to access it yet, so return "In Use", otherwise the file will return an empty mediaInfo object.
                         result.Status = FileSortingStatus.InUse;
-                        result.StatusMessage = "Path is locked by other processes. Please try again later.";
-                        Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                        result.StatusMessage = "Path is locked by other processes while attempting metadata extraction. Please try again later.";
+                        Log.Info("Path is locked by other processes while attempting metadata extraction. Please try again later.");
                         OrganizationService.SaveResult(result, cancellationToken);
                         EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                         return result; 
@@ -220,7 +223,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (!string.IsNullOrEmpty(seriesName))
                 {
 
-                    seriesName = Regex.Replace(seriesName, @"[^A-Za-z0-9\s+()]|[0-9]{3,4}[Pp]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                    seriesName = SeriesNameIrrelevantCharacterReplace(seriesName);
+
                     seriesName = new CultureInfo("en-US", false).TextInfo.ToTitleCase(seriesName.Trim());
 
                     var seasonNumber = episodeInfo.SeasonNumber;
@@ -1307,7 +1311,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 }
 
-                Log.Info($"Smart Match Info for series {extractedSeriesName} has {smartMatchQueryResult.TotalRecordCount} results");
+                Log.Info($"Smart Match data has {smartMatchQueryResult.TotalRecordCount} results...");
                 
                 if (smartMatchQueryResult.TotalRecordCount == 0) return null;
                 
@@ -1318,8 +1322,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     var matchStrings = smartMatch.MatchStrings;
                     foreach (var match in matchStrings)
                     {
-                        //We run the extracted series name through this same regex at the top of the class, so we have to do this to the match string to get something comparable.
-                        var comparableMatchString = Regex.Replace(match, @"[^A-Za-z0-9\s+()]|[0-9]{3,4}[Pp]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                        
+                        var comparableMatchString = SeriesNameIrrelevantCharacterReplace(match);
+
                         if (!comparableMatchString.ContainsIgnoreCase(extractedSeriesName)) continue;
                         info = smartMatch;
                         break;

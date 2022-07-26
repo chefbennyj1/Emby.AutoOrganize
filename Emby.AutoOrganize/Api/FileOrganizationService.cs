@@ -70,6 +70,18 @@ namespace Emby.AutoOrganize.Api
     {
     }
 
+    [Route("/Library/FileOrganizations/{id}/RemoveRepositoryEntry", "DELETE", Summary = "Clears an entry form the repository")]
+    public class RemoveRepositoryEntry : IReturnVoid
+    {
+        /// <summary>
+        /// Gets or sets the id.
+        /// </summary>
+        /// <value>The id.</value>
+        [ApiMember(Name = "Id", Description = "Result Id", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "DELETE")]
+        public string Id { get; set; }
+    }
+
+
     [Route("/Library/FileOrganizations/{Id}/File", "DELETE", Summary = "Deletes the original file of a organizer result")]
     public class DeleteOriginalFile : IReturnVoid
     {
@@ -271,6 +283,11 @@ namespace Emby.AutoOrganize.Api
         {
             InternalFileOrganizationService.DeleteOriginalFile(request.Id);
 
+        }
+
+        public void Delete(RemoveRepositoryEntry request)
+        {
+            InternalFileOrganizationService.RemoveFromRepositoryEntry(request.Id);
         }
 
         public void Delete(ClearOrganizationLog request)

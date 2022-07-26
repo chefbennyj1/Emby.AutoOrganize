@@ -170,10 +170,20 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                        
                         return;
                     }
+
                     var organizer = new EpisodeOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
                     try
                     {
-                        var result = await organizer.OrganizeFile(false, file.FullName, options, cancellationToken);
+                        FileOrganizationResult result;
+                        if (eligibleFiles.Count > 3)
+                        {
+                            result = organizer.OrganizeFile(false, file.FullName, options, cancellationToken).Result; //<== "Result"" will stop multiple organizations at once, and process one at a time.
+                        }
+                        else
+                        {
+                            result = await organizer.OrganizeFile(false, file.FullName, options, cancellationToken); //<== Process them all at once
+                        }
+                        
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                         {
@@ -208,7 +218,16 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     {
                         if (_libraryManager.IsVideoFile(file.FullName.AsSpan()))
                         {
-                            var result = await movieOrganizer.OrganizeFile(false, file.FullName, options, cancellationToken);
+                            FileOrganizationResult result;
+                            if (eligibleFiles.Count > 3)
+                            {
+                                result = movieOrganizer.OrganizeFile(false, file.FullName, options, cancellationToken).Result;
+                            }
+                            else
+                            {
+                                result = await movieOrganizer.OrganizeFile(false, file.FullName, options, cancellationToken);
+                            }
+                           
 
                             if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                             {

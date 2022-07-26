@@ -115,7 +115,12 @@ namespace Emby.AutoOrganize.Core
 
             return GetResult(id);
         }
-        
+
+        public void RemoveFromRepositoryEntry(string resultId)
+        {
+            _repo.Delete(resultId);
+        }
+
         public void DeleteOriginalFile(string resultId)
         {
             var result = _repo.GetResult(resultId);

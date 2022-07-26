@@ -24,11 +24,17 @@ namespace Emby.AutoOrganize.Core
         void BeginProcessNewFiles();
 
         /// <summary>
-        /// Deletes the original file.
+        /// Deletes the original file, and removes the item form the database.
         /// </summary>
         /// <param name="resultId">The result identifier.</param>
         /// <returns>Task.</returns>
         void DeleteOriginalFile(string resultId);
+
+        /// <summary>
+        /// Remove the Item from the Database table Only
+        /// </summary>
+        /// <param name="resultId"></param>
+        void RemoveFromRepositoryEntry(string resultId);
 
         /// <summary>
         /// Clears the log.

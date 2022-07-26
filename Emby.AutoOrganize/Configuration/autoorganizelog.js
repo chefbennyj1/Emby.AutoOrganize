@@ -1,6 +1,14 @@
 ﻿define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'components/taskbutton', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'emby-collapse', 'emby-input'],
     function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper, taskButton) {
 
+        ApiClient.removeRepositoryEntry = function (id) {
+            var url = this.getUrl("Library/FileOrganizations/" + id + "/RemoveRepositoryEntry");
+
+            return this.ajax({
+                type: "DELETE",
+                url: url
+            });
+        }
         ApiClient.getFilePathCorrections = function () {
 
             var url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
@@ -174,6 +182,11 @@
                     }, Dashboard.processErrorResponse);
                 });
             });
+        }
+
+
+        function refreshTableItem(page, id) {
+
         }
 
         function showCorrectionPopup(page, item) {
@@ -594,6 +607,24 @@
                     });
             })
 
+            page.querySelectorAll('.btnRemoveRepositoryEntry').forEach(btn => {
+                btn.addEventListener('click',
+                    async (e) => {
+                        let id = e.target.closest('button').getAttribute('data-resultid');                        
+                        require(['confirm'], function (confirm) {
+                            confirm("Please run Auto Organize Scheduled Task to re-process the item.", 'Re-Process Item').then(async function () {
+                                loading.show();
+                                await ApiClient.removeRepositoryEntry(id);
+                                result = await ApiClient.getFileOrganizationResults(query)
+                                currentResult = result;
+                                await renderResults(page, result);
+                                loading.hide();
+                            });
+                        });
+                        
+                    });
+            });
+
             page.querySelectorAll('.btnShowSubtitleList').forEach(btn => btn.addEventListener('click',
                 (e) => {
                     let id = e.target.closest('svg').getAttribute('data-resultid');
@@ -718,69 +749,7 @@
                     mobileCards.innerHTML = html;
                 }
 
-
-                //page.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
-                //    btn.addEventListener('click',
-                //        (e) => {
-                //            let id = e.target.getAttribute('data-resultid');
-                //            showStatusMessage(id);
-                //        });
-                //})
-
-                //page.querySelectorAll('.btnIdentifyResult').forEach(btn => {
-                //    btn.addEventListener('click',
-                //        (e) => {
-                //            e.preventDefault();
-                //            let id = e.target.closest('button').getAttribute('data-resultid');
-                //            var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
-                //            showCorrectionPopup(e.view, item);
-                //        });
-                //})
-
-                //page.querySelectorAll('.btnProcessResult').forEach(btn => {
-                //    btn.addEventListener('click',
-                //        (e) => {
-                //            let id = e.target.closest('button').getAttribute('data-resultid');
-                //            organizeFile(e.view, id);
-                //        })
-                //});
-
-                //page.querySelectorAll('.btnDeleteResult').forEach(btn => {
-                //    btn.addEventListener('click',
-                //        (e) => {
-                //            let id = e.target.closest('button').getAttribute('data-resultid');
-                //            deleteOriginalFile(e.view, id);
-                //        });
-                //})
-
-                //var statusIcons = [...page.querySelectorAll('.statusIcon')];
-                //var itemsToCompare = statusIcons.filter(icon => icon.dataset.status === "SkippedExisting" ||
-                //    icon.dataset.status === "NewEdition" ||
-                //    icon.dataset.status === "NewResolution");
-
-                //itemsToCompare.forEach(i => {
-                //    i.style.cursor = "pointer";
-                //    i.addEventListener('click',
-                //        async (e) => {
-                //            var id = e.target.closest('svg').dataset.resultid;
-                //            await openComparisonDialog(id);
-                //        })
-
-                //})
-
-                //page.querySelectorAll('.btnShowSubtitleList').forEach(btn => btn.addEventListener('click',
-                //    (e) => {
-                //        let id = e.target.getAttribute('data-resultid');
-                //        var subtitles = currentResult.Items.filter(function (i) { return i.Id === id; })[0].Subtitles;
-                //        var msg = "";
-                //        subtitles.forEach(t => {
-                //            msg += t + '\n';
-                //        })
-                //        Dashboard.alert({
-                //            title: "Subtitles",
-                //            message: msg
-                //        });
-                //    }));
+                
 
 
                 var pagingHtml = getQueryPagingHtml({
@@ -834,14 +803,7 @@
 
         }
 
-        function calculateFileAge(creationDate) {
-            var now = new Date();
-            var creation = Date.parse(creationDate);
-            var age = now.getTime() - creation;
-            var ageInDays = Math.floor(age / (1000 * 3600 * 24));
-            return ageInDays;
-        }
-        
+       
         function getResultItemTypeIcon(type) {
             switch (type) {
                 case "Unknown": return { path: "" }
@@ -872,7 +834,7 @@
                 case 'IdentifyBtn': return {
                     path: "M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H13C12.59,21.75 12.2,21.44 11.86,21.1C11.53,20.77 11.25,20.4 11,20H6V4H13V9H18V10.18C18.71,10.34 19.39,10.61 20,11V8L14,2M20.31,18.9C21.64,16.79 21,14 18.91,12.68C16.8,11.35 14,12 12.69,14.08C11.35,16.19 12,18.97 14.09,20.3C15.55,21.23 17.41,21.23 18.88,20.32L22,23.39L23.39,22L20.31,18.9M16.5,19A2.5,2.5 0 0,1 14,16.5A2.5,2.5 0 0,1 16.5,14A2.5,2.5 0 0,1 19,16.5A2.5,2.5 0 0,1 16.5,19Z",
                     color: 'var(--focus-background)'
-                }
+                };
                 case 'DeleteBtn': return {
                     path: "M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z",
                     color: 'var(--focus-background) '
@@ -881,6 +843,10 @@
                     path: "M4 7C4 4.79 7.58 3 12 3S20 4.79 20 7 16.42 11 12 11 4 9.21 4 7M19.72 13.05C19.9 12.71 20 12.36 20 12V9C20 11.21 16.42 13 12 13S4 11.21 4 9V12C4 14.21 7.58 16 12 16C12.65 16 13.28 15.96 13.88 15.89C14.93 14.16 16.83 13 19 13C19.24 13 19.5 13 19.72 13.05M13.1 17.96C12.74 18 12.37 18 12 18C7.58 18 4 16.21 4 14V17C4 19.21 7.58 21 12 21C12.46 21 12.9 21 13.33 20.94C13.12 20.33 13 19.68 13 19C13 18.64 13.04 18.3 13.1 17.96M23 19L20 16V18H16V20H20V22L23 19Z",
                     color: 'var(--focus-background)'
                 }
+                case 'RemoveRepositoryEntryBtn': return {
+                    path: "M13 3C8 3 4 7 4 12H1L4.9 15.9L5 16L9 12H6C6 8.1 9.1 5 13 5S20 8.1 20 12 16.9 19 13 19C11.1 19 9.3 18.2 8.1 16.9L6.7 18.3C8.3 20 10.5 21 13 21C18 21 22 17 22 12S18 3 13 3M12 15H14V17H12V15M12 7H14V13H12V7",
+                    color: 'var(--focus-background)'
+                };
             }
         }
 
@@ -1198,21 +1164,8 @@
 
                 html += '<svg style="width:24px;height:24px; cursor:pointer;" viewBox="0 0 24 24" data-resultid="' + item.Id + '" class="btnShowSubtitleList">';
                 html += '<path fill="#2195f3" d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"  />';
-                html += '</svg>';
-
-
-
-                //html += '<div style="display:flex; flex-direction:row">';
-                //html += '<div style="display:flex; flex-direction:column">'
-                //for(var i = 0; i <= item.Subtitles.length-1; i++) {
-                //    if (i > 1 && i % 2 === 0) {
-                //        html += '</div>';
-                //        html += '<div style="display:flex; flex-direction:column">'
-                //    }
-                //    html += '<span style="color: white;background-color: rgb(131,131,131); padding: 1px 10px 1px 10px;border-radius: 5px;margin:2px;font-size: 11px; text-align:center">' + item.Subtitles[i].toLocaleUpperCase() + '</span>'; 
-                //}
-                //html += '</div>';
-                //html += '</div>';
+                html += '</svg>'; 
+                
             }
 
             html += '</td>';
@@ -1222,11 +1175,7 @@
             html += '<span>' + formatBytes(item.FileSize) + '</span>';
             html += '</td>';
 
-            ////File Age
-            //html += '<td class="detailTableBodyCell" data-title="Date">';
-            //var age = calculateFileAge(item.FileCreationDate);
-            //html += '<span>' + age + ' day(s)</span>';
-            //html += '</td>';
+           
 
             //Source file path
             html += '<td data-title="Source" class="fileCell" style="border-spacing:0;padding:.4em; white-space: normal">';
@@ -1253,7 +1202,7 @@
         function renderActionButtons(item) {
             var html = '';
             
-            if (item.Status === "Checking" || item.Status === "InUse") return html;
+            if (item.Status === "Checking") return html;
 
             if (item.Status !== "Success") {
                 
@@ -1302,6 +1251,13 @@
             html += '</svg>';
             html += '</button>';
 
+            //Removes the entry from the Database only to refresh the item data
+            var deleteRepositoryEntry = getButtonSvgIconRenderData("RemoveRepositoryEntryBtn");
+            html += '<button type="button" data-resultid="' + item.Id + '" class="btnRemoveRepositoryEntry organizerButton autoSize emby-button" title="Redo" style="background-color:transparent" data-taskid="1ec5b785c4111045fc22055e467e2fff">';
+            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+            html += '<path fill="var(--focus-background)" d="' + deleteRepositoryEntry.path + '"/>';
+            html += '</svg>';
+            html += '</button>';
             return html;
         }
         
@@ -1438,7 +1394,22 @@
                         });
                 } catch (err) { }
 
-
+                try {
+                    row.querySelector('.btnRemoveRepositoryEntry').addEventListener('click',
+                        async (e) => {
+                            let id = e.target.closest('button').getAttribute('data-resultid');
+                            require(['confirm'], function (confirm) {
+                                confirm("Please run Auto Organize Scheduled Task to re-process this item.", 'Re-Process Item').then(async function () {
+                                    loading.show();
+                                    await ApiClient.removeRepositoryEntry(id);
+                                    result = await ApiClient.getFileOrganizationResults(query)
+                                    currentResult = result;
+                                    await renderResults(page, result);
+                                    loading.hide();
+                                });
+                            });
+                        });
+                } catch (err) { }
                 //getLogoImage(item.ExtractedName, item.Type === "Episode" ? "Series" : item.Type).then(logo => {
 
                 //    var td = row.querySelector('.cellName_' + item.Id);
@@ -1634,7 +1605,8 @@
                 events.on(serverNotifications, 'ScheduledTasksInfoStop', await onServerEvent);
                 events.on(serverNotifications, 'TaskData', await onServerEvent)
                 events.on(serverNotifications, 'TaskComplete', await onServerEvent)
-                // on here            
+                
+                // on here           
 
                 if (taskButton) {
                     taskButton.default({
