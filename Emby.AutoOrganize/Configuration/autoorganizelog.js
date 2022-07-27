@@ -1,6 +1,6 @@
 //﻿define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVersion('4.7.3') ? 'taskButton' : 'scripts/taskbutton'), 'datetime', 'loading', 'mainTabsManager',  'dialogHelper', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'emby-collapse', 'emby-input', 'emby-select', 'emby-button', 'emby-scroller'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
     
-define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'components/taskbutton', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'emby-collapse', 'emby-input', 'emby-select'],
+define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', (ApiClient.isMinServerVersion('4.7.3') ? 'taskButton' : 'scripts/taskbutton'), 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'emby-collapse', 'emby-input', 'emby-select'],
 function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper, taskButton) {
 
     function loadEmbeddedCss(name) {
