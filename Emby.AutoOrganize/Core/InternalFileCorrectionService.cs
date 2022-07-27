@@ -169,6 +169,7 @@ namespace Emby.AutoOrganize.Core
             //Attempt to change the video file first. If it fails, we'll not have touched the other files in the directory.
             
             //Fix NFO, and Video File
+            // bif ?
             foreach (var file in eligibleFilesToCorrect)
             {
                 var extension = Path.GetExtension(file);
@@ -209,7 +210,7 @@ namespace Emby.AutoOrganize.Core
                 if (LibraryManager.IsSubtitleFile(file.AsSpan()))
                 {
                     var parts = Path.GetFileNameWithoutExtension(file).Split('.');
-                    var language = parts[parts.Length - 1];
+                    var language = parts[parts.Length - 1]; //probably not going to work with foreign / forced ie episodename.eng.forced.srt
                     try
                     {
                         CorrectFileName(correction, extension, workingDirectory, $".{language}");
@@ -320,9 +321,20 @@ namespace Emby.AutoOrganize.Core
                 //doing this isnt great - other option is to check media provider for every multi episode like we do for sorting ?
                 //Main issue is if episode name has a comma
                 episodeTitle = episodeTitle.Replace(", ", options.MultiEpisodeNameDeliminator);
-                filename = filename.Replace("%ed", endingEpisodeNumber.Value.ToString(_usCulture))
-                    .Replace("%0ed", endingEpisodeNumber.Value.ToString("00", _usCulture))
-                    .Replace("%00ed", endingEpisodeNumber.Value.ToString("000", _usCulture));
+                //filename = filename.Replace("%ed", endingEpisodeNumber.Value.ToString(_usCulture))
+                //    .Replace("%0ed", endingEpisodeNumber.Value.ToString("00", _usCulture))
+                //    .Replace("%00ed", endingEpisodeNumber.Value.ToString("000", _usCulture));
+
+                var multiEpisodeString = "";
+                for (int i = (int)(episodeNumber + 1); i <= endingEpisodeNumber.Value; i++)
+                {
+                    if (filename.Contains("%ed")) { multiEpisodeString += i.ToString(_usCulture); }
+                    if (filename.Contains("%0ed")) { multiEpisodeString += i.ToString("00", _usCulture); }
+                    if (filename.Contains("%00ed")) { multiEpisodeString += i.ToString("000", _usCulture); }
+                }
+                filename = filename.Replace("%ed", multiEpisodeString)
+                .Replace("%0ed", multiEpisodeString)
+                .Replace("%00ed", multiEpisodeString);
             }
 
             filename = filename.Replace("%e", episodeNumber.ToString(_usCulture))
