@@ -4,7 +4,7 @@ define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'ma
 function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper, taskButton) {
 
     function loadEmbeddedCss(name) {
-        if (document.getElementById(name)) { //dont load if element exists
+        if (document.getElementById(name)) { //dont load if element exists - ie navigation from another tab
             return
         }
         url = [Dashboard.getConfigurationResourceUrl(name)];
