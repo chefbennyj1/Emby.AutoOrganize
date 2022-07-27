@@ -122,12 +122,14 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                         .Where(i => !string.IsNullOrEmpty(i)).Select(i => "." + i).ToList();
 
                     // Normal Clean
-                    Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+                    //Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+                    Clean(processedFolders, options, deleteExtensions);
 
                     // Extended Clean
                     if (options.ExtendedClean)
                     {
-                        Clean(watchLocations, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+                        //Clean(watchLocations, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
+                        Clean(processedFolders, options, deleteExtensions);
                     }
 
                 }
@@ -266,9 +268,19 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                
             }
         }
-
-        private void Clean(IEnumerable<string> paths, List<string> watchLocations, bool deleteEmptyFolders, List<string> deleteExtensions)
+        private void Clean(IEnumerable<string> paths, AutoOrganizeOptions options, List<string> deleteExtensions)
+        //private void Clean(IEnumerable<string> paths, List<string> watchLocations, bool deleteEmptyFolders, List<string> deleteExtensions)
         {
+            var folders = new List<string>();
+            if (options.EnablePreProcessing)
+            {
+                folders.Add(options.PreProcessingFolderPath);
+            }
+            else
+            {
+                folders.AddRange(options.WatchLocations);
+            }
+
             foreach (var path in paths)
             {
                 if (deleteExtensions.Count > 0)
@@ -276,9 +288,9 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     DeleteLeftOverFiles(path, deleteExtensions);
                 }
 
-                if (deleteEmptyFolders)
+                if (options.DeleteEmptyFolders)
                 {
-                    DeleteEmptyFolders(path, watchLocations);
+                    DeleteEmptyFolders(path, folders);
                 }
 
             }

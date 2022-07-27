@@ -28,7 +28,9 @@ namespace Emby.AutoOrganize.Naming
         public static string GetReleaseEditionFromFileName(string sourceFileName)
         {
             var namingOptions = new NamingOptions();
+            //all video edition and release flags
             var pattern = $"(?i)({string.Join("|", namingOptions.VideoReleaseEditionFlags)})";
+            //remove any strange character from the string
             var input   = Regex.Replace(sourceFileName, @"(@|&|'|:|\(|\)|<|>|#|\.|,|_)", " ", RegexOptions.IgnoreCase).ToLowerInvariant();
             var results = Regex.Matches(input, pattern, RegexOptions.IgnoreCase);
             var result  = results.Count > 0 ? results[0].Value : "Theatrical";
@@ -41,8 +43,8 @@ namespace Emby.AutoOrganize.Naming
             var pattern = "(?:";
             for (var index = 0; index < namingOptions.SubtitleLanguageExtensions.Length; index++)
             {
-                var lan = namingOptions.SubtitleLanguageExtensions[index];
-                pattern += @"\" + lan + @"[A-z]{0,1}\.";
+                var lang = namingOptions.SubtitleLanguageExtensions[index];
+                pattern += @"\" + lang + @"[A-z]{0,1}\.";
 
                 pattern += index < namingOptions.SubtitleLanguageExtensions.Length - 1 ? "|" : ")";
                 

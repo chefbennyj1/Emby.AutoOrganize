@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Emby.AutoOrganize.Configuration;
 using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using Emby.AutoOrganize.Model.Corrections;
@@ -16,6 +15,7 @@ using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Services;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Extensions;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
@@ -421,14 +421,10 @@ namespace Emby.AutoOrganize.Api
 
         }
 
-        public long Get(GetAvailableSpace request)
+        public long? Get(GetAvailableSpace request)
         {
-            return DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name == Path.GetPathRoot(request.Location)).AvailableFreeSpace;
+            return DriveInfo.GetDrives().FirstOrDefault(drive => drive.Name.ContainsIgnoreCase(Path.GetPathRoot(request.Location)))?.AvailableFreeSpace ?? 0;
         }
         
-        private AutoOrganizeOptions GetAutoOrganizeOptions()
-        {
-            return ServerConfiguration.GetAutoOrganizeOptions();
-        }
     }
 }

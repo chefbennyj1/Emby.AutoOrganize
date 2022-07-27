@@ -503,13 +503,17 @@
         }
 
         function togglePreProcessingOptions() {
+           
             const preProcessingFolderPathContainer = view.querySelector('#txtPreProcessingFolderPath').closest('.inputContainer');
             if (view.querySelector('#chkEnablePreProcessingOptions').checked) {
                 preProcessingFolderPathContainer.classList.remove('hide');
                 view.querySelector('#txtPreProcessingFolderPath').setAttribute("required", "");
+                //When preprocessing is selected, the file will be moved from the preprocessing folder into the library. Just hide the Copy/Move Option in the settings
+                view.querySelector('#copyOrMoveFile').closest('.selectContainer').classList.add('hide');
             } else {
                 preProcessingFolderPathContainer.classList.add('hide');
                 view.querySelector('#txtPreProcessingFolderPath').removeAttribute("required");
+                view.querySelector('#copyOrMoveFile').closest('.selectContainer').classList.remove('hide');
             }
         }
 
@@ -634,7 +638,7 @@
                     var availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]); 
                     var location = {
                         value: virtualFolder.Locations[i],
-                        display: '(Available space: ' + formatBytes(availableSpace)  + ') ' + virtualFolder.Name + ': ' + virtualFolder.Locations[i]
+                        display: (availableSpace > 0 ? '(Available space: ' + formatBytes(availableSpace)  + ') ' : '') + virtualFolder.Name + ': ' + virtualFolder.Locations[i]
                     };
 
                     if (virtualFolder.CollectionType === 'tvshows') {
@@ -706,7 +710,7 @@
                     var availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]);                    
                     var location = {
                         value: virtualFolder.Locations[i],
-                        display: '(Available space: ' + formatBytes(availableSpace) + ') ' + virtualFolder.Name + ': ' + virtualFolder.Locations[i] 
+                        display: (availableSpace > 0 ? '(Available space: ' + formatBytes(availableSpace) + ') ' : '') + virtualFolder.Name + ': ' + virtualFolder.Locations[i] 
                     };
 
                     if (virtualFolder.CollectionType === 'movies') {
