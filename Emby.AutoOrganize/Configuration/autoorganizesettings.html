@@ -1,9 +1,12 @@
-﻿<div id="libraryFileOrganizerPage" data-bindheader="true" centerfocus="true" data-role="page" class="view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY" style="padding-top:6em" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeSettingsJs">
-
-    <div class="content-primary">
-
+<div id="libraryFileOrganizerPage" data-role="page" is="emby-scroller" class="libraryFileOrganizerPage view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY overflowYScroll" data-mousewheel="true" data-horizontal="false" data-centerfocus="card" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeSettingsJs" data-title="Auto Organize">
+    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page settingsContainer scrollSliderY">
+        <style>
+            .ui-responsive {
+                width: 100%;
+                text-align: left;
+            }
+        </style>
         <form class="libraryFileOrganizerForm">
-
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Television Options</h2>
 
@@ -32,8 +35,7 @@
                                 <div class="fieldDescription seriesPatternDescription"></div>
                             </div>
 
-                            <br />
-                            <p>Supported Patterns</p>
+                            <h4>Supported Patterns</h4>
 
                             <table id="series-table" class="ui-responsive" style="width:100%">
                                 <thead>
@@ -99,12 +101,15 @@
                                 <div class="fieldDescription episodePatternDescription"></div>
                             </div>
                             <div class="inputContainer">
-                                <input is="emby-input" id="txtMultiEpisodePattern" type="text" label="Mutli-episode pattern:" required />
+                                <input is="emby-input" id="txtMultiEpisodePattern" type="text" label="Multi-episode pattern:" required />
                                 <div class="fieldDescription multiEpisodePatternDescription"></div>
                             </div>
+                            <div class="inputContainer">
+                                <input is="emby-input" id="txtMultiEpisodeDeliminator" type="text" label="Multi-episode deliminator:" required maxlength="3" />
+                                <div class="fieldDescription txtMultiEpisodeDeliminatorDescription">This is the text used to seperate the names of each episode. Patterns are not supported.</div>
+                            </div>
 
-                            <br />
-                            <p>Supported Patterns</p>
+                            <h4>Supported Patterns</h4>
 
                             <table id="episode-table" class="ui-responsive" style="width:100%">
                                 <thead>
@@ -198,18 +203,33 @@
                     <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                         <label style="width: auto;" class="emby-toggle-label">
                             <input type="checkbox" is="emby-toggle" id="chkEnableSeriesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable television smart auto detection and library creation</span>
+                            <span class="toggleLabel">Enable Smart Series Auto detect</span>
                         </label>
-                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically, and detects and sorts new episode files.</div>
+                        <div class="fieldDescription toggleFieldDescription">
+                            Automatically detect and sort new episode files.<br />
+                            If this option is disabled files will only be analyzed and you will need to manually initiate sorting.
+                        </div>
                     </div>
 
-                    <div class="fldSortExistingSeriesOnly checkboxContainer checkboxContainer-withDescription hide" style="margin-top: 1em; margin-left:3.5em">
+                    <div class="fldEnableNewSeriesCreation checkboxContainer checkboxContainer-withDescription hide" style="margin-top: 1em; margin-left:3.5em">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="chkSortExistingSeriesOnly" class="emby-checkbox">
-                            <span class="checkboxLabel">Auto sort episode for existing series only.</span>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableNewSeriesCreation" class="emby-checkbox">
+                            <span class="checkboxLabel">Enable new series creation</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Auto sort new episode into series that already exist in the library. New Series will not be created in the library.
+                            Create new series folders when matches are not found within the library.<br/> 
+                            By default episodes will only sort when the Series exists in your library.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                        <label style="width: auto;" class="emby-toggle-label">
+                            <input type="checkbox" is="emby-toggle" id="chkAllowMultipleEpisodeVersions" class="emby-toggle emby-toggle-focusring">
+                            <span class="toggleLabel">Allow multiple copies of an episode</span>
+                        </label>
+                        <div class="fieldDescription toggleFieldDescription">
+                            By default all copies of an episode will be removed from the library when sorting.<br/>
+                            If you store multiple copies ensure your episode pattern is compatible with this by including resolution, release etc. If your episode pattern matches the library file the internal file will still be removed.
                         </div>
                     </div>
 
@@ -251,8 +271,7 @@
                                 <div class="fieldDescription movieFolderPatternDescription"></div>
                             </div>
 
-                            <br />
-                            <p>Supported Patterns</p>
+                            <h4>Supported Patterns</h4>
 
                             <table id="movie-folder-table" class="ui-responsive" style="width:100%">
                                 <thead>
@@ -307,8 +326,7 @@
                                 <div class="fieldDescription moviePatternDescription"></div>
                             </div>
 
-                            <br />
-                            <p>Supported Patterns</p>
+                            <h4>Supported Patterns</h4>
 
                             <table id="movie-name-table" class="ui-responsive" style="width:100%">
                                 <thead>
@@ -361,7 +379,7 @@
                                     </tr>
                                 </tbody>
                             </table>
-                            <p class="benefits">In order to benefit from multi-version movie items, the folder and file names must adhere to emby muti-version naming requirements. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102" target="_blank">Learn more</a>.</p>
+                            <p class="benefits">In order to benefit from multi-version movie items, the folder and file names must adhere to emby multi-version naming requirements. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102" target="_blank">Learn more</a>.</p>
 
                         </div>
                     </div>
@@ -370,9 +388,12 @@
                     <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                         <label style="width: auto;" class="emby-toggle-label">
                             <input type="checkbox" is="emby-toggle" id="chkEnableMoviesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable movie smart auto detection and library creation</span>
+                            <span class="toggleLabel">Enable Smart Movie Auto detect</span>
                         </label>
-                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new movie folders in libraries.</div>
+                        <div class="fieldDescription toggleFieldDescription">
+                            Automatically detect and sort new movies into the library.<br />
+                            If this option is disabled files will only be analyzed and you will need to manually initiate sorting.
+                        </div>
                     </div>
 
                 </div>
@@ -484,13 +505,13 @@
                         <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingEpisodeItems" class="emby-toggle emby-toggle-focusring">
                         <span class="toggleLabel">Overwrite existing library episode files</span>
                     </label>
-                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing episode files in the library folders with any new versions in the watched folder.</div>
+                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing episode files in the library with any new versions in the watched folder.</div>
                 </div>
 
                 <br />
 
                 <div class="fldOverWriteExistingEpisodeFilesKeyWords inputContainer">
-                    <input is="emby-input" id="txtOverWriteExistingEpisodeFilesKeyWords" type="text" label="Overwrite existing episode files in the library folders when files contain the following key words:" />
+                    <input is="emby-input" id="txtOverWriteExistingEpisodeFilesKeyWords" type="text" label="Restrict overwriting existing library files to only files that contain the following key words:" />
                     <div class="fieldDescription">Each value separated by ;</div>
                 </div>
 
@@ -501,13 +522,13 @@
                         <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingMovieItems" class="emby-toggle emby-toggle-focusring">
                         <span class="toggleLabel">Overwrite existing library movie files</span>
                     </label>
-                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library folders with any new versions in the watched folder.</div>
+                    <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library with any new versions in the watched folder.</div>
                 </div>
 
                 <br />
 
                 <div class="fldOverWriteExistingMovieFilesKeyWords inputContainer">
-                    <input is="emby-input" id="txtOverWriteExistingMovieFilesKeyWords" type="text" label="Overwrite existing movie files in the library folders when files contain the following key words:" />
+                    <input is="emby-input" id="txtOverWriteExistingMovieFilesKeyWords" type="text" label="Restrict overwriting existing library files to only files that contain the following key words:" />
                     <div class="fieldDescription">Each value separated by ;</div>
                 </div>
 

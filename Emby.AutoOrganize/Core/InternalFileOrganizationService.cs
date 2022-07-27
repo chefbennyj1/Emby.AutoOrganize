@@ -137,7 +137,7 @@ namespace Emby.AutoOrganize.Core
             }
             finally
             {
-                RemoveFromInprogressList(result);
+                RemoveFromInProgressList(result);
             }
 
             _repo.Delete(resultId);
@@ -331,19 +331,19 @@ namespace Emby.AutoOrganize.Core
         /// </summary>
         /// <param name="result">The result item.</param>
         /// <returns>True if the item was removed, False if the item was not contained in the list.</returns>
-        public bool RemoveFromInprogressList(FileOrganizationResult result)
+        public bool RemoveFromInProgressList(FileOrganizationResult result)
         {
             try
             {
                 // ReSharper disable once NotAccessedVariable
                 bool itemValue;
-                var retval = _inProgressItemIds.TryRemove(result.Id, out itemValue);
+                var retVal = _inProgressItemIds.TryRemove(result.Id, out itemValue);
 
                 result.IsInProgress = false;
 
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
 
-                return retval;
+                return retVal;
             }
             catch
             {

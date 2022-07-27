@@ -9,7 +9,6 @@ namespace Emby.AutoOrganize
 {
     public class Plugin : BasePlugin, IHasWebPages, IHasThumbImage
     {
-        
         public override string Name => "Auto Organize";
 
         public override string Description => "Automatically organize new media";
@@ -89,8 +88,11 @@ namespace Emby.AutoOrganize
                     Name = "AutoOrganizeCorrections",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.html"
                 },
-                
-                
+                new PluginPageInfo
+                {
+                    Name = "AutoOrganizeCss",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganize.css"
+                },
                 //new PluginPageInfo
                 //{
                 //Name = "Chart.js",

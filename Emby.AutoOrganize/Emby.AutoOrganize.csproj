@@ -1,53 +1,40 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-
     <TargetFrameworks>netstandard2.0;</TargetFrameworks>
+    <AssemblyVersion>1.6.41.25</AssemblyVersion>
+    <FileVersion>1.6.41.25</FileVersion>
 
+    <AssemblyVersion>1.6.41.32</AssemblyVersion>
+
+    <FileVersion>1.6.41.32</FileVersion>
     <AssemblyVersion>1.6.41.33</AssemblyVersion>
 
     <FileVersion>1.6.41.33</FileVersion>
 
   </PropertyGroup>
-
-
   <ItemGroup>
+    <None Remove="Configuration\autoorganize.css" />
     <None Remove="Configuration\autoorganizecorrections.html" />
     <None Remove="Configuration\autoorganizecorrections.js" />
     <None Remove="Configuration\nbxnjlh5.xer~" />
     <None Remove="Core\FileOrganization\5jobyk34.jie~" />
     <None Remove="thumb.gif" />
   </ItemGroup>
-
-
- 
-
   <ItemGroup>
-
+    <EmbeddedResource Include="Configuration\autoorganize.css" />
     <EmbeddedResource Include="Configuration\autoorganizecorrections.html" />
-
     <EmbeddedResource Include="Configuration\autoorganizecorrections.js" />
-
     <EmbeddedResource Include="Configuration\autoorganizelog.html" />
-
     <EmbeddedResource Include="Configuration\autoorganizelog.js" />
-
     <EmbeddedResource Include="Configuration\autoorganizesmart.html" />
-
     <EmbeddedResource Include="Configuration\autoorganizesmart.js" />
-
     <EmbeddedResource Include="Configuration\autoorganizesettings.html" />
-
     <EmbeddedResource Include="Configuration\autoorganizesettings.js" />
- 
-   <EmbeddedResource Include="Configuration\fileorganizer.js" />
-
+    <EmbeddedResource Include="Configuration\fileorganizer.js" />
     <EmbeddedResource Include="Configuration\fileorganizer.template.html" />
-
     <EmbeddedResource Include="thumb.gif" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="mediabrowser.server.core" Version="4.7.1" />
     <PackageReference Include="SQLitePCL.pretty.core" Version="1.2.2" />

@@ -139,6 +139,6 @@ namespace Emby.AutoOrganize.Core
         /// </summary>
         /// <param name="result">The result item.</param>
         /// <returns>True if the item was removed, False if the item was not contained in the list.</returns>
-        bool RemoveFromInprogressList(FileOrganizationResult result);
+        bool RemoveFromInProgressList(FileOrganizationResult result);
     }
 }

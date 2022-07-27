@@ -6,12 +6,12 @@
         Failure,
         SkippedExisting,
         NewResolution,
+        Checking,
         Processing,
         UserInputRequired,
         NotEnoughDiskSpace,
         InUse,
         NewMedia,
-        NewEdition,
-        Checking
+        NewEdition
     }
 }

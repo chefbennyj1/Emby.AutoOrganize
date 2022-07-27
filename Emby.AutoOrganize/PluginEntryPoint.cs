@@ -131,8 +131,8 @@ namespace Emby.AutoOrganize
             FileOrganizationService.ItemRemoved -= _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated -= _organizationService_ItemUpdated;
             FileOrganizationService.LogReset    -= _organizationService_LogReset;
-            TaskManager.TaskExecuting          -= _taskManager_TaskExecuting;
-            TaskManager.TaskCompleted          -= _taskManager_TaskCompleted;
+            TaskManager.TaskExecuting           -= _taskManager_TaskExecuting;
+            TaskManager.TaskCompleted           -= _taskManager_TaskCompleted;
             var repo = Repository as IDisposable;
             if (repo != null)
             {

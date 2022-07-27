@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -45,7 +45,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 
                 return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && 
                        fileInfo.Length >= minFileBytes && 
-                       !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList())|| 
+                       !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList()) || 
                        _libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan());
             }
             catch (Exception ex)
@@ -238,7 +238,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 {
                     if (!options.EnableSubtitleOrganization) continue;
                     
-                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) || string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) && string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Libraries have been chosen in settings. Stopping Organization...");
                         
@@ -247,6 +247,8 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     var subtitleOrganizer = new SubtitleOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
                     try
                     {
+                        //TODO: need to check for different languages
+                        // TODO: need to account for extra types SDH (HEARING, FORCED etc)
                         if (_libraryManager.IsSubtitleFile(file.FullName.AsSpan()))
                         {
                             var result = await subtitleOrganizer.OrganizeFile(true, file.FullName, options, cancellationToken);
@@ -303,18 +305,19 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
         {
             try
             {
-                return _fileSystem.GetFiles(path, true).ToList();
+                var result = new List<FileSystemMetadata>();
+                result = _fileSystem.GetFiles(path, true).ToList();
+                _logger.Info("Auto-Organize watch folder added: {0}", path);
+                return result;
             }
             catch (DirectoryNotFoundException)
             {
-                _logger.Info("Auto-Organize watch folder does not exist: {0}", path);
-
+                _logger.Warn("Auto-Organize watch folder does not exist: {0}", path);
                 return new List<FileSystemMetadata>();
             }
             catch (IOException ex)
             {
                 _logger.ErrorException("Error getting files from {0}", ex, path);
-
                 return new List<FileSystemMetadata>();
             }
         }
@@ -357,7 +360,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 }
 
                 var entries = _fileSystem.GetFileSystemEntryPaths(path);
-                _logger.Info($"{entries.Count()} directory enteries");
+                _logger.Info($"{entries.Count()} directory entries");
                 if (!entries.Any() && !IsWatchFolder(path, watchLocations))
                 {
                     try

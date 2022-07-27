@@ -2,7 +2,22 @@
         'loading', 'mainTabsManager', 'globalize', 'dialogHelper', 'formDialogStyle', 'listViewStyle', 'emby-input',
         'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'
     ],
-    function(loading, mainTabsManager, globalize, dialogHelper, formDialogStyle) {
+    function (loading, mainTabsManager, globalize, dialogHelper, formDialogStyle) {
+
+        function loadEmbeddedCss(name) {
+            if (document.getElementById(name)) { //dont load if element exists - ie navigation from another tab
+                return
+            }
+            url = [Dashboard.getConfigurationResourceUrl(name)];
+            var link = document.createElement("link");
+            link.type = "text/css";
+            link.rel = "stylesheet";
+            link.id = name;
+            link.href = url;
+            document.getElementsByTagName("head")[0].appendChild(link);
+            console.log('Loaded embedded css: ' + url)
+        }
+        loadEmbeddedCss('AutoOrganizeCss');
         
 
         ApiClient.getFilePathCorrections = function() {

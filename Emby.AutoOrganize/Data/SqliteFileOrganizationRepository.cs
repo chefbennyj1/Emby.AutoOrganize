@@ -181,22 +181,25 @@ namespace Emby.AutoOrganize.Data
                     var commandText =
                         "SELECT ResultId, OriginalPath, TargetPath, FileLength, OrganizationDate, FileCreationDate, Status, OrganizationType, StatusMessage, ExtractedName, ExtractedYear, ExtractedSeasonNumber, ExtractedEpisodeNumber, ExtractedEndingEpisodeNumber, ExtractedEpisodeName, ExtractedEndingEpisodeName, ExtractedResolution, VideoStreamCodecs, AudioStreamCodecs, AudioChannels, SourceQuality, Subtitles, ExtractedEdition, ExternalSubtitlePaths, DuplicatePaths, ExistingInternalId from FileOrganizerResults";
 
+                    var filterBy = "";
                     if (!string.IsNullOrEmpty(query.Type) && query.Type != "All")
                     {
-                        commandText += $" WHERE OrganizationType = \"{query.Type}\"";
+                        filterBy = $" WHERE OrganizationType = \"{query.Type}\"";
                     }
+                    commandText += filterBy;
 
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
+                        if (filterBy == "") { commandText += " WHERE"; } else { commandText += " AND"; }
                         commandText +=
-                            " WHERE ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY " +
+                            " ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY " +
                             query.SortBy + " " + query.DataOrderDirection +
                             $" LIMIT {query.StartIndex.Value.ToString(CultureInfo.InvariantCulture)})";
                     }
 
                     commandText += " ORDER BY " + query.SortBy + " " + query.DataOrderDirection;
 
-                    if (query.Limit.HasValue)
+                    if (query.Limit.HasValue && query.Limit.Value > 0)
                     {
                         commandText += " LIMIT " + query.Limit.Value.ToString(CultureInfo.InvariantCulture);
                     }
@@ -213,7 +216,7 @@ namespace Emby.AutoOrganize.Data
 
                     int count;
                     using (var statement =
-                        connection.PrepareStatement("select count (ResultId) from FileOrganizerResults"))
+                        connection.PrepareStatement($"select count (ResultId) from FileOrganizerResults{filterBy}"))
                     {
                         count = statement.ExecuteQuery().First().GetInt(0);
                     }

@@ -33,21 +33,6 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
             _providerManager = providerManager;
         }
 
-        public string Name
-        {
-            get { return "Organize new media files"; }
-        }
-
-        public string Description
-        {
-            get { return "Processes new files available in the configured watch folder."; }
-        }
-
-        public string Category
-        {
-            get { return "Library"; }
-        }
-
         private AutoOrganizeOptions GetAutoOrganizeOptions()
         {
             return _config.GetAutoOrganizeOptions();
@@ -78,19 +63,19 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
         /// <returns>IEnumerable{BaseTaskTrigger}.</returns>
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
-            return new[] { 
-            
-                // Every so often
+            return new[] 
+            { 
                 new TaskTriggerInfo { Type = TaskTriggerInfo.TriggerInterval, IntervalTicks = TimeSpan.FromMinutes(5).Ticks}
             };
         }
 
+        public string Name => "Organize new media files";
+        public string Key => "AutoOrganize";
+        public string Description => "Processes new files available in the configured watch folder.";
+        public string Category => "Auto Organize";
         public bool IsHidden => false;
-
         public bool IsEnabled => true;
-
         public bool IsLogged => false;
 
-        public string Key => "AutoOrganize";
     }
 }

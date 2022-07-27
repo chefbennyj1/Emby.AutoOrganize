@@ -1,5 +1,22 @@
+//﻿define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVersion('4.7.3') ? 'taskButton' : 'scripts/taskbutton'), 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'],
+    //function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager, dialogHelper) {
 ﻿define(['globalize', 'loading', 'mainTabsManager', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'detailtablecss', 'emby-collapse', 'emby-input'],
-    function (globalize, loading, mainTabsManager) {
+     function (globalize, loading, mainTabsManager) {
+
+         function loadEmbeddedCss(name) {
+             if (document.getElementById(name)) { //dont load if element exists - ie navigation from another tab
+                 return
+             }
+             url = [Dashboard.getConfigurationResourceUrl(name)];
+             var link = document.createElement("link");
+             link.type = "text/css";
+             link.rel = "stylesheet";
+             link.id = name;
+             link.href = url;
+             document.getElementsByTagName("head")[0].appendChild(link);
+             console.log('Loaded embedded css: ' + url)
+         }
+         loadEmbeddedCss('AutoOrganizeCss');
 
 
         ApiClient.getFilePathCorrections = function () {

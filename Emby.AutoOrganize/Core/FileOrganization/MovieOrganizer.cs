@@ -1,4 +1,4 @@
-﻿using Emby.AutoOrganize.Model;
+using Emby.AutoOrganize.Model;
 using MediaBrowser.Common.Events;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
@@ -91,8 +91,17 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     ExtractedResolution = new Resolution(),
                     
                 };
+
+                Log.Info("Auto organize checking for movie: " + result.TargetPath);
+                result.Status = FileSortingStatus.Checking;
+                result.Date = DateTime.UtcNow; //Update the Date so that it moves to the top of the list in the UI (UI table is sorted by date)
+                result.StatusMessage = $"File {result.TargetPath} is currently being analysed";
+                OrganizationService.SaveResult(result, cancellationToken);
+                OrganizationService.AddToInProgressList(result, true);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+
             }
-            
+
             //Check to see if we can access the file path, or if the file path is being used.
             if (LibraryMonitor.IsPathLocked(path.AsSpan()) && result.Status != FileSortingStatus.Processing || IsCopying(path, FileSystem))
             {
@@ -183,8 +192,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     //User will have to sort with corrections.
                     if (string.IsNullOrEmpty(movieInfoFromFile.Name) && string.IsNullOrEmpty(movieInfoFromParentFolder.Name))
                     {
-                        var msg = $"Unable to determine movie name from {path}";
+                        var msg = $"Unable to determine movie name from {path}, Unknown file type";
                         result.Status = FileSortingStatus.Failure;
+                        if (result.ExtractedYear is null) { result.Type = FileOrganizerType.Unknown; msg = $"Unable to determine type for {path}, Unknown file type"; } //no year in filename so we dont know what it is
                         result.StatusMessage = msg;
                         Log.Warn(msg);
                         OrganizationService.SaveResult(result, cancellationToken);
@@ -358,8 +368,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (movie is null)
                 {
                     //Nope none of it did. Fail the movie sorting. The user will have to sort with corrections.
-                    var msg = $"Unable to determine movie name from {path}";
+                    var msg = $"Unable to determine movie name from {path}, Unknown file type";
                     result.Status = FileSortingStatus.Failure;
+                    if (result.ExtractedYear is null) { result.Type = FileOrganizerType.Unknown; msg = $"Unable to determine type for {path}, Unknown file type"; } //no year in filename so we dont know what it is
                     result.StatusMessage = msg;
                     Log.Warn(msg);
                     OrganizationService.SaveResult(result, cancellationToken);
@@ -616,7 +627,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 if (overwriteFile)
                 {
                     Log.Info("Sorting file {0} into movie {1}", sourcePath, result.TargetPath);
-                    //The request came in from the client. The file needs to be moved into the target folder dispite the status.
+                    //The request came in from the client. The file needs to be moved into the target folder despite the status.
                     PerformFileSorting(options, result, cancellationToken);
                     return;
                 }
@@ -756,7 +767,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.SkippedExisting;
                     result.StatusMessage = msg;
                     result.ExistingInternalId = LibraryManager.GetItemsResult(new InternalItemsQuery() { Path = result.TargetPath }).Items[0].InternalId;
-                    OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.RemoveFromInProgressList(result);
                     OrganizationService.SaveResult(result, cancellationToken);
                     //EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                     return;
@@ -824,7 +835,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             result.Status = FileSortingStatus.Processing;
             result.StatusMessage = "";
             result.FileSize = FileSystem.GetFileInfo(result.OriginalPath).Length; //Update the file size so it will show the actual size of the file here. It may have been copying before.
-            Log.Info($"Auto organize adding {result.TargetPath} to inprogress list");
+            Log.Info($"Auto organize adding {result.TargetPath} to in progress list");
             OrganizationService.SaveResult(result, cancellationToken);
             OrganizationService.AddToInProgressList(result, true);
             EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
@@ -836,7 +847,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 Log.Info("Skipping, source and target are the same path");
                 result.Status = FileSortingStatus.Failure;
                 OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.RemoveFromInProgressList(result);
                 return;
             }
 
@@ -888,7 +899,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             result.StatusMessage = "An error occurred while moving the file";
                         }
                         OrganizationService.SaveResult(result, cancellationToken);
-                        OrganizationService.RemoveFromInprogressList(result);
+                        OrganizationService.RemoveFromInProgressList(result);
                         return;
                     }
 
@@ -896,7 +907,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.Success;
                     result.StatusMessage = string.Empty;
                     OrganizationService.SaveResult(result, cancellationToken);
-                    OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.RemoveFromInProgressList(result);
                 }
 
                 if (options.CopyOriginalFile) 
@@ -914,7 +925,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                             result.Status = FileSortingStatus.NotEnoughDiskSpace;
                             result.StatusMessage = "There is not enough disk space on the drive to move this file";
                             OrganizationService.SaveResult(result, cancellationToken);
-                            OrganizationService.RemoveFromInprogressList(result);
+                            OrganizationService.RemoveFromInProgressList(result);
                             return;
 
                         }
@@ -926,7 +937,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.Status = FileSortingStatus.Success;
                     result.StatusMessage = string.Empty;
                     OrganizationService.SaveResult(result, cancellationToken);
-                    OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.RemoveFromInProgressList(result);
 
                 }
 
@@ -942,7 +953,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     result.StatusMessage = errorMsg;
                     Log.ErrorException(errorMsg, ex);
                     OrganizationService.SaveResult(result, cancellationToken);
-                    OrganizationService.RemoveFromInprogressList(result);
+                    OrganizationService.RemoveFromInProgressList(result);
                     LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                     return;
                 }
@@ -955,7 +966,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 result.StatusMessage = errorMsg;
                 Log.ErrorException(errorMsg, ex);
                 OrganizationService.SaveResult(result, cancellationToken);
-                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.RemoveFromInProgressList(result);
                 LibraryMonitor.ReportFileSystemChangeComplete(result.TargetPath, true);
                 return;
             }
@@ -996,7 +1007,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = "Auto Organize settings: default library not set for Movies.";
-                OrganizationService.RemoveFromInprogressList(result);
+                OrganizationService.RemoveFromInProgressList(result);
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
                 return null;
