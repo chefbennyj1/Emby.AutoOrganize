@@ -1533,14 +1533,15 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
             }
 
+            string epNumber = endingEpisodeNumber > 0 ? string.Concat(episodeNumber, '-', endingEpisodeNumber) : $"{episodeNumber}";
             if (episodeResults == null)
             {
-                var msg = $"No provider metadata found for {series.Name} season {seasonNumber} episode {episodeNumber}";
+                var msg = $"No provider metadata found for {series.Name} season {seasonNumber} episode {epNumber}";
                 Log.Warn(FormatLogMsg(msg));
                 return null;
             }
 
-            Log.Info($"Provider results for {series.Name} {episodeInfo.ParentIndexNumber}x{episodeInfo.IndexNumber} has {remoteSearchResults.Count()} results");
+            Log.Info($"Provider results for {series.Name} {seasonNumber}x{epNumber} has {remoteSearchResults.Count()} results");
 
             seasonNumber = seasonNumber ?? episodeResults.ParentIndexNumber;
             episodeNumber = episodeNumber ?? episodeResults.IndexNumber;

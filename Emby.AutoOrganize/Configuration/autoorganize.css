@@ -55,7 +55,7 @@
     grid-gap: 0px;
 }
 .row {
-    grid-template-columns: 30px 80px 14% 67px 7% 5% 20% auto 60px;
+    grid-template-columns: 30px 80px 14% 67px 127px 5% 20% auto 60px;
     grid-gap: 2px;
     border-bottom: 1px dotted rgb(131,131,131);
     padding: 5px 0;
@@ -86,8 +86,8 @@
     margin: 2px;
     font-size: 0.7em;
     text-align: center;
-    min-width: 30px; /*30 mpeg-4*/
-    max-width: 30px;
+    min-width: 37px; /*30 mpeg-4*/
+    max-width: 37px;
     display: inline-block;
     cursor: default;
 }
