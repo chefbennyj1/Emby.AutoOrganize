@@ -1,70 +1,68 @@
-﻿<!--<div id="libraryFileOrganizerLogPage" data-role="page" is="emby-scroller" class="libraryFileOrganizerLogPage view flex flex-direction-column scrollFrameY flex-grow withTabs emby-scroller page scrollY overflowYScroll" data-mousewheel="true" data-horizontal="false" data-centerfocus="card" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeLogJs">
-    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page settingsContainer scrollSliderY">-->
-<div is="emby-scroller" class="view flex flex-direction-column scrollFrameY flex-grow withTabs" data-horizontal="false" data-forcescrollbar="true" data-centerfocus="true" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeLogJs">
+﻿﻿<div is="emby-scroller" class="view flex flex-direction-column scrollFrameY flex-grow withTabs" data-horizontal="false" data-forcescrollbar="true" data-centerfocus="true" data-bindheader="true" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeLogJs">
     <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page">
         <!-- ReSharper disable once CssNotResolved -->
         <!--<div id="organizeHeaderPanel" style="position: relative; width: 100%;">-->
-            <div class="organizeTaskPanel focuscontainer-x itemsViewSettingsContainer padded-top padded-bottom">
-                <div style="display: flex; align-items: center;">
+        <div class="organizeTaskPanel focuscontainer-x itemsViewSettingsContainer padded-top padded-bottom">
+            <div style="display: flex; align-items: center;">
 
-                    <div class="listTopPaging"></div>
-                    <div class="flex-grow"></div>
-                    <div style="display: flex; justify-content: right; line-height: 55px">
-                        Last Organized:&nbsp;<span class="last-execution-time" style="text-align: end"></span>
-                    </div>
-                    <div class="flex" id="legendDialog" title="Legend">
-                        <svg style="width:24px; height:24px;" viewBox="0 0 24 24" data-step="1">
-                            <path fill="var(--theme-accent-text-color)" d="M9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21L3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19.03 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3L20.34,3.03L15,5.1L9,3M8,5.45V17.15L5,18.31V6.46L8,5.45M10,5.47L14,6.87V18.53L10,17.13V5.47M19,5.7V17.54L16,18.55V6.86L19,5.7M7.46,6.3L5.57,6.97V9.12L7.46,8.45V6.3M7.46,9.05L5.57,9.72V11.87L7.46,11.2V9.05M7.46,11.8L5.57,12.47V14.62L7.46,13.95V11.8M7.46,14.55L5.57,15.22V17.37L7.46,16.7V14.55"></path>
-                        </svg>
-                    </div>
+                <div class="listTopPaging"></div>
+                <div class="flex-grow"></div>
+                <div style="display: flex; justify-content: right; line-height: 55px">
+                    Last Organized:&nbsp;<span class="last-execution-time" style="text-align: end"></span>
+                </div>
+                <div class="flex" id="legendDialog" title="Legend">
+                    <svg style="width:24px; height:24px;" viewBox="0 0 24 24" data-step="1">
+                        <path fill="var(--theme-accent-text-color)" d="M9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21L3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19.03 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3L20.34,3.03L15,5.1L9,3M8,5.45V17.15L5,18.31V6.46L8,5.45M10,5.47L14,6.87V18.53L10,17.13V5.47M19,5.7V17.54L16,18.55V6.86L19,5.7M7.46,6.3L5.57,6.97V9.12L7.46,8.45V6.3M7.46,9.05L5.57,9.72V11.87L7.46,11.2V9.05M7.46,11.8L5.57,12.47V14.62L7.46,13.95V11.8M7.46,14.55L5.57,15.22V17.37L7.46,16.7V14.55"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="flex" style="justify-content: right;">
+                <div class="flex-grow"></div>
+                <button is="emby-button" type="button" class="btnOrganize raised emby-button button-icon-left" style="cursor: pointer; margin-right: 1em;" data-taskid="1ec5b785c4111045fc22055e467e2fff">
+                    <svg style="width: 24px; height: 24px" viewBox="0 0 24 24">
+                        <path fill="var(--focus-background)" d="M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12M12.5,8V12.25L16,14.33L15.28,15.54L11,13V8H12.5Z"></path>
+                    </svg>Organize
+                </button>
+
+                <button is="emby-button" type="button" id="btnClearDialog" class="raised button-cancel button-icon-left">
+                    <svg style="width: 24px; height: 24px" viewBox="0 0 24 24">
+                        <path fill="var(--focus-background)" d="M5,13H19V11H5M3,17H17V15H3M7,7V9H21V7" />
+                    </svg>
+                    <span>Clear</span>
+                </button>
+            </div>
+
+            <div style="margin-bottom: 1em; margin-top: 1em; min-height: 0.25em; display: flex; flex-shrink: 1" class="organizeProgress">
+                <div class="itemProgressBar itemProgressBarRound flex-grow"></div>
+            </div>
+
+            <div style="padding: 0.25em 0 0.25em 0; width: 100%; display: flex; justify-content: start; align-items: center;">
+                <div class="flex flex-grow">
+                    <svg style="width: 24px; height: 24px; padding: 0.5em 0.25em 0 0" viewBox="0 0 24 24">
+                        <path fill="var(--focus-background)" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path>
+                    </svg>
+                    <label class="inputLabel inputLabelUnfocused" for="txtSearch"></label>
+                    <input class="emby-input" id="txtSearch" type="text">
+                    <div class="fieldDescription search"></div>
                 </div>
 
-                <div class="flex" style="justify-content: right;">
-                    <div class="flex-grow"></div>
-                    <button is="emby-button" type="button" class="btnOrganize raised emby-button button-icon-left" style="cursor: pointer; margin-right: 1em;" data-taskid="1ec5b785c4111045fc22055e467e2fff">
-                        <svg style="width: 24px; height: 24px" viewBox="0 0 24 24">
-                            <path fill="var(--focus-background)" d="M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12M12.5,8V12.25L16,14.33L15.28,15.54L11,13V8H12.5Z"></path>
-                        </svg>Organize
-                    </button>
+                <div class="flex-grow"></div>
 
-                    <button is="emby-button" type="button" id="btnClearDialog" class="raised button-cancel button-icon-left">
-                        <svg style="width: 24px; height: 24px" viewBox="0 0 24 24">
-                            <path fill="var(--focus-background)" d="M5,13H19V11H5M3,17H17V15H3M7,7V9H21V7" />
-                        </svg>
-                        <span>Clear</span>
-                    </button>
-                </div>
-
-                <div style="margin-bottom: 1em; margin-top: 1em; min-height: 0.25em; display: flex; flex-shrink: 1" class="organizeProgress">
-                    <div class="itemProgressBar itemProgressBarRound flex-grow"></div>
-                </div>
-
-                <div style="padding: 0.25em 0 0.25em 0; width: 100%; display: flex; justify-content: start; align-items: center;">
-                    <div class="flex flex-grow">
-                        <svg style="width: 24px; height: 24px; padding: 0.5em 0.25em 0 0" viewBox="0 0 24 24">
-                            <path fill="var(--focus-background)" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path>
-                        </svg>
-                        <label class="inputLabel inputLabelUnfocused" for="txtSearch"></label>
-                        <input class="emby-input" id="txtSearch" type="text">
-                        <div class="fieldDescription search"></div>
-                    </div>
-
-                    <div class="flex-grow"></div>
-
-                    <div class="selectContainer">
-                        <label class="selectLabel selectLabelText" for="filterDropdown">Display:</label>
-                        <select id="filterDropdown" is="emby-select" label="Display:" class="emby-select-backdropfilter emby-select">
-                            <option value="All">All</option>
-                            <option value="Movie">Movies</option>
-                            <option value="Episode">Episodes</option>
-                            <option value="Unknown" class="hide" id="optionUnknownMedia">Unknown</option>
-                        </select>
-                        <div class="selectArrowContainer"><div style="visibility:hidden;">0</div><i class="selectArrow md-icon"></i></div>
-                    </div>
-
+                <div class="selectContainer">
+                    <label class="selectLabel selectLabelText" for="filterDropdown">Display:</label>
+                    <select id="filterDropdown" is="emby-select" label="Display:" class="emby-select-backdropfilter emby-select">
+                        <option value="All">All</option>
+                        <option value="Movie">Movies</option>
+                        <option value="Episode">Episodes</option>
+                        <option value="Unknown" class="hide" id="optionUnknownMedia">Unknown</option>
+                    </select>
+                    <div class="selectArrowContainer"><div style="visibility:hidden;">0</div><i class="selectArrow md-icon"></i></div>
                 </div>
 
             </div>
+
+        </div>
         <!--</div>-->
 
 
@@ -108,7 +106,6 @@
 
             </div>
         </div>-->
-
         <!--<div class="autoorganizetable table detailTable">
             <table class="tblOrganizationResults" style="width:100%">
                 <thead>
@@ -123,11 +120,11 @@
                             </div>
                         </th>
                         <th class="detailTableHeaderCell" data-priority="3">
-	            <div class="listTopPaging">
-	            </div>
+                <div class="listTopPaging">
+                </div>
             </div>
         </div>-->
-        
+
 
         <div class="autoorganizetable table hide" style="padding-bottom: 2em; margin-top: 23em; border-collapse: collapse; border-spacing: 0; text-align: left; width: 100%;">
             <table class="tblOrganizationResults" style="width:100%">
@@ -169,7 +166,6 @@
                         <th class="detailTableHeaderCell" data-priority="2">Source</th>
                         <th class="detailTableHeaderCell" data-priority="2">Destination</th>
                         <th class="detailTableHeaderCell" data-priority="3">Actions</th> <!--Sorting option buttons - we'll call them Actions in the UI-->
-
                         <!--<th class="detailTableHeaderCell" data-priority="1"></th>-->
                         <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top" data-priority="1">Release/<br>Edition</th>
                         <th style="border-spacing: 0; padding: .4em; font-weight: 700; text-align: left; vertical-align: top; width: 8em" data-priority="1">Quality</th>
