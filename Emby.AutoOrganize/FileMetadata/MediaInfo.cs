@@ -138,14 +138,14 @@ namespace Emby.AutoOrganize.FileMetadata
 
             var diagonal = Math.Round(Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height, 2)), 2);
 
-            if (diagonal < 579.0)                          return "SD";    //4:3
-            if (diagonal > 579.0   && diagonal <= 749)     return "480p";  //4:3
-            if (diagonal > 749.0   && diagonal <= 920.0)   return "540p";
-            if (diagonal > 920.0   && diagonal <= 1101.4)  return "576p";
-            if (diagonal > 1101.4  && diagonal <= 1468.6)  return "720p";  //16:9
-            if (diagonal > 1468.6  && diagonal <= 2937.21) return "1080p"; //16:9 or 1:1.77
-            if (diagonal > 2937.21 && diagonal <= 4406)    return "2160p"; //1:1.9 - 4K
-            if (diagonal > 4406    && diagonal <= 8811.63) return "4320p"; //16∶9 - 8K
+            if (diagonal < 579)                          return "SD";    //4:3
+            if (diagonal > 579   && diagonal <= 749)     return "480p";  //4:3
+            if (diagonal > 749   && diagonal <= 920)   return "540p";
+            if (diagonal > 920.00   && diagonal <= 1102)  return "576p";
+            if (diagonal > 1102  && diagonal <= 1469)  return "720p";  //16:9
+            if (diagonal > 1469  && diagonal <= 2938) return "1080p"; //16:9 or 1:1.77
+            if (diagonal > 2938 && diagonal <= 4406)    return "2160p"; //1:1.9 - 4K
+            if (diagonal > 4406    && diagonal <= 8812) return "4320p"; //16∶9 - 8K
 
             return "Unknown";
         }

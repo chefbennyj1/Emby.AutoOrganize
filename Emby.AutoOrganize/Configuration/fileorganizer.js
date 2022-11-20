@@ -94,7 +94,7 @@
             
             //Don't add the production year if the name contains it already. 
             if (s.Name.includes(`(${s.ProductionYear})`)) {
-                return '<option data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + '</option>';
+                return '<option data-path="'+ s.Path + '" data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + '</option>';
             }
             return '<option data-name="' + s.Name + '" data-year="' + s.ProductionYear + '" value="' + s.Id + '">' + s.Name + (s.ProductionYear ? ` (${s.ProductionYear})` : "") + '</option>';
 
@@ -260,7 +260,7 @@
 
             case "Movie":
 
-                options.MovieId             = mediaId;
+                options.MovieId = mediaId;
 
                 break;
         }
@@ -274,7 +274,7 @@
 
         var message = "";
        
-        //Has the user has changed the target folder path
+        //Has the user changed the target folder path
         if (item.TargetPath && options.TargetFolder) {
             if (item.TargetPath.substring(0, options.TargetFolder.length) !== options.TargetFolder) {
                 //The user has changed the target folder

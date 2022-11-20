@@ -51,7 +51,8 @@ namespace Emby.AutoOrganize.Core.FileOrganization
         }
 
         public async Task<FileOrganizationResult> OrganizeFile(bool requestToMoveFile, string path, AutoOrganizeOptions options, CancellationToken cancellationToken)
-        {                
+        {              
+            
             Log.Info("Sorting file {0}", path);
 
             FileOrganizationResult result = null;
@@ -84,22 +85,32 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     Date = DateTime.UtcNow,
                     OriginalPath = path,
                     OriginalFileName = Path.GetFileName(path),
-                    ExtractedEdition = RegexExtensions.GetReleaseEditionFromFileName(Path.GetFileName(path)),
+                    ExtractedEdition = RegexExtensions.ParseReleaseEditionFromFileName(Path.GetFileName(path)),
                     Type = FileOrganizerType.Movie,
                     FileSize = FileSystem.GetFileInfo(path).Length,
-                    SourceQuality = RegexExtensions.GetSourceQuality(Path.GetFileName(path)),
+                    SourceQuality = RegexExtensions.ParseSourceQualityFromFileName(Path.GetFileName(path)),
                     ExtractedResolution = new Resolution(),
-                    
+                    Status = FileSortingStatus.Checking
                 };
             }
             
+            //We are processing the file here, just return.
+            if (LibraryMonitor.IsPathLocked(path.AsSpan()) && result.Status == FileSortingStatus.Processing || result.Status == FileSortingStatus.Processing)
+            {
+                OrganizationService.SaveResult(result, cancellationToken);
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
+                return result;
+            }
+            
+            var isCopying = IsCopying(path, FileSystem);
             //Check to see if we can access the file path, or if the file path is being used.
-            if (LibraryMonitor.IsPathLocked(path.AsSpan()) && result.Status != FileSortingStatus.Processing || IsCopying(path, FileSystem))
+            if ((LibraryMonitor.IsPathLocked(path.AsSpan()) && (result.Status != FileSortingStatus.Processing)))
             {
                 result.Status = FileSortingStatus.InUse;
                 result.Date = DateTime.UtcNow; //Update the Date so that it moves to the top of the list in the UI (UI table is sorted by date)
-                result.StatusMessage = "Path is locked by other processes. Please try again later.";
+                result.StatusMessage = $"Path is locked by other processes. Please try again later. is Copying: {isCopying}";
                 Log.Info("Auto-organize Path is locked by other processes. Please try again later.");
+                
                 OrganizationService.SaveResult(result, cancellationToken);
                 EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
                 return result;
@@ -134,12 +145,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 
             }
 
-            if (LibraryMonitor.IsPathLocked(path.AsSpan()) && result.Status == FileSortingStatus.Processing)
-            {
-                OrganizationService.SaveResult(result, cancellationToken);
-                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log); //Update the UI
-                return result;
-            }
+           
 
             //If we have the proper data to sort the file, and the user has requested it. Sort it!
             if (!string.IsNullOrEmpty(result.TargetPath) && requestToMoveFile)
@@ -153,85 +159,45 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 var movieName = string.Empty;
                 int? movieYear = null;
 
-                //Parse the file name for naming info
-                var movieInfoFromFile = LibraryManager.ParseName(FileSystem.GetFileNameWithoutExtension(path).AsSpan());
-               
-                movieName = movieInfoFromFile.Name;
-                movieYear = movieInfoFromFile.Year;
+                var fileName = FileSystem.GetFileNameWithoutExtension(path);
                 
-                //Movie name could be null or empty
-                //Or it could contain a dash. ex: "exq-MovieName.2022.1080p.etc.ext"
-                //If the movie name contains a dash (this is a typical naming convention from online resources), it may not be possible to parse an actual name for the file.
-                //Try the parent folder for proper naming so emby will understand.
-                if (movieName.Substring(0, movieName.Length / 2).Contains("-") || string.IsNullOrEmpty(movieName))
-                {
-                    Log.Info("Checking parent folder for movie naming...");
-
-                   
-                    //Split the file path by the Separator
-                    var paths = path.Split(FileSystem.DirectorySeparatorChar);
-
-                    //our parent folder
-                    var parentFolderName = paths[paths.Count() - 2];
-
-                    //Parse the Parent folder for some kind of proper naming
-                    var movieInfoFromParentFolder = LibraryManager.ParseName(parentFolderName.AsSpan());
-
-
-                    //Check those values...
-                    //Both attempts to read a movie name from the file and parent folder has no results
-                    //User will have to sort with corrections.
-                    if (string.IsNullOrEmpty(movieInfoFromFile.Name) && string.IsNullOrEmpty(movieInfoFromParentFolder.Name))
-                    {
-                        var msg = $"Unable to determine movie name from {path}";
-                        result.Status = FileSortingStatus.Failure;
-                        result.StatusMessage = msg;
-                        Log.Warn(msg);
-                        OrganizationService.SaveResult(result, cancellationToken);
-                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                        return result;
-                    }
-
-                    //We found everything we need.
-                    if (!string.IsNullOrEmpty(movieInfoFromParentFolder.Name) && movieInfoFromParentFolder.Year.HasValue)
-                    {
-                        Log.Info("Parsed movie name from parent folder successful...");
-                        movieName = movieInfoFromParentFolder.Name;
-                        movieYear = movieInfoFromParentFolder.Year;
-
-                        //We'll update the Edition Information here again, because the parent folder most likely contains the proper data we need to identify the movie.
-                        result.ExtractedEdition = RegexExtensions.GetReleaseEditionFromFileName(parentFolderName);
-                        result.SourceQuality = RegexExtensions.GetSourceQuality(parentFolderName);
-
-                    }
-                    //We'll reset, and try again with the file name
-                    else
-                    {
-                        Log.Info("Parsed movie name from parent folder failed. Using file name...");
-                        movieName = string.Empty;
-                    }
-
-                }
-
-                //We tried the parent folder for naming, but got nothing...
-                //Use the file name which may contains a dash. ex: exq-Movie.Name.2022.1080p.etc.ext
-                //Use Regex to select everything after the first dash.
-                //This isn't great, but we'll also keep an eye out for movies that have strings which contain "-Man" or "-man".
-                //It may seem specific, however modern/contemporary movies (Hero movies) may contain a dash, and need to be excluded from this check. 
-                //So, we're taking that into consideration. 
                 if (string.IsNullOrEmpty(movieName))
-                {
-                    Log.Info("Parsing movie name from file name...");
-                    var regexName = new Regex(@"(?<=[a-zA-Z0-9{0,5}]-(\b(?![Mm]an)\b))(?:.*)");
-                    var namingMatch = regexName.Match(FileSystem.GetFileNameWithoutExtension(path));
+                {                 
+                    if (fileName.Substring(0, 5).Contains('-'))
+                    {                        
+                        //Use the file name which may contains a dash at the beginning of the file name. ex: exq-Movie.Name.2022.1080p.etc.ext
+                        //Use Regex to select everything after the first dash.
+                        //This isn't great, but we'll also keep an eye out for movies that have strings which contain "-Man" or "-man".
+                        //It may seem specific, however modern/contemporary movies (Hero movies) may contain a dash, and need to be excluded from this check. 
+                        Log.Info("Parsing movie name from file name...");
+                        var regexName = new Regex(@"(?<=[a-zA-Z0-9A-Za-z0-9àâçéèêëîïôûùüÿñæœÀÂÉÊÈËÌÏÎÔÙÛÇÆŒ{0,5}]-(\b(?![Mm]an)\b))(?:.*)");
+                        var namingMatch = regexName.Match(fileName);
 
-                    if (namingMatch.Success)
+                        if (namingMatch.Success)
+                        {
+                            Log.Info("Parsed movie name from file name successful...");
+                            movieName = namingMatch.Value;
+                        }                        
+                    }                    
+
+                    if (string.IsNullOrEmpty(movieName))
                     {
-                        Log.Info("Parsed movie name from file name successful...");
-                        movieName = namingMatch.Value;
+                        var namingMatch = Regex.Matches(fileName, @"([ .\w']+?)(\W\d{4}\W?.*)")[0].Groups[1].Value; //Groups[1] because Groups[0] is the whole fileName
+
+                        namingMatch = namingMatch.Replace(".", " ");                        
+                        movieName = namingMatch;
                     }
                 }
-
+                 
+                //Some movie naming puts the Edition information before the year. ex: "MovieName.UNCUT.2022.1080p.etc.ext"
+                //Emby must look at the Year to decide the name when using LibraryManager.ParseName() method.
+                //This results in the edition information getting parsed with the name.
+                //
+                //result => "MovieName UNCUT"
+                //
+                //We'll strip it here,  We only want the "MovieName".
+                movieName = movieName.Replace(result.ExtractedEdition, string.Empty).Trim();
+                
                 if (!movieYear.HasValue)
                 {
                     Log.Info("Parsing movie year from file name...");
@@ -245,31 +211,31 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     }
                 }
 
-
-
-                //Some movie naming places the Edition information before the year. ex: "MovieName.UNCUT.2022.1080p.etc.ext"
-                //Emby must look at the Year to decide the name, when using LibraryManager.ParseName() method.
-                //This results in the edition information gets parsed with the name.
+                //...And sometimes Emby LibraryManager.ParseName() method will Parse the Year in the name...
                 //
-                //result => "MovieName UNCUT"
-                //
-                //We'll strip it here,  We only want the "MovieName".
-                movieName = movieName.Replace(result.ExtractedEdition, string.Empty).Trim();
-                
-
-                //...And sometimes Emby LibraryManager.ParseName() method will Parse the Year in the name as well.
-                //
-                //result =>  "MovieName (2022)"
+                //result =>  "MovieName (2022)" or MovieName 2022
                 //
                 //We'll have to strip the year next. We only want the "MovieName".
                 if (movieYear.HasValue)
                 {
                     movieName = movieName.Replace($"({movieYear.Value})", string.Empty).Trim();
+                    movieName = movieName.Replace($"{movieYear.Value}", string.Empty).Trim();
+                    
                 }
 
-                //Clean up the movie name that the Library Manager parsed, it will still contain unwanted character, and it may still contain the Resolution.
-                
-                movieName = Regex.Replace(movieName, @"[^A-Za-z0-9\s+]|[0-9]{3,4}[Pp]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                //Clean up the movie name that the Library Manager parsed, it will still contain unwanted character.                
+                if (Regex.Match(movieName, @"(?=-[Mm]an)").Success) //<== This check again! dammit!
+                {                   
+                    movieName = Regex.Replace(movieName, @"[^-A-Za-z0-9A-Za-z0-9àâçéèêëîïôûùüÿñæœÀÂÉÊÈËÌÏÎÔÙÛÇÆŒ\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                } 
+                else
+                {
+                    movieName = Regex.Replace(movieName, @"[^A-Za-z0-9A-Za-z0-9àâçéèêëîïôûùüÿñæœÀÂÉÊÈËÌÏÎÔÙÛÇÆŒ\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+                }
+
+                //The name still may have the resolution attached. Get rid of it!
+                movieName = Regex.Replace(movieName, @"[[0-9]{3,4}[Pp]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim();
+
                 movieName = new CultureInfo("en-US", false).TextInfo.ToTitleCase(movieName.Trim());
                 
                 Log.Info($"Extracted information from {path}. Movie {movieName}, Year {(movieYear.HasValue ? movieYear.Value.ToString() : " Can not parse year")}");
@@ -285,48 +251,57 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
                
                 
-                //If we have both a year and a name, that is all we really need to name the file for the user
+
+                //If we have both a year and a movie name, begin to name the file for the user, and find a target folder to place it in.
+                //It may exist already... so we will check that now.
                 if (!string.IsNullOrEmpty(result.ExtractedName) && result.ExtractedYear.HasValue)
-                {
-                    var targetFolder = "";
-                    //if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
-                    //{
-                    //    targetFolder = options.DefaultMovieLibraryPath;
-                    //} 
-                    //else
-                    //{
-                    //    //The user didn't filling the settings - warn the log, return failure - that is all
-                    //    var msg = $"Auto sorting for {movieName} is not possible. Please choose a default library path in settings";
-                    //    result.Status = FileSortingStatus.Failure;
-                    //    result.StatusMessage = msg;
-                    //    Log.Warn(msg);
-                    //    OrganizationService.SaveResult(result, cancellationToken);
-                    //    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                    //    return result;
-                    //}
-
-                    try
+                {                   
+                    
+                    Log.Info($"Searching Library for matching movie {result.ExtractedName}...");
+                    var matchingMovie = GetMatchingMovie(result.ExtractedName, result.ExtractedYear, result);
+                   
+                    if(matchingMovie != null) //Found one
                     {
-                        targetFolder = ResolveTargetFolder(result, options, cancellationToken);
-                    }
-                    catch (InvalidTargetFolderException ex)
-                    {
-                        //The user didn't filling the settings - warn the log, return failure - that is all
-                        result.Status = FileSortingStatus.Failure;
-                        result.StatusMessage = ex.Message;
-                        Log.Warn(ex.Message);
-                        OrganizationService.SaveResult(result, cancellationToken);
-                        EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                        return result;
+                        Log.Info($"Matching movie found in library: { matchingMovie.Name }");                        
+                        var existingItemDirectory = Path.GetDirectoryName(matchingMovie.Path);
+                        result.TargetPath = Path.Combine(existingItemDirectory, GetMovieFileName(result.OriginalPath, result, options));;
+                        Log.Info($"Movie: {result.ExtractedName} - Target path has been calculated as: {result.TargetPath}");
                     }
 
-                    //Name the file path with the options the user filled out, and the meta from the source file name.
-                    var movieFolderName = GetMovieFolderName(result, options);
-                    var movieFileName   = GetMovieFileName(result.OriginalPath, result, options);
-                    result.TargetPath   = Path.Combine(targetFolder, movieFolderName, movieFileName);
+                    if (string.IsNullOrEmpty(result.TargetPath))
+                    {
+                        var targetFolder = "";
+                        try
+                        {
+                            targetFolder = ResolveTargetFolder(result, options, cancellationToken);
+                        }
+                        catch (InvalidTargetFolderException ex)
+                        {
+                            //The user didn't filling the settings - warn the log, return failure - that is all
+                            result.Status = FileSortingStatus.Failure;
+                            result.StatusMessage = ex.Message;
+                            Log.Warn(ex.Message);
+                            OrganizationService.SaveResult(result, cancellationToken);
+                            EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
+                            return result;
+                        }
 
-                    Log.Info($"Movie: {result.ExtractedName} - Target path has been calculated as: {result.TargetPath}");
-                    //organize the the file
+                        //Name the file path with the options the user filled out, and the meta from the source file name.
+                        var moviePath = "";
+
+                        if (options.CreateMovieInFolder)
+                        {
+                            moviePath = Path.Combine(moviePath, GetMovieFolderName(result, options));
+                        }
+
+                        moviePath = Path.Combine(moviePath, GetMovieFileName(result.OriginalPath, result, options));
+
+                        result.TargetPath = Path.Combine(targetFolder, moviePath);
+
+                        Log.Info($"Movie: {result.ExtractedName} - Target path has been calculated as: {result.TargetPath}");
+                    }
+                    
+                    //ready to organize the the file
                     OrganizeMovie(requestToMoveFile, path, options, result, cancellationToken);
 
                     return result;
@@ -334,7 +309,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 }
 
                     
-                //We don't have a name or a year... most likely a year is missing. We'll need that to sort the file - it's an option the user has for naming.
+                //If we've gotton this far then we don't have a name or maybe a year... most likely a year is missing. We'll need that to sort the file - it's an option the user has for naming.
                 
                 //Maybe the movie already part of the library... ...
                 var movie = GetMatchingMovie(result.ExtractedName, movieYear, result);
@@ -446,8 +421,9 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 if (options.CreateMovieInFolder)
                 {
-                    movieFolderPath = Path.Combine(movieFolderPath, GetMovieFolderName(result, options));
+                    movieFolderPath =  Path.Combine(movieFolderPath, GetMovieFolderName(result, options));
                 }
+                
 
                 movieFolderPath = Path.Combine(movieFolderPath, GetMovieFileName(result.OriginalPath, result, options));
                 
@@ -512,9 +488,14 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                     OrganizationService.SaveResult(result, cancellationToken);
 
                     //Name the file path with the options the user filled out, and the request.
-                    var movieFolderName = GetMovieFolderName(result, options);
+                    var movieFolderPath = "";
+                    if (options.CreateMovieInFolder)
+                    {
+                        movieFolderPath =  Path.Combine(movieFolderPath, GetMovieFolderName(result, options));
+                    }
+                       
                     var movieFileName   = GetMovieFileName(result.OriginalPath, result, options);
-                    result.TargetPath   = Path.Combine(targetRootFolder, movieFolderName, movieFileName);
+                    result.TargetPath   = Path.Combine(targetRootFolder, movieFolderPath, movieFileName);
                     
                     //organize the the file
                     OrganizeMovie(overwriteFile, result.OriginalPath, options, result, cancellationToken);
@@ -599,18 +580,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 //The actual file, or the movie folder it lives in.
                 var fileExists = FileSystem.FileExists(result.TargetPath) || FileSystem.DirectoryExists(FileSystem.GetDirectoryName(result.TargetPath));
-                
-                //The source path might be in use. The file could still be copying from it's origin location into watched folder. Status maybe "InUse"
-                if (IsCopying(sourcePath, FileSystem) && !result.IsInProgress && result.Status != FileSortingStatus.Processing)
-                {
-                    var msg = $"File '{sourcePath}' is currently in use, stopping organization";
-                    Log.Info(msg);
-                    result.Status = FileSortingStatus.InUse;
-                    result.StatusMessage = msg;
-                    OrganizationService.SaveResult(result, cancellationToken);
-                    EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), Log);
-                    return;
-                }
+                                
 
                 //User is forcing sorting from the UI - Sort it!
                 if (overwriteFile)
@@ -1185,7 +1155,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 .Replace("%m_n", movieName.Replace(" ", "_"))
                 .Replace("%my", productionYear)
                 .Replace("%res", result.ExtractedResolution.Name)
-                .Replace("%e", RegexExtensions.GetReleaseEditionFromFileName(Path.GetFileName(result.OriginalPath)))
+                .Replace("%e", RegexExtensions.ParseReleaseEditionFromFileName(Path.GetFileName(result.OriginalPath)))
                 .Replace("%fn", Path.GetFileNameWithoutExtension(result.OriginalPath));
 
             Log.Debug("Movie Folder Pattern: {0}", patternResult);
@@ -1230,7 +1200,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
             if (customSmartMatches.Any())
             {
                 //Replace any non-alpha/non-numeric characters from the file name and replace with space, then split it by spaces.
-                var fileNameEntities = Regex.Replace(result.OriginalPath, @"[^A-Za-z0-9\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim().Split(' ');
+                var fileNameEntities = Regex.Replace(result.OriginalPath, @"[^A-Za-z0-9A-Za-z0-9àâçéèêëîïôûùüÿñæœÀÂÉÊÈËÌÏÎÔÙÛÇÆŒ\s+]", " ", RegexOptions.IgnoreCase).Replace("  ", " ").Trim().Split(' ');
 
                 foreach (var match in customSmartMatches.Where(m => m.OrganizerType == FileOrganizerType.Movie))
                 {

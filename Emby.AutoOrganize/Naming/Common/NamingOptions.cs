@@ -51,7 +51,8 @@ namespace Emby.AutoOrganize.Naming.Common
                 "Ultimate Edition",
                 "Remastered",
                 "IMAX",
-                "Recut"
+                "Recut",
+                "Extended Version"
             };
             
             VideoFileExtensions = new string[]

@@ -1,4 +1,5 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'components/taskbutton', 'paper-icon-button-light', 'formDialogStyle', 'emby-linkbutton', 'emby-collapse', 'emby-input'],
+﻿define(['globalize', 'serverNotifications', 'events', 'datetime', 'loading', 'mainTabsManager', 'dialogHelper', 'components/taskbutton', 'paper-icon-button-light', 
+    'formDialogStyle', 'emby-linkbutton', 'emby-collapse', 'emby-input', 'emby-scroller'],
     function (globalize, serverNotifications, events, datetime, loading, mainTabsManager, dialogHelper, taskButton) {
 
         ApiClient.removeRepositoryEntry = function (id) {
@@ -32,7 +33,7 @@
 
             } catch (err) {
 
-                return "";
+                return null;
             }
         };
 
@@ -184,10 +185,6 @@
             });
         }
 
-
-        function refreshTableItem(page, id) {
-
-        }
 
         function showCorrectionPopup(page, item) {
 
@@ -565,10 +562,13 @@
                 query.Limit = 200; //only return top 200
             }
             query.NameStartsWith = encodeURI(searchTerm);
-            var result = await ApiClient.getFileOrganizationResults(query);
-            currentResult = result;
             
-            await renderResults(page, result);
+            var result = await ApiClient.getFileOrganizationResults(query);
+
+            if (result) {
+                currentResult = result;
+                await renderResults(page, result);
+            }
 
             page.querySelectorAll('.btnShowStatusMessage').forEach(btn => {
                 btn.addEventListener('click',
@@ -607,7 +607,7 @@
                     });
             })
 
-            page.querySelectorAll('.btnRemoveRepositoryEntry').forEach(btn => {
+            page.querySelectorAll('.btnReprocessRepositoryEntry').forEach(btn => {
                 btn.addEventListener('click',
                     async (e) => {
                         let id = e.target.closest('button').getAttribute('data-resultid');                        
@@ -698,17 +698,19 @@
 
             if (Object.prototype.toString.call(page) !== "[object Window]") {
 
+                if(!result.Items) return;
+
                 var items = result.Items;
 
                 var table = page.querySelector('.autoorganizetable');
                 var mobileCardsContainer = page.querySelector('.mobileOrganizeMobileCardsContainer');
                 var mobileCards = page.querySelector('.autoOrganizeMobileCards');
-                var organizeTaskPanel = page.querySelector('.organizeTaskPanel');
+                //var organizeTaskPanel = page.querySelector('.organizeTaskPanel');
 
                 if (document.body.clientWidth > 1200) {
 
                     //We are rendering fullscreen table results
-                    organizeTaskPanel.style.width = "80%";
+                    //organizeTaskPanel.style.width = "80%";
 
                     table.classList.remove('hide');
                     mobileCardsContainer.classList.add('hide');
@@ -736,7 +738,7 @@
 
                 } else {
 
-                    organizeTaskPanel.style.width = "90%";
+                    //organizeTaskPanel.style.width = "90%";
                     //We are rendering mobile result cards
                     table.classList.add('hide');
                     mobileCardsContainer.classList.remove('hide');
@@ -763,13 +765,13 @@
                 var topPaging = page.querySelector('.listTopPaging');
                 topPaging.innerHTML = pagingHtml;
 
-                var bottomPaging = page.querySelector('.listBottomPaging');
-                bottomPaging.innerHTML = pagingHtml;
+                //var bottomPaging = page.querySelector('.listBottomPaging');
+                //bottomPaging.innerHTML = pagingHtml;
 
                 var btnNextTop = topPaging.querySelector(".btnNextPage");
-                var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
+                //var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
                 var btnPrevTop = topPaging.querySelector(".btnPreviousPage");
-                var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
+                //var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
 
                 if (btnNextTop) {
                     btnNextTop.addEventListener('click', async function () {
@@ -778,12 +780,12 @@
                     });
                 }
 
-                if (btnNextBottom) {
-                    btnNextBottom.addEventListener('click', async function () {
-                        query.StartIndex += query.Limit;
-                        await reloadItems(page, true);
-                    });
-                }
+                //if (btnNextBottom) {
+                //    btnNextBottom.addEventListener('click', async function () {
+                //        query.StartIndex += query.Limit;
+                //        await reloadItems(page, true);
+                //    });
+                //}
 
                 if (btnPrevTop) {
                     btnPrevTop.addEventListener('click', async function () {
@@ -792,12 +794,12 @@
                     });
                 }
 
-                if (btnPrevBottom) {
-                    btnPrevBottom.addEventListener('click', async function () {
-                        query.StartIndex -= query.Limit;
-                        await reloadItems(page, true);
-                    });
-                }
+                //if (btnPrevBottom) {
+                //    btnPrevBottom.addEventListener('click', async function () {
+                //        query.StartIndex -= query.Limit;
+                //        await reloadItems(page, true);
+                //    });
+                //}
 
             }
 
@@ -832,20 +834,20 @@
         function getButtonSvgIconRenderData(btn_icon) {
             switch (btn_icon) {
                 case 'IdentifyBtn': return {
-                    path: "M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H13C12.59,21.75 12.2,21.44 11.86,21.1C11.53,20.77 11.25,20.4 11,20H6V4H13V9H18V10.18C18.71,10.34 19.39,10.61 20,11V8L14,2M20.31,18.9C21.64,16.79 21,14 18.91,12.68C16.8,11.35 14,12 12.69,14.08C11.35,16.19 12,18.97 14.09,20.3C15.55,21.23 17.41,21.23 18.88,20.32L22,23.39L23.39,22L20.31,18.9M16.5,19A2.5,2.5 0 0,1 14,16.5A2.5,2.5 0 0,1 16.5,14A2.5,2.5 0 0,1 19,16.5A2.5,2.5 0 0,1 16.5,19Z",
+                    path: "M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z",
                     color: 'var(--focus-background)'
                 };
                 case 'DeleteBtn': return {
-                    path: "M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z",
-                    color: 'var(--focus-background) '
+                    path: "M20 6.91L17.09 4L12 9.09L6.91 4L4 6.91L9.09 12L4 17.09L6.91 20L12 14.91L17.09 20L20 17.09L14.91 12L20 6.91Z",
+                    color: 'orangered'
                 };
                 case 'ProcessBtn': return {
-                    path: "M4 7C4 4.79 7.58 3 12 3S20 4.79 20 7 16.42 11 12 11 4 9.21 4 7M19.72 13.05C19.9 12.71 20 12.36 20 12V9C20 11.21 16.42 13 12 13S4 11.21 4 9V12C4 14.21 7.58 16 12 16C12.65 16 13.28 15.96 13.88 15.89C14.93 14.16 16.83 13 19 13C19.24 13 19.5 13 19.72 13.05M13.1 17.96C12.74 18 12.37 18 12 18C7.58 18 4 16.21 4 14V17C4 19.21 7.58 21 12 21C12.46 21 12.9 21 13.33 20.94C13.12 20.33 13 19.68 13 19C13 18.64 13.04 18.3 13.1 17.96M23 19L20 16V18H16V20H20V22L23 19Z",
-                    color: 'var(--focus-background)'
+                    path: "M21,12L14,5V9C7,10 4,15 3,20C5.5,16.5 9,14.9 14,14.9V19L21,12Z",
+                    color: '#6ccf65'
                 }
-                case 'RemoveRepositoryEntryBtn': return {
-                    path: "M13 3C8 3 4 7 4 12H1L4.9 15.9L5 16L9 12H6C6 8.1 9.1 5 13 5S20 8.1 20 12 16.9 19 13 19C11.1 19 9.3 18.2 8.1 16.9L6.7 18.3C8.3 20 10.5 21 13 21C18 21 22 17 22 12S18 3 13 3M12 15H14V17H12V15M12 7H14V13H12V7",
-                    color: 'var(--focus-background)'
+                case 'ReprocessRepositoryEntryBtn': return {
+                    path: "M10.5 3H18V7H10.5C8.57 7 7 8.57 7 10.5S8.57 14 10.5 14H13V10L20 16L13 22V18H10.5C6.36 18 3 14.64 3 10.5S6.36 3 10.5 3Z",
+                    color: 'var(--theme-accent-text-color-darkbg)'
                 };
             }
         }
@@ -1217,10 +1219,11 @@
                         
                         var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
                         
-                        html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="Identify" style="background-color:transparent">';
+                        html += '<button type="button" data-resultid="' + item.Id + '" data-type="' + item.Type + '" class="btnIdentifyResult organizerButton autoSize emby-button" title="Identify" style="background-color:transparent; border-radius:25px;border: solid 1px rgba(32,32,32,0.2);font-size: smaller;">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
                         html += '<path fill="var(--focus-background)" d="' + identifyBtn.path + '"/>';
                         html += '</svg>';
+                        html += ' Identify';
                         html += '</button>';
                         
                     }
@@ -1233,31 +1236,36 @@
 
                         var processBtn = getButtonSvgIconRenderData("ProcessBtn");
                         
-                        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button" title="Organize" style="background-color:transparent">';
+                        html += '<button type="button" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize emby-button" title="Organize" style="background-color:transparent; border-radius:25px;border: solid 1px rgba(32,32,32,0.2);font-size: smaller;">';
                         html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-                        html += '<path fill="var(--focus-background)" d="' + processBtn.path + '"/>';
+                        html += '<path fill="' + processBtn.color + '" d="' + processBtn.path + '"/>';
                         html += '</svg>';
+                        html += ' Organize';
                         html += '</button>';
                     }
+
+                    //Removes the entry from the Database only, but keeps the file in the source folder. use this to refresh the item result
+                    var deleteRepositoryEntry = getButtonSvgIconRenderData("ReprocessRepositoryEntryBtn");
+                    html += '<button type="button" data-resultid="' + item.Id + '" class="btnReprocessRepositoryEntry organizerButton autoSize emby-button" title="Reprocess" style="background-color:transparent; border-radius:25px;border: solid 1px rgba(32,32,32,0.2);font-size: smaller;">';
+                    html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+                    html += '<path fill="' + deleteRepositoryEntry.color + '" d="' + deleteRepositoryEntry.path + '"/>';
+                    html += '</svg>';
+                    html += ' Re-process';
+                    html += '</button>';
+                    
                 }
             }
 
+           
+            
             //Delete Entry Button - This deletes the item from the log window and removes it from watched folder - always show this option
             var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
-
-            html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="Delete" style="background-color:transparent">';
+            html += '<button type="button" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize emby-button" title="Delete" style="background-color:transparent; border-radius:25px;border: solid 1px rgba(32,32,32,0.2);font-size: smaller;">';
             html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-            html += '<path fill="var(--focus-background)" d="' + deleteBtn.path + '"/>';
+            html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
             html += '</svg>';
             html += '</button>';
 
-            //Removes the entry from the Database only to refresh the item data
-            var deleteRepositoryEntry = getButtonSvgIconRenderData("RemoveRepositoryEntryBtn");
-            html += '<button type="button" data-resultid="' + item.Id + '" class="btnRemoveRepositoryEntry organizerButton autoSize emby-button" title="Redo" style="background-color:transparent" data-taskid="1ec5b785c4111045fc22055e467e2fff">';
-            html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
-            html += '<path fill="var(--focus-background)" d="' + deleteRepositoryEntry.path + '"/>';
-            html += '</svg>';
-            html += '</button>';
             return html;
         }
         
@@ -1307,11 +1315,7 @@
                 if (data && data.ScheduledTask.Key === 'AutoOrganize') {
 
                     updateTaskScheduleLastRun(data);
-                    //var taskProgress = pageGlobal.querySelector('.organizeProgress');
-                    //taskProgress.classList.remove('hide');
-                    //animateElement(taskProgress.querySelector('svg'), "blink");
-
-                    //checkUpdatingTableItems(pageGlobal);
+                    
                 }
 
             } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
@@ -1331,11 +1335,12 @@
         }
 
         function updateTaskScheduleLastRun(data) {
-
             if (data) {
-                var last_task_run_header = pageGlobal.querySelector('.last-execution-time');
-                var last_run_time = datetime.parseISO8601Date(data.LastExecutionResult.EndTimeUtc, true);
-                last_task_run_header.innerHTML = datetime.toLocaleTimeString(last_run_time);
+                if (data.LastExecutionResult) {
+                    var last_task_run_header = pageGlobal.querySelector('.last-execution-time');
+                    var last_run_time = datetime.parseISO8601Date(data.LastExecutionResult.EndTimeUtc, true);
+                    last_task_run_header.innerHTML = datetime.toLocaleTimeString(last_run_time);
+                }
             }
         }
 
@@ -1395,7 +1400,7 @@
                 } catch (err) { }
 
                 try {
-                    row.querySelector('.btnRemoveRepositoryEntry').addEventListener('click',
+                    row.querySelector('.btnReprocessRepositoryEntry').addEventListener('click',
                         async (e) => {
                             let id = e.target.closest('button').getAttribute('data-resultid');
                             require(['confirm'], function (confirm) {
@@ -1436,7 +1441,7 @@
                 },
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                    name: globalize.translate("HeaderSettings")
+                    name: "Settings"
                 },
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
@@ -1444,7 +1449,7 @@
                 }
             ];
 
-            if (addCorrectionsTab) { //Add corrections tab if corrections exists
+            if (addCorrectionsTab) { //Add corrections tab if corrections exists, and it is turned on in the configuration. Otherwise ignore it.
                 tabs.push({
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeCorrections'),
                     name: 'Corrections'
@@ -1453,6 +1458,7 @@
             return tabs;
         }
 
+        //Yeah this is fancy...
         function processSvgAnimationFrame(next) {
             switch (next) {
                 case 1 : return "M12 20C16.42 20 20 16.42 20 12S16.42 4 12 4 4 7.58 4 12 7.58 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.47 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 7.8L12.3 13H11V7H12.5V9.65L14 7.05L15.3 7.8Z"
@@ -1594,8 +1600,9 @@
 
             view.addEventListener('viewshow', async function () {
 
+                const config = await ApiClient.getNamedConfiguration('autoorganize');
                 const correction = await ApiClient.getFilePathCorrections();
-                addCorrectionsTab = correction.Items.length > 0;
+                addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
                 mainTabsManager.setTabs(this, 0, getTabs);
 
                 events.on(serverNotifications, 'AutoOrganize_LogReset', await onServerEvent);

@@ -258,16 +258,24 @@ namespace Emby.AutoOrganize.Api
 
         public object Get(GetFileOrganizationActivity request)
         {
-            var result = InternalFileOrganizationService.GetResults(new FileOrganizationResultQuery
-            {
-                Limit = request.Limit,
-                StartIndex = request.StartIndex,
-                Type = !string.IsNullOrEmpty(request.Type) ? request.Type : "All",
-                DataOrderDirection = request.Ascending ? "ASC" : "DESC",
-                SortBy = !string.IsNullOrEmpty(request.SortBy) ? request.SortBy : "OrganizationDate"
-            });
+            QueryResult<FileOrganizationResult> result = null;
 
-            
+            try
+            {
+                result = InternalFileOrganizationService.GetResults(new FileOrganizationResultQuery
+                {
+                    Limit = request.Limit,
+                    StartIndex = request.StartIndex,
+                    Type = !string.IsNullOrEmpty(request.Type) ? request.Type : "All",
+                    DataOrderDirection = request.Ascending ? "ASC" : "DESC",
+                    SortBy = !string.IsNullOrEmpty(request.SortBy) ? request.SortBy : "OrganizationDate"
+                });
+            }
+            catch (Exception)
+            {
+                return "{}";
+            }
+
             if (!string.IsNullOrEmpty(request.NameStartsWith))
             {
                 var normalizedSearchTerm = request.NameStartsWith.Replace("%20", " ");

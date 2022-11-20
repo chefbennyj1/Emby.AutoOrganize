@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Emby.AutoOrganize.Configuration;
@@ -23,11 +24,12 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
         private readonly IServerConfigurationManager _config;
         private readonly IProviderManager _providerManager;
 
-        public FileOrganizerScheduledTask(ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, IServerConfigurationManager config, IProviderManager providerManager)
+        
+        public FileOrganizerScheduledTask(ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, ILogManager logManager, IFileSystem fileSystem, IServerConfigurationManager config, IProviderManager providerManager)
         {
             _libraryMonitor = libraryMonitor;
             _libraryManager = libraryManager;
-            _logger = logger;
+            _logger = logManager.GetLogger("AutoOrganize");
             _fileSystem = fileSystem;
             _config = config;
             _providerManager = providerManager;
@@ -48,24 +50,28 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
             get { return "Library"; }
         }
 
-        private AutoOrganizeOptions GetAutoOrganizeOptions()
+        public AutoOrganizeOptions GetAutoOrganizeOptions()
         {
             return _config.GetAutoOrganizeOptions();
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
+            _logger.Info("Beginning file organization scheduled task...");
             var options = GetAutoOrganizeOptions();
             var fileOrganizationService = PluginEntryPoint.Instance.FileOrganizationService;
+
+            if (fileOrganizationService.GetResults(new FileOrganizationResultQuery()).Items
+                .Any(item => item.Status == FileSortingStatus.Processing)) return;
 
             try
             {
                 await new WatchedFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor,
                         fileOrganizationService, _config, _providerManager).Organize(options, cancellationToken, progress);//.ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex)
             {
-
+                _logger.ErrorException(ex.Message, ex);
             }
 
             progress.Report(100.0);

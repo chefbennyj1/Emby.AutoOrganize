@@ -79,12 +79,14 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
 
             var watchLocations = new List<string>();
             
+            //If we're not pre-processing files, check the watch locations directly
             if (!options.EnablePreProcessing)
             {
                 watchLocations = options.WatchLocations.Where(i => IsValidWatchLocation(i, libraryFolderPaths)).ToList();
             }
             else
             {
+                //We are preprocessing files so add the pre-processing destination folders as watched locations.
                 if (!string.IsNullOrEmpty(options.PreProcessingFolderPath))
                 {
                     watchLocations.Add(options.PreProcessingFolderPath);
@@ -113,24 +115,17 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             
             if (!eligibleFiles.Any())
             {
+                _logger.Info("Beginning watched processed directory clean up...");
                 cancellationToken.ThrowIfCancellationRequested();
                 progress.Report(99.0);
 
                 try
                 {
-                    var deleteExtensions = options.LeftOverFileExtensionsToDelete.Select(i => i.Trim().TrimStart('.'))
-                        .Where(i => !string.IsNullOrEmpty(i)).Select(i => "." + i).ToList();
+                    //var deleteExtensions = options.LeftOverFileExtensionsToDelete.Select(i => i.Trim().TrimStart('.'))
+                    //    .Where(i => !string.IsNullOrEmpty(i)).Select(i => "." + i).ToList();
 
-                    // Normal Clean
-                    //Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
-                    Clean(processedFolders, options, deleteExtensions);
-
-                    // Extended Clean
-                    if (options.ExtendedClean)
-                    {
-                        //Clean(watchLocations, watchLocations, options.DeleteEmptyFolders, deleteExtensions);
-                        Clean(processedFolders, options, deleteExtensions);
-                    }
+                    // Clean
+                    CleanWatchedFolderFiles(options);
 
                 }
                 catch (Exception ex)
@@ -175,7 +170,10 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     try
                     {
                         FileOrganizationResult result;
-                        if (eligibleFiles.Count > 3)
+                        //We really shouild bulk process files.
+                        //Checking if there are more then 3 files will stop bulk processing. 
+                        //However, if there are many files to process, then we will bulk process them.
+                        if (eligibleFiles.Count > 3) 
                         {
                             result = organizer.OrganizeFile(false, file.FullName, options, cancellationToken).Result; //<== "Result"" will stop multiple organizations at once, and process one at a time.
                         }
@@ -219,6 +217,9 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                         if (_libraryManager.IsVideoFile(file.FullName.AsSpan()))
                         {
                             FileOrganizationResult result;
+                            //We really shouild bulk process files.
+                            //Checking if there are more then 3 files will stop bulk processing. 
+                            //However, if there are many files to process, then we will bulk process them.
                             if (eligibleFiles.Count > 3)
                             {
                                 result = movieOrganizer.OrganizeFile(false, file.FullName, options, cancellationToken).Result;
@@ -284,33 +285,109 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 progress.Report((currentProgress += step) - 1);
                
             }
+
+            //If we can delete some of the left over organized files in the pre-processing folder here, we should try.            
+            CleanPreProcessingFolder(options);
+
         }
-        private void Clean(IEnumerable<string> paths, AutoOrganizeOptions options, List<string> deleteExtensions)
-        //private void Clean(IEnumerable<string> paths, List<string> watchLocations, bool deleteEmptyFolders, List<string> deleteExtensions)
+        
+        private void CleanWatchedFolderFiles(AutoOrganizeOptions options)        
         {
-            var folders = new List<string>();
+            //var preProcessLocations = new List<string>() { options.PreProcessingFolderPath };
+            var watchedLocations =  options.WatchLocations.ToList();
+                       
+
+            if (options.EnableCleanupOptions)
+            {
+                //var results = _organizationService.GetResults(new FileOrganizationResultQuery());
+
+                foreach (var watchedFolder in watchedLocations)
+                {
+                    var folderData = Directory.GetDirectories(watchedFolder);
+
+                    foreach (var folder in folderData)
+                    {
+                        _logger.Info($"Directory Clean up { folder }");
+
+                        if (IsWatchFolder(folder, watchedLocations)) continue;
+                        if (!IsDirectoryEmpty(folder))
+                        {
+                            _logger.Info($"{folder} is not empty.");
+                            DeleteLeftOverFiles(folder, options.LeftOverFileExtensionsToDelete);
+                            
+                        }
+
+
+                        //_logger.Info($"Checking{ folder } Organization Status...");
+                        //var status = results.Items.FirstOrDefault(item => _fileSystem.GetDirectoryName(item.OriginalPath) == folder)?.Status;
+                        //if (status != null)
+                        //{
+                        //    if (status != FileSortingStatus.Success)
+                        //    {
+                        //        _logger.Info($"{folder} status is { status }. Will wait to clean up directory.");
+                        //        continue;
+                        //    }
+                        //}
+
+                        //_logger.Info($"{folder} status is {(status.HasValue ? status.Value.ToString() : "Unknown")}: Removing watched folder item.");
+                        if (IsDirectoryEmpty(folder))
+                        {
+                            try
+                            {
+                                _logger.Debug("Deleting directory {0}", folder);
+                                _fileSystem.DeleteDirectory(folder, true);
+                            }
+                            catch (UnauthorizedAccessException)
+                            {
+                                throw new UnauthorizedAccessException("Unable to delete empty folders from watched folder. Access Denied.");
+                            }
+                            catch (IOException)
+                            {
+                                throw new IOException("Unable to delete empty folders from watched folder.");
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            CleanPreProcessingFolder(options);
+
+        }
+
+       
+        private void CleanPreProcessingFolder(AutoOrganizeOptions options)
+        {
+             //Clean out the pre-processing folder if the folders are empty.
             if (options.EnablePreProcessing)
             {
-                folders.Add(options.PreProcessingFolderPath);
-            }
-            else
-            {
-                folders.AddRange(options.WatchLocations);
-            }
-
-            foreach (var path in paths)
-            {
-                if (deleteExtensions.Count > 0)
+                var preProcessLocations = new List<string>() { options.PreProcessingFolderPath };
+                foreach (var preProcessLocation in preProcessLocations)
                 {
-                    DeleteLeftOverFiles(path, deleteExtensions);
+                    var folderData = Directory.GetDirectories(preProcessLocation);
+                    foreach (var folder in folderData)
+                    {
+                        if (!IsDirectoryEmpty(folder)) continue;
+                        try
+                        {
+                            _logger.Debug("Deleting directory {0} from pre-processing location", folder);
+                            _fileSystem.DeleteDirectory(folder, true);
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            throw new UnauthorizedAccessException("Unable to delete empty folders from pre-processing folder location. Access Denied.");
+                        }
+                        catch (IOException)
+                        {
+                            throw new IOException("Unable to delete empty folders from pre-processing folder location.");
+                        }
+                    }
                 }
-
-                if (options.DeleteEmptyFolders)
-                {
-                    DeleteEmptyFolders(path, folders);
-                }
-
             }
+        }
+        private bool IsDirectoryEmpty(string path)
+        {
+            return !Directory.EnumerateFileSystemEntries(path).Any();
         }
 
         /// <summary>
@@ -318,23 +395,23 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
         /// </summary>
         /// <param name="path">The path.</param>
         /// <returns>IEnumerable{FileInfo}.</returns>
-        private List<FileSystemMetadata> GetFilesToOrganize(string path)
+        private IEnumerable<FileSystemMetadata> GetFilesToOrganize(string path)
         {
             try
             {
-                return _fileSystem.GetFiles(path, true).ToList();
+                return _fileSystem.GetFiles(path, true);
             }
             catch (DirectoryNotFoundException)
             {
                 _logger.Info("Auto-Organize watch folder does not exist: {0}", path);
 
-                return new List<FileSystemMetadata>();
+                return Enumerable.Empty<FileSystemMetadata>();
             }
             catch (IOException ex)
             {
                 _logger.ErrorException("Error getting files from {0}", ex, path);
 
-                return new List<FileSystemMetadata>();
+                return Enumerable.Empty<FileSystemMetadata>();
             }
         }
 
@@ -348,10 +425,13 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             var eligibleFiles = _fileSystem.GetFilePaths(path, extensions.ToArray(), false, true)
                 .ToList();
 
+            if (!eligibleFiles.Any()) return;
+
             foreach (var file in eligibleFiles)
             {
                 try
                 {
+                    _logger.Info($"Removing left over file {file}");
                     _fileSystem.DeleteFile(file);
                 }
                 catch (Exception ex)
@@ -361,38 +441,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             }
         }
 
-        /// <summary>
-        /// Deletes the empty folders.
-        /// </summary>
-        /// <param name="path">The path.</param>
-        /// <param name="watchLocations">The path.</param>
-        private void DeleteEmptyFolders(string path, List<string> watchLocations)
-        {
-            try
-            {
-                foreach (var d in _fileSystem.GetDirectoryPaths(path))
-                {
-                    DeleteEmptyFolders(d, watchLocations);
-                }
-
-                var entries = _fileSystem.GetFileSystemEntryPaths(path);
-                _logger.Info($"{entries.Count()} directory enteries");
-                if (!entries.Any() && !IsWatchFolder(path, watchLocations))
-                {
-                    try
-                    {
-                        _logger.Debug("Deleting empty directory {0}", path);
-                        _fileSystem.DeleteDirectory(path, false);
-                    }
-                    catch (UnauthorizedAccessException) { }
-                    catch (IOException) { }
-                }
-            }
-            catch (UnauthorizedAccessException)
-            {
-                _logger.Warn("Unable to delete empty folders. Access Denied.");
-            }
-        }
+        
 
         /// <summary>
         /// Determines if a given folder path is a folder folder

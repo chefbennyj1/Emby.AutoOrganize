@@ -23,9 +23,9 @@ namespace Emby.AutoOrganize.Core.PreProcessing
         public async void Organize(IProgress<double> progress, List<string> watchLocations, AutoOrganizeOptions options, CancellationToken cancellationToken)
         {
 
-            if (!File.Exists(options.PreProcessingFolderPath))
+            if (!Directory.Exists(options.PreProcessingFolderPath))
             {
-                Logger.Info("Pre-processing folder does not exist. Creating pre-processing folder.");
+                //Logger.Info("Pre-processing folder does not exist. Creating pre-processing folder.");
 
                 try
                 {

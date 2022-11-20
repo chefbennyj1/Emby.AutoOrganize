@@ -4,6 +4,7 @@
 
         <form class="libraryFileOrganizerForm">
 
+            <!--TV Options-->
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Television Options</h2>
 
@@ -37,7 +38,7 @@
 
                             <table id="series-table" class="ui-responsive" style="width:100%">
                                 <thead>
-									<tr style="text-align:left">
+                                    <tr style="text-align:left">
                                         <th>Term</th>
                                         <th>Pattern</th>
                                         <th>Result</th>
@@ -198,24 +199,26 @@
                     <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                         <label style="width: auto;" class="emby-toggle-label">
                             <input type="checkbox" is="emby-toggle" id="chkEnableSeriesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable television smart auto detection and library creation</span>
+                            <span class="toggleLabel">Enable television smart auto detection, sorting and organization</span>
                         </label>
-                        <div class="fieldDescription toggleFieldDescription">Smart organization automatically, and detects and sorts new episode files.</div>
+                        <div class="fieldDescription toggleFieldDescription">Smart organization will automatically detect and sort new episode files.</div>
                     </div>
 
                     <div class="fldSortExistingSeriesOnly checkboxContainer checkboxContainer-withDescription hide" style="margin-top: 1em; margin-left:3.5em">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="chkSortExistingSeriesOnly" class="emby-checkbox">
-                            <span class="checkboxLabel">Auto sort episode for existing series only.</span>
+                            <input is="emby-checkbox" type="checkbox" id="chkCreateNewSeriesFolders" class="emby-checkbox">
+                            <span class="checkboxLabel">Automatically create new series.</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Auto sort new episode into series that already exist in the library. New Series will not be created in the library.
+                            Auto create new series that don't yet exist in the library.
                         </div>
                     </div>
 
                 </div>
             </div>
+
             <hr />
+            <!--MovieOptions-->
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Movie Options</h2>
 
@@ -293,7 +296,11 @@
                                         <td>%fn</td>
                                         <td>filename</td>
                                     </tr>
-
+                                    <tr>
+                                        <td>Resolution</td>
+                                        <td>%res</td>
+                                        <td>1080p</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -370,7 +377,7 @@
                     <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                         <label style="width: auto;" class="emby-toggle-label">
                             <input type="checkbox" is="emby-toggle" id="chkEnableMoviesAutoDetect" class="emby-toggle emby-toggle-focusring">
-                            <span class="toggleLabel">Enable movie smart auto detection and library creation</span>
+                            <span class="toggleLabel">Enable movie smart auto detection, sorting and organization</span>
                         </label>
                         <div class="fieldDescription toggleFieldDescription">Smart organization automatically detects and creates new movie folders in libraries.</div>
                     </div>
@@ -378,6 +385,7 @@
                 </div>
             </div>
             <hr />
+            <!--Subtitle Otpions-->
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2>Subtitle Options</h2>
                 <p class="benefits">Supported subtitle naming and extensions <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159160-subtitles" target="_blank">Learn more</a>.</p>
@@ -390,6 +398,7 @@
                 </div>
             </div>
             <hr />
+            <!--Source Folder Options-->
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2 class="checkboxListLabel">Source Folder Options</h2>
 
@@ -408,12 +417,42 @@
 
                         <br />
 
+                        <h3 class="checkboxListLabel">Watch folder clean up</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                            <label style="width: auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkEnableCleanupOptions" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Enable watch folder clean up</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Enable clean up in the watch folder after successful organization.</div>
+                        </div>
+
+                        <br />
+
+                        <div class="checkboxContainer checkboxContainer-withDescription hide">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="chkDeleteEmptyFolders" />
+                                <span>Delete empty folders in the watched locations</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Empty folders will be deleted from the watch folder location when all files have been successfully sorted.</div>
+                        </div>
+
+                        <div class="inputContainer hide">
+                            <input is="emby-input" id="txtDeleteLeftOverFiles" type="text" label="Delete left over files" />
+                            <div class="fieldDescription">Each value separated by ; (example: .mkv;.nfo)</div>
+                        </div>
+
+                        <br />
+                        <hr/>
+                        <br/>
+
+                        <h3 class="checkboxListLabel">Pre-processing</h3>
+
                         <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
                             <label style="width: auto;" class="emby-toggle-label">
                                 <input type="checkbox" is="emby-toggle" id="chkEnablePreProcessingOptions" class="emby-toggle emby-toggle-focusring">
                                 <span class="toggleLabel">Pre-process watched folder files</span>
                             </label>
-                            <div class="fieldDescription toggleFieldDescription">Enable if watched folder paths are pointing directly to recording folders that contain compressed files (.rar, .zip extensions). Files in the watched folders will be decompressed for organization.</div>
+                            <div class="fieldDescription toggleFieldDescription">Enable if watched folder paths are pointing directly to recording folders that contain compressed files types. An extra step will be taken to copy, or decompress files in the watched folder before organization.</div>
                         </div>
 
                         <br />
@@ -426,16 +465,18 @@
                                 </div>
                                 <button type="button" is="paper-icon-button-light" id="btnSelectPreProcessingFolderPath" title="Select Directory" aria-label="Select Directory" class="emby-input-iconbutton paper-icon-button-light"><i class="md-icon">search</i></button>
                             </div>
-                            <div class="fieldDescription">Select a custom pre-processing folder path. Files from the watched folder locations will be managed here for organization in the emby library <span style="font-weight:bolder">(required)</span>.</div>
+                            <div class="fieldDescription">Select a custom pre-processing folder path. Files from the watched folder locations will be managed here for organization in the emby library. This folder will be maintained automatically. <span style="font-weight:bolder">(required)</span>.</div>
                         </div>
 
                         <br />
+
+
 
                     </div>
                 </div>
 
 
-
+                <!------------------------------------only shown when pre-processing is disbaled--------------------------------->
                 <div class="selectContainer">
                     <select is="emby-select" id="copyOrMoveFile" label="Transfer method:">
                         <option value="true">Copy</option>
@@ -443,6 +484,7 @@
                     </select>
                     <div class="fieldDescription editorfieldDescription">Copy or move files from the watch folder</div>
                 </div>
+                <!--------------------------------------------------------------------------------------------------------------->
 
                 <div class="inputContainer">
                     <input is="emby-input" id="txtIgnoreFileNameContains" type="text" label="Ignore file names which contain:" />
@@ -454,28 +496,10 @@
                     <div class="fieldDescription">Files smaller than this will be ignored.</div>
                 </div>
 
-                <h3 class="checkboxListLabel">Clean up</h3>
-                <div class="inputContainer">
-                    <input is="emby-input" id="txtDeleteLeftOverFiles" type="text" label="Delete left over files" />
-                    <div class="fieldDescription">Each value separated by ;</div>
-                </div>
-
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label>
-                        <input type="checkbox" is="emby-checkbox" id="chkDeleteEmptyFolders" />
-                        <span>Delete empty folders</span>
-                    </label>
-                    <div class="fieldDescription checkboxFieldDescription">Empty folders will be deleted when <b>all files have been sorted.</b></div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label>
-                        <input type="checkbox" is="emby-checkbox" id="chkExtendedClean" />
-                        <span>Extended Clean</span>
-                    </label>
-                    <div class="fieldDescription checkboxFieldDescription">Clean empty folders from watch folders when <b>all files have been sorted</b>.</div>
-                </div>
+                
             </div>
             <hr />
+            <!--Destination folder options-->
             <div class="verticalSection verticalSection-extrabottompadding">
                 <h2 class="checkboxListLabel">Destination Folder Options</h2>
 
@@ -511,6 +535,19 @@
                     <div class="fieldDescription">Each value separated by ;</div>
                 </div>
 
+            </div>
+            <hr />
+            <!--File Correction Options-->
+            <div class="verticalSection verticalSection-extrabottompadding">
+                <h2 class="checkboxListLabel">Library File Name Correction Options</h2>
+
+                <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:0;">
+                    <label style="width:auto;" class="emby-toggle-label">
+                        <input type="checkbox" is="emby-toggle" id="chkEnableFileNameCorrections" class="emby-toggle emby-toggle-focusring">
+                        <span class="toggleLabel">Enable File Name Corrections</span>
+                    </label>
+                    <div class="fieldDescription toggleFieldDescription">Automatically rename files that do not follow the current naming pattern in settings. Automatically detect "TBA" episode names, and rename them.</div>
+                </div>
             </div>
 
             <div>

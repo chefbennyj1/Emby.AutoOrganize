@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Configuration;
+using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.IO;
@@ -17,7 +19,7 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly IServerConfigurationManager _config;
-        
+       
         public FileCorrectionsScheduledTask(ILibraryMonitor libraryMonitor, ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, IServerConfigurationManager config)
         {
             _libraryMonitor = libraryMonitor;
@@ -26,7 +28,14 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
             _fileSystem = fileSystem;
             _config = config;
            
+           
         }
+
+        public AutoOrganizeOptions GetAutoOrganizeOptions()
+        {
+            return _config.GetAutoOrganizeOptions();
+        }
+
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
 
@@ -55,8 +64,8 @@ namespace Emby.AutoOrganize.Core.ScheduledTasks
         public string Key => "AutoOrganizeFileNameCorrections";
         public string Description => "Locate files in the file system which names don't match the user defined pattern";
         public string Category => "Library";
-        public bool IsHidden => false;
-        public bool IsEnabled => true;
+        public bool IsHidden => !GetAutoOrganizeOptions().EnableFileNameCorrections;
+        public bool IsEnabled => GetAutoOrganizeOptions().EnableFileNameCorrections;
         public bool IsLogged => true;
     }
 }

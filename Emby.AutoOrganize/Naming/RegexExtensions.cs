@@ -7,7 +7,7 @@ namespace Emby.AutoOrganize.Naming
 {
     public class RegexExtensions
     {
-        public static string GetSourceQuality(string fileName)
+        public static string ParseSourceQualityFromFileName(string fileName)
         {
             const string pattern = @"(?:\bxvid|xvidvd|[Ww]eb-[Rr]ip|[Ww][Ee][Bb]-[Dd][Ll]|[Ww]eb[Dd][Ll]|[Ww][Ee][Bb][Rr]ip|[Ww][Ee][Bb]|[Bb]lu[Rr]ay|[Bb]lu-[Rr]ay|DUBBED|[Hh][Dd][Tt][Vv]|DVD[Rr]ip|PDTV|HDRip|BRRip|BDMV|[Cc][Aa][Mm]|HC\b)";
             var result = string.Join("-", Regex.Matches(fileName, pattern, RegexOptions.Multiline).Cast<Match>().Select(m => m.Value));
@@ -25,7 +25,7 @@ namespace Emby.AutoOrganize.Naming
         //    return Regex.Replace(input, @"(\s+|@|&|'|:|\(|\)|<|>|#|-|\.|\b[Aa]nd\b|,|_)", string.Empty, RegexOptions.IgnoreCase).ToLowerInvariant();
         //}
 
-        public static string GetReleaseEditionFromFileName(string sourceFileName)
+        public static string ParseReleaseEditionFromFileName(string sourceFileName)
         {
             var namingOptions = new NamingOptions();
             //all video edition and release flags

@@ -1,5 +1,7 @@
 ﻿define(['mainTabsManager', 'globalize','loading', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager, globalize, loading) {
     
+    var addCorrectionsTab = false;
+
     ApiClient.getFilePathCorrections = function() {
         const url = this.getUrl("Library/FileOrganizations/FileNameCorrections");
         return this.getJSON(url);
@@ -53,6 +55,7 @@
             .replace('%m.n', movieName.replace(' ', '.'))
             .replace('%m_n', movieName.replace(' ', '_'))
             .replace('%my', movieYear)
+            .replace('%res', '1080p')
             .replace('%ext', 'mkv')
             .replace('%fn', fileNameWithoutExt);
 
@@ -118,7 +121,7 @@
 
         view.querySelector('#chkOverwriteExistingMovieItems').checked = config.OverwriteExistingMovieFiles;
 
-        view.querySelector('#chkDeleteEmptyFolders').checked = config.DeleteEmptyFolders;
+        
 
         view.querySelector('#txtMinFileSize').value = config.MinFileSizeMb;
 
@@ -149,7 +152,7 @@
 
         view.querySelector('#chkEnableSeriesAutoDetect').checked = config.AutoDetectSeries;
 
-        view.querySelector('#chkSortExistingSeriesOnly').checked = config.SortExistingSeriesOnly;
+        view.querySelector('#chkCreateNewSeriesFolders').checked = config.CreateNewSeriesFolders;
 
         view.querySelector('#txtSeriesPattern').value = config.SeriesFolderPattern;
 
@@ -159,7 +162,7 @@
 
         view.querySelector('#txtOverWriteExistingMovieFilesKeyWords').value = config.OverwriteExistingMovieFilesKeyWords ? config.OverwriteExistingMovieFilesKeyWords.join(';') : "";
 
-        view.querySelector('#chkExtendedClean').checked = config.ExtendedClean;
+        //view.querySelector('#chkExtendedClean').checked = config.ExtendedClean;
 
         view.querySelector('#copyOrMoveFile').value = config.CopyOriginalFile.toString();
 
@@ -173,6 +176,16 @@
 
         view.querySelector('#selectMovieFolder').value = config.DefaultMovieLibraryPath;
 
+        view.querySelector('#chkEnableCleanupOptions').checked = config.EnableCleanupOptions;
+
+        view.querySelector('#chkDeleteEmptyFolders').checked = config.DeleteEmptyFolders;
+
+        if (config.EnableCleanupOptions) {
+            //show the input
+            view.querySelector('#txtDeleteLeftOverFiles').closest('.inputContainer').classList.remove('hide');
+            //show the checkbox
+            view.querySelector('#chkDeleteEmptyFolders').closest('.checkboxContainer').classList.remove('hide');
+        }
     }
 
     function onSubmit(view) {
@@ -191,6 +204,14 @@
 
             config.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyFolders').checked;
 
+            config.EnableCleanupOptions = view.querySelector('#chkEnableCleanupOptions').checked;
+            if (config.EnableCleanupOptions) {
+                //show the input
+                view.querySelector('#txtDeleteLeftOverFiles').closest('.inputContainer').classList.remove('hide');
+                //show the checkbox
+                view.querySelector('#chkDeleteEmptyFolders').closest('.checkboxContainer').classList.remove('hide');
+            }
+
             config.MinFileSizeMb = view.querySelector('#txtMinFileSize').value;
 
             config.SeasonFolderPattern = view.querySelector('#txtSeasonFolderPattern').value;
@@ -205,9 +226,9 @@
 
             //Only set this value to it checked state if the use has enabled auto sorting
             if (config.AutoDetectSeries) {
-                config.SortExistingSeriesOnly = view.querySelector('#chkSortExistingSeriesOnly').checked;
+                config.CreateNewSeriesFolders = view.querySelector('#chkCreateNewSeriesFolders').checked;
             } else {
-                config.SortExistingSeriesOnly = false;
+                config.CreateNewSeriesFolders = false;
             }
 
             config.EnableSubtitleOrganization = view.querySelector('#chkEnableSubtitleSorting').checked;
@@ -236,7 +257,7 @@
                 config.OverwriteExistingMovieFilesKeyWords = movieKeywordsInput.value.split(';');
             }
 
-            config.ExtendedClean = view.querySelector('#chkExtendedClean').checked;
+            //config.ExtendedClean = view.querySelector('#chkExtendedClean').checked;
 
            
             var watchedLocationList = view.querySelector('.watchFolderListContainer');
@@ -263,6 +284,11 @@
 
             config.PreProcessingFolderPath = view.querySelector('#txtPreProcessingFolderPath').value;
             
+            config.EnableFileNameCorrections = view.querySelector('#chkEnableFileNameCorrections').checked;
+
+            addCorrectionsTab = view.querySelector('#chkEnableFileNameCorrections').checked;
+            mainTabsManager.setTabs(this, 1, getTabs);    
+
             ApiClient.updateNamedConfiguration('autoorganize', config).then(Dashboard.processServerConfigurationUpdateResult, Dashboard.processErrorResponse);
         });
 
@@ -320,7 +346,7 @@
         });
     }
 
-    var addCorrectionsTab = false;
+    
     function getTabs() {
         var tabs = [
             {
@@ -329,7 +355,7 @@
             },
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                name: globalize.translate("HeaderSettings")
+                name: "Settings"
             },
             {
                 href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
@@ -391,15 +417,19 @@
         function togglePreProcessingOptions() {
            
             const preProcessingFolderPathContainer = view.querySelector('#txtPreProcessingFolderPath').closest('.inputContainer');
+            
             if (view.querySelector('#chkEnablePreProcessingOptions').checked) {
                 preProcessingFolderPathContainer.classList.remove('hide');
                 view.querySelector('#txtPreProcessingFolderPath').setAttribute("required", "");
                 //When preprocessing is selected, the file will be moved from the preprocessing folder into the library. Just hide the Copy/Move Option in the settings
                 view.querySelector('#copyOrMoveFile').closest('.selectContainer').classList.add('hide');
+
             } else {
+
                 preProcessingFolderPathContainer.classList.add('hide');
                 view.querySelector('#txtPreProcessingFolderPath').removeAttribute("required");
                 view.querySelector('#copyOrMoveFile').closest('.selectContainer').classList.remove('hide');
+
             }
         }
 
@@ -685,16 +715,45 @@
             
         });
 
+        view.querySelector('#chkEnableCleanupOptions').addEventListener('change', e => {
+            if (e.target.checked) {
+                require(['alert'], function (alert) {
+                    alert({
+                        title: 'Watch folder clean up',
+                        text: 'Enabling this option will automatically delete folders and files from your watched locations that meet the settings criteria, after successful organization! Be VERY sure you want this option enabled, and that the settings are properly filled out.'
+                    });
+                });
+                 //show the input
+                view.querySelector('#txtDeleteLeftOverFiles').closest('.inputContainer').classList.remove('hide');
+                //show the checkbox
+                view.querySelector('#chkDeleteEmptyFolders').closest('.checkboxContainer').classList.remove('hide');
+                
+            } 
+            else {
+              
+                 //hide the input
+                view.querySelector('#txtDeleteLeftOverFiles').closest('.inputContainer').classList.add('hide');
+                //hide the checkbox
+                view.querySelector('#chkDeleteEmptyFolders').closest('.checkboxContainer').classList.add('hide');
+            }
+        })
+
+        //There are several ways to reload the page tabs. But since this toggle will turn off/on "COrrections" we'll handle it this way.
+        //We could also force reload the page. probabaly unnessessary.
+        view.querySelector('#chkEnableFileNameCorrections').addEventListener('change', async (e) => {
+            addCorrectionsTab = e.target.checked;
+            mainTabsManager.setTabs(this, 1, getTabs);            
+        })
+
         view.addEventListener('viewshow', async function () {
 
             loading.show();
-            //Figure out if we should show the corrections tab
+            const config = await ApiClient.getNamedConfiguration('autoorganize');
             const correction = await ApiClient.getFilePathCorrections();
-            addCorrectionsTab = correction.Items.length > 0;
-            
+            addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
             mainTabsManager.setTabs(this, 1, getTabs);
 
-            const config = await ApiClient.getNamedConfiguration('autoorganize');
+            view.querySelector('#chkEnableFileNameCorrections').checked = config.EnableFileNameCorrections;
             
             await loadPage(view, config);
 

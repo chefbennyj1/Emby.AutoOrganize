@@ -313,7 +313,7 @@
                 },
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                    name: globalize.translate("HeaderSettings")
+                    name:"Settings"
                 },
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
@@ -351,8 +351,9 @@
 
             view.addEventListener('viewshow', async function (e) {
 
+                const config = await ApiClient.getNamedConfiguration('autoorganize');
                 const correction = await ApiClient.getFilePathCorrections();
-                addCorrectionsTab = correction.Items.length > 0;
+                addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
                 mainTabsManager.setTabs(this, 2, getTabs);
                 loading.show();
 

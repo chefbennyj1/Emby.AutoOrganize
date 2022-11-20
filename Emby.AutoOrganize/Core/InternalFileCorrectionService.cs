@@ -134,7 +134,7 @@ namespace Emby.AutoOrganize.Core
                         continue;
                     }
 
-                    
+                                        
                     var result = new FileCorrection()
                     {
                         CorrectedPath = Path.Combine(Path.GetDirectoryName(episode.Path) ?? string.Empty, correctEpisodeFileName),

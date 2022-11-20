@@ -107,7 +107,7 @@
                 },
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSettings'),
-                    name: globalize.translate("HeaderSettings")
+                    name: "Settings"
                 },
                 {
                     href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
@@ -185,10 +185,9 @@
                 async function () {
                     
                     loading.show();
-                    
-                    const correctionResult = await ApiClient.getFilePathCorrections();
-
-                    addCorrectionsTab = correctionResult.Items.length > 0;
+                    const config = await ApiClient.getNamedConfiguration('autoorganize');
+                    const correction = await ApiClient.getFilePathCorrections();
+                    addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
                     mainTabsManager.setTabs(this, 3, getTabs);
 
                     await updateResults(view);
