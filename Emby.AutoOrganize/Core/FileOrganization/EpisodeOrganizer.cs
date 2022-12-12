@@ -898,7 +898,7 @@ namespace Emby.AutoOrganize.Core.FileOrganization
                 };
             }
 
-            //The LibraryManager.ParseName() method could parse season and episode data with the Name
+            //The LibraryManager.ParseName() method couldn't parse season and episode data with the Name
             //Remove Season and Episode info from matchString. 
             matchString = Regex.Replace(matchString,
                 @"(?:([Ss](\d{1,2})[Ee](\d{1,2})))|(?:(\d{1,2}x\d{1,2}))|(?:[Ss](\d{1,2}x[Ee]\d{1,2}))|(?:([Ss](\d{1,2})))", string.Empty);

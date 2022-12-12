@@ -29,6 +29,10 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
     
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
     function getMovieFileName(value) {
         const movieName = "Movie Name";
         const movieYear = "2017";
@@ -153,6 +157,8 @@
         view.querySelector('#chkEnableSeriesAutoDetect').checked = config.AutoDetectSeries;
 
         view.querySelector('#chkCreateNewSeriesFolders').checked = config.CreateNewSeriesFolders;
+
+        
 
         view.querySelector('#txtSeriesPattern').value = config.SeriesFolderPattern;
 
@@ -499,6 +505,24 @@
             }
         }
 
+        async function toggleNewSeriesOptions() {
+            const config = await ApiClient.getNamedConfiguration('autoorganize');
+            const selectDefaultSeriesFolder = view.querySelector('#selectSeriesFolder');
+            const selectDefaultSeriesContainer = view.querySelector('.fldSelectSeriesFolder');
+            const chkCreateNewSeriesFolders = view.querySelector("#chkCreateNewSeriesFolders");
+            if (chkCreateNewSeriesFolders.checked) {
+            
+                selectDefaultSeriesContainer.classList.remove('hide');
+                selectDefaultSeriesFolder.value = config.DefaultSeriesLibraryPath;
+                selectDefaultSeriesFolder.attributes.required = "required";
+
+            } else {
+
+                selectDefaultSeriesContainer.classList.add('hide');
+                selectDefaultSeriesFolder.attributes.required = "";
+            }
+        }
+
         function toggleMovieOptions()
         {
             if (view.querySelector('#chkEnableMovieOptions').checked) {
@@ -510,9 +534,9 @@
 
         function toggleSortExistingSeriesOnly() {
             if (view.querySelector('#chkEnableSeriesAutoDetect').checked) {
-                view.querySelector('.fldSortExistingSeriesOnly').classList.remove('hide');
+                view.querySelector('.fldNewSeriesSettings').classList.remove('hide');
             } else {
-                view.querySelector('.fldSortExistingSeriesOnly').classList.add('hide');
+                view.querySelector('.fldNewSeriesSettings').classList.add('hide');
             }
         }
 
@@ -547,13 +571,15 @@
                
                 
                 for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
-                    var availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]); 
-                    var location = {
+                    const availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]);
+                    const availableSpaceInnerHtml = availableSpace > 0 ? ' (Available space: ' + formatBytes(availableSpace) + ') ' : '';
+                    const collectionTypeInnerHtml = virtualFolder.CollectionType ? capitalizeFirstLetter(virtualFolder.CollectionType) :  "Mixed Content";
+                    const location = {
                         value: virtualFolder.Locations[i],
-                        display: (availableSpace > 0 ? '(Available space: ' + formatBytes(availableSpace)  + ') ' : '') + virtualFolder.Name + ': ' + virtualFolder.Locations[i]
+                        display: collectionTypeInnerHtml + ' ' + availableSpaceInnerHtml + ' - ' + virtualFolder.Locations[i]
                     };
 
-                    if (virtualFolder.CollectionType === 'tvshows') {
+                    if (virtualFolder.CollectionType === 'tvshows' || !virtualFolder.CollectionType) {   //!collectionType is mixedContent
                         mediasLocations.push(location);
                     }
                 }
@@ -570,7 +596,7 @@
 
             view.querySelector('#selectSeriesFolder').innerHTML = mediasFolderHtml;
 
-            view.querySelector('#selectSeriesFolder').value = config.DefaultSeriesLibraryPath;
+            
 
 
         }
@@ -618,14 +644,15 @@
                 const virtualFolder = result[n];
                
                 for (var i = 0, length = virtualFolder.Locations.length; i < length; i++) {
-                    
-                    var availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]);                    
-                    var location = {
+                    const availableSpace = await ApiClient.getAvailableSpace(virtualFolder.Locations[i]);
+                    const availableSpaceInnerHtml = availableSpace > 0 ? ' (Available space: ' + formatBytes(availableSpace) + ') ' : '';
+                    const collectionTypeInnerHtml = virtualFolder.CollectionType ? capitalizeFirstLetter(virtualFolder.CollectionType) :  "Mixed Content";
+                    const location = {
                         value: virtualFolder.Locations[i],
-                        display: (availableSpace > 0 ? '(Available space: ' + formatBytes(availableSpace) + ') ' : '') + virtualFolder.Name + ': ' + virtualFolder.Locations[i] 
+                        display: collectionTypeInnerHtml + ' ' + availableSpaceInnerHtml + ' - ' + virtualFolder.Locations[i]
                     };
 
-                    if (virtualFolder.CollectionType === 'movies') {
+                    if (virtualFolder.CollectionType === 'movies' || !virtualFolder.CollectionType) { //!collectionType is mixedContent
                         mediasLocations.push(location);
                     }
                 }
@@ -745,6 +772,10 @@
             mainTabsManager.setTabs(this, 1, getTabs);            
         })
 
+        view.querySelector("#chkCreateNewSeriesFolders").addEventListener('change', async e => {
+            await toggleNewSeriesOptions();
+        })
+
         view.addEventListener('viewshow', async function () {
 
             loading.show();
@@ -770,7 +801,7 @@
             toggleMovieOptions();
             toggleTelevisionOptions();
             togglePreProcessingOptions();
-
+            await toggleNewSeriesOptions();
             loading.hide();
         });
     };

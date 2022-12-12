@@ -150,8 +150,9 @@ namespace Emby.AutoOrganize.Core.PreProcessing
 
         private static void CreateExtractionMarker(string folderPath, ILogger logger)
         {
-            logger.Info("Creating extraction marker: " + folderPath + "\\####emby.extracted####");
-            using (var sw = new StreamWriter(folderPath + "\\####emby.extracted####"))
+            var extractionFlagPath = Path.Combine(folderPath ,"####emby.extracted####");
+            logger.Info("Creating extraction marker: " + extractionFlagPath);
+            using (var sw = new StreamWriter(extractionFlagPath))
             {
                 sw.Flush();
             }

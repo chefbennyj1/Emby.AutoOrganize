@@ -159,7 +159,8 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 {
                     if (!options.EnableTelevisionOrganization) continue;
 
-                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
+                    //We'll need a default folder path if the user wants to auto detect this media type in case the item is new
+                    if (string.IsNullOrEmpty(options.DefaultSeriesLibraryPath) && options.AutoDetectSeries)
                     {
                         _logger.Warn("No Default TV Show Library has been chosen in settings. Stopping Organization...");
                        
@@ -204,6 +205,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 {
                     if(!options.EnableMovieOrganization) continue;
 
+                    //We'll need a default folder path if the user wants to sort movies
                     if (string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                     {
                         _logger.Warn("No Default Movie Library has been chosen in settings. Stopping Organization...");
