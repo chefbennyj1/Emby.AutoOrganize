@@ -17,6 +17,10 @@ namespace Emby.AutoOrganize.Core.PreProcessing
 
         public void CompressedFileExtraction(string sourcePath, string destinationPath)
         {
+            if (!File.Exists(sourcePath))
+            {
+                return;
+            }
 
             if (string.IsNullOrEmpty(destinationPath)) return;
             // ReSharper disable once AssignNullToNotNullAttribute <== it will not be null or empty here
@@ -40,7 +44,10 @@ namespace Emby.AutoOrganize.Core.PreProcessing
                 }
                 catch(ExtractionException)
                 {
-                    Directory.Delete(destinationPath);
+                    if (Directory.Exists(destinationPath))
+                    {
+                        Directory.Delete(destinationPath);
+                    }
                     archive.Dispose();
                     return;
                 }

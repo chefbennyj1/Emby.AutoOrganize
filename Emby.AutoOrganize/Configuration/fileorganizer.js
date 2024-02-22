@@ -397,7 +397,7 @@
                 break;
             case "Movie":
                 dlg.querySelector('#selectBaseItems').setAttribute('label', 'Movie');
-                dlg.querySelector('[for="selectBaseItems"]').innerHTML =  'Movie';
+               
 
                 dlg.querySelector('#divPermitChoice').classList.remove('hide');
                 dlg.querySelector('#divGlobalChoice').classList.remove('hide');
@@ -411,8 +411,8 @@
                 break;
             case "Episode":
                 dlg.querySelector('#selectBaseItems').setAttribute('label', 'Series');
-                dlg.querySelector('[for="selectBaseItems"]').innerHTML = 'Series';
-
+               
+                
                 dlg.querySelector('#divPermitChoice').classList.remove('hide');
                 dlg.querySelector('#divGlobalChoice').classList.remove('hide');
                 dlg.querySelector('#divEpisodeChoice').classList.remove('hide');

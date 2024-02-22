@@ -936,10 +936,11 @@ namespace Emby.AutoOrganize.Core.FileOrganization
 
                 foreach (var file in files)
                 {
+                    //TODO:Watch for this replace method here. UIt may not be comapring the file name bacause of case sensitivity.
                     directory = FileSystem.GetDirectoryName(file);
                     var filename = Path.GetFileName(file);
 
-                    filename = filename.Replace(originalFilenameWithoutExtension, targetFilenameWithoutExtension, StringComparison.OrdinalIgnoreCase);
+                    filename = filename.Replace(originalFilenameWithoutExtension, targetFilenameWithoutExtension);
 
                     var destination = Path.Combine(directory, filename);
 

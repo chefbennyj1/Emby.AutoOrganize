@@ -46,7 +46,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                 return _libraryManager.IsVideoFile(fileInfo.FullName.AsSpan()) && 
                        fileInfo.Length >= minFileBytes && 
                        !IgnoredFileName(fileInfo, options.IgnoredFileNameContains.ToList())|| 
-                       _libraryManager.IsSubtitleFile(fileInfo.FullName.AsSpan());
+                       _libraryManager.IsSubtitleFile(fileInfo.FullName);
             }
             catch (Exception ex)
             {
@@ -139,7 +139,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
             
 
             //Organize the subtitles last. This ensure that the media files have a home before accessing their subtitle files.
-            eligibleFiles = eligibleFiles.OrderBy(f => _libraryManager.IsSubtitleFile(f.Name.AsSpan())).ToList();
+            eligibleFiles = eligibleFiles.OrderBy(f => _libraryManager.IsSubtitleFile(f.Name)).ToList();
 
             //if (eligibleFiles.Count > 20)
             //{
@@ -269,7 +269,7 @@ namespace Emby.AutoOrganize.Core.WatchedFolderOrganization
                     var subtitleOrganizer = new SubtitleOrganizer(_organizationService, _fileSystem, _logger, _libraryManager, _libraryMonitor, _providerManager);
                     try
                     {
-                        if (_libraryManager.IsSubtitleFile(file.FullName.AsSpan()))
+                        if (_libraryManager.IsSubtitleFile(file.FullName))
                         {
                             var result = await subtitleOrganizer.OrganizeFile(true, file.FullName, options, cancellationToken);
                         }

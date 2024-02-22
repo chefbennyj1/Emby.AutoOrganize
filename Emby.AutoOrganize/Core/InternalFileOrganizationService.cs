@@ -258,7 +258,7 @@ namespace Emby.AutoOrganize.Core
         
         public FileOrganizerType GetFileOrganizerType(string fileName)
         {
-            if (_libraryManager.IsSubtitleFile(fileName.AsSpan()))
+            if (_libraryManager.IsSubtitleFile(fileName))
             {
                 return FileOrganizerType.Subtitle;
             }

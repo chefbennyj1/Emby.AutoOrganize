@@ -22,7 +22,7 @@ namespace Emby.AutoOrganize
         public static PluginEntryPoint Instance;
 
         public IFileOrganizationService FileOrganizationService  { get; private set; }
-        public IFileCorrectionService FileCorrectionService      { get; private set; }
+        //public IFileCorrectionService FileCorrectionService      { get; private set; }
 
 
         private ISessionManager SessionManager                   { get; set; }
@@ -75,7 +75,7 @@ namespace Emby.AutoOrganize
             TaskManager.TaskExecuting             += _taskManager_TaskExecuting;
             TaskManager.TaskCompleted             += _taskManager_TaskCompleted;
             
-            FileCorrectionService = new InternalFileCorrectionService(LibraryManager, FileSystem, LibraryMonitor, ConfigurationManager, Logger, Repository);
+            //FileCorrectionService = new InternalFileCorrectionService(LibraryManager, FileSystem, LibraryMonitor, ConfigurationManager, Logger, Repository);
             
             // Convert Config
             //ConfigurationManager.Convert(FileOrganizationService);

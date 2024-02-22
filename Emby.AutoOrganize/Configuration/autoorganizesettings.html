@@ -242,7 +242,7 @@
 
                     <div class="paperList" style="padding: 2em;">
                         <div class="fldSelectMovieFolder selectContainer">
-                            <select id="selectMovieFolder" is="emby-select" label="Default library folder for new movies:" required="required"></select>
+                            <select id="selectMovieFolder" is="emby-select" name="selectMovieFolder" label="Default library folder for new movies:"></select>
                             <div class="fieldDescription">New movies in the watched folder will be directed here by default. The folder path can be edited during manual sorting <span style="font-weight:bolder">(required)</span>.<span class="movieDriveSize"></span></div>
                         </div>
                     </div>
@@ -421,39 +421,14 @@
                         </div>
                         <div class="fieldDescription">These folders will be monitored for new files.</div>
 
-                        <div is="emby-itemscontainer" class="watchFolderListContainer itemsContainer flex flex-grow centered scrollY padded-right vertical-list verticalSection-extrabottompadding" data-virtualscrolllayout="vertical-grid">
+							<div is="emby-itemscontainer" class="watchFolderListContainer itemsContainer flex flex-grow centered scrollY padded-right vertical-list verticalSection-extrabottompadding" data-virtualscrolllayout="vertical-grid">
 
                         </div>
 
                         <br />
-
-                        <h3 class="checkboxListLabel">Watch folder clean up</h3>
-                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
-                            <label style="width: auto;" class="emby-toggle-label">
-                                <input type="checkbox" is="emby-toggle" id="chkEnableCleanupOptions" class="emby-toggle emby-toggle-focusring">
-                                <span class="toggleLabel">Enable watch folder clean up</span>
-                            </label>
-                            <div class="fieldDescription toggleFieldDescription">Enable clean up in the watch folder after successful organization.</div>
-                        </div>
-
+                        <hr />
                         <br />
 
-                        <div class="checkboxContainer checkboxContainer-withDescription hide">
-                            <label>
-                                <input type="checkbox" is="emby-checkbox" id="chkDeleteEmptyFolders" />
-                                <span>Delete empty folders in the watched locations</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">Empty folders will be deleted from the watch folder location when all files have been successfully sorted.</div>
-                        </div>
-
-                        <div class="inputContainer hide">
-                            <input is="emby-input" id="txtDeleteLeftOverFiles" type="text" label="Delete left over files" />
-                            <div class="fieldDescription">Each value separated by ; (example: .mkv;.nfo)</div>
-                        </div>
-
-                        <br />
-                        <hr/>
-                        <br/>
 
                         <h3 class="checkboxListLabel">Pre-processing</h3>
 
@@ -462,7 +437,7 @@
                                 <input type="checkbox" is="emby-toggle" id="chkEnablePreProcessingOptions" class="emby-toggle emby-toggle-focusring">
                                 <span class="toggleLabel">Pre-process watched folder files</span>
                             </label>
-                            <div class="fieldDescription toggleFieldDescription">Enable if watched folder paths are pointing directly to recording folders that contain compressed files types. An extra step will be taken to copy, or decompress files in the watched folder before organization.</div>
+                            <div class="fieldDescription toggleFieldDescription">Enable if watched folder paths are pointing directly to recording folders that may contain compressed files types. An extra step will be taken to copy, or decompress files in the watched folder before organization.</div>
                         </div>
 
                         <br />
@@ -478,9 +453,32 @@
                             <div class="fieldDescription">Select a custom pre-processing folder path. Files from the watched folder locations will be managed here for organization in the emby library. This folder will be maintained automatically. <span style="font-weight:bolder">(required)</span>.</div>
                         </div>
 
+                        <div class="hide">
+                            <h3 class="checkboxListLabel">Watch folder clean up</h3>
+                            <div class="checkboxContainer checkboxContainer-withDescription" style="margin: 2em 2em 0 0;">
+                                <label style="width: auto;" class="emby-toggle-label">
+                                    <input type="checkbox" is="emby-toggle" id="chkEnableCleanupOptions" class="emby-toggle emby-toggle-focusring">
+                                    <span class="toggleLabel">Enable watch folder clean up</span>
+                                </label>
+                                <div class="fieldDescription toggleFieldDescription">Enable clean up in the watch folder after successful organization.</div>
+                            </div>
+                        </div>
                         <br />
 
+                        <div class="checkboxContainer checkboxContainer-withDescription hide">
+	                        <label>
+		                        <input type="checkbox" is="emby-checkbox" id="chkDeleteEmptyFolders" />
+		                        <span>Delete empty folders in the watched locations</span>
+	                        </label>
+	                        <div class="fieldDescription checkboxFieldDescription">Empty folders will be deleted from the watch folder location when all files have been successfully sorted.</div>
+                        </div>
 
+                        <div class="inputContainer hide">
+	                        <input is="emby-input" id="txtDeleteLeftOverFiles" type="text" label="Delete left over files" />
+	                        <div class="fieldDescription">Each value separated by ; (example: .mkv;.nfo)</div>
+                        </div>
+
+                       
 
                     </div>
                 </div>
@@ -546,19 +544,7 @@
                 </div>
 
             </div>
-            <hr />
-            <!--File Correction Options-->
-            <div class="verticalSection verticalSection-extrabottompadding">
-                <h2 class="checkboxListLabel">Library File Name Correction Options</h2>
-
-                <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:0;">
-                    <label style="width:auto;" class="emby-toggle-label">
-                        <input type="checkbox" is="emby-toggle" id="chkEnableFileNameCorrections" class="emby-toggle emby-toggle-focusring">
-                        <span class="toggleLabel">Enable File Name Corrections</span>
-                    </label>
-                    <div class="fieldDescription toggleFieldDescription">Automatically rename files that do not follow the current naming pattern in settings. Automatically detect "TBA" episode names, and rename them.</div>
-                </div>
-            </div>
+            <hr />           
 
             <div>
                 <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>

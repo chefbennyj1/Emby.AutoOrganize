@@ -5,27 +5,15 @@
 
     <TargetFrameworks>netstandard2.0;</TargetFrameworks>
 
-    <AssemblyVersion>1.6.41.43</AssemblyVersion>
+    <AssemblyVersion>1.9.41.44</AssemblyVersion>
 
-    <FileVersion>1.6.41.43</FileVersion>
+    <FileVersion>1.9.41.44</FileVersion>
 
   </PropertyGroup>
-
-
-  <ItemGroup>
-    <None Remove="Configuration\autoorganizecorrections.html" />
-    <None Remove="Configuration\autoorganizecorrections.js" />
-    <None Remove="Configuration\nbxnjlh5.xer~" />
-    <None Remove="Core\FileOrganization\5jobyk34.jie~" />
-    <None Remove="thumb.gif" />
-  </ItemGroup>
-
 
  
 
   <ItemGroup>
-
-    <EmbeddedResource Include="Configuration\autoorganizecorrections.html" />
 
     <EmbeddedResource Include="Configuration\autoorganizecorrections.js" />
 
@@ -49,7 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="mediabrowser.server.core" Version="4.7.7" />
+    <PackageReference Include="mediabrowser.server.core" Version="4.8.0.80" />
     <PackageReference Include="SQLitePCL.pretty.core" Version="1.2.2" />
     <PackageReference Include="System.Memory" Version="4.5.5" />
     <PackageReference Include="sharpcompress" Version="0.24.0" />

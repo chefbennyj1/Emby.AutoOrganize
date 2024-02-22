@@ -554,7 +554,10 @@
                 loading.show();
             }
 
-                        
+            if (!page) {
+                 page = pageGlobal;
+            } 
+            
             query.Limit = 50; //need to reset incase a search was cleared
             //Always use search Term from Search Box.
             if (pageGlobal.querySelector('#txtSearch').value != "") {
@@ -1601,8 +1604,8 @@
             view.addEventListener('viewshow', async function () {
 
                 const config = await ApiClient.getNamedConfiguration('autoorganize');
-                const correction = await ApiClient.getFilePathCorrections();
-                addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
+                //const correction = await ApiClient.getFilePathCorrections();
+                //addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
                 mainTabsManager.setTabs(this, 0, getTabs);
 
                 events.on(serverNotifications, 'AutoOrganize_LogReset', await onServerEvent);

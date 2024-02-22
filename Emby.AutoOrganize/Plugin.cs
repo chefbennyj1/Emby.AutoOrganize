@@ -79,16 +79,16 @@ namespace Emby.AutoOrganize
                     Name = "FileOrganizerHtml",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.fileorganizer.template.html"
                 },
-                new PluginPageInfo
-                {
-                    Name = "AutoOrganizeCorrectionsJs",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.js"
-                },
-                new PluginPageInfo
-                {
-                    Name = "AutoOrganizeCorrections",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.html"
-                },
+                //new PluginPageInfo
+                //{
+                //    Name = "AutoOrganizeCorrectionsJs",
+                //    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.js"
+                //},
+                //new PluginPageInfo
+                //{
+                //    Name = "AutoOrganizeCorrections",
+                //    EmbeddedResourcePath = GetType().Namespace + ".Configuration.autoorganizecorrections.html"
+                //},
                 
                 
                 //new PluginPageInfo

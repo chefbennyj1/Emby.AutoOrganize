@@ -243,7 +243,10 @@
 
             config.SeriesFolderPattern = view.querySelector('#txtSeriesPattern').value;
 
-            config.DefaultMovieLibraryPath = view.querySelector('#selectMovieFolder').value;
+
+            if (config.EnableMovieOrganization) {
+                config.DefaultMovieLibraryPath = view.querySelector('#selectMovieFolder').value;
+            }
 
             config.LeftOverFileExtensionsToDelete = view.querySelector('#txtDeleteLeftOverFiles').value.split(';');
 
@@ -289,10 +292,7 @@
             config.EnablePreProcessing = view.querySelector('#chkEnablePreProcessingOptions').checked;
 
             config.PreProcessingFolderPath = view.querySelector('#txtPreProcessingFolderPath').value;
-            
-            config.EnableFileNameCorrections = view.querySelector('#chkEnableFileNameCorrections').checked;
 
-            addCorrectionsTab = view.querySelector('#chkEnableFileNameCorrections').checked;
             mainTabsManager.setTabs(this, 1, getTabs);    
 
             ApiClient.updateNamedConfiguration('autoorganize', config).then(Dashboard.processServerConfigurationUpdateResult, Dashboard.processErrorResponse);
@@ -764,14 +764,7 @@
                 view.querySelector('#chkDeleteEmptyFolders').closest('.checkboxContainer').classList.add('hide');
             }
         })
-
-        //There are several ways to reload the page tabs. But since this toggle will turn off/on "COrrections" we'll handle it this way.
-        //We could also force reload the page. probabaly unnessessary.
-        view.querySelector('#chkEnableFileNameCorrections').addEventListener('change', async (e) => {
-            addCorrectionsTab = e.target.checked;
-            mainTabsManager.setTabs(this, 1, getTabs);            
-        })
-
+           
         view.querySelector("#chkCreateNewSeriesFolders").addEventListener('change', async e => {
             await toggleNewSeriesOptions();
         })
@@ -780,12 +773,11 @@
 
             loading.show();
             const config = await ApiClient.getNamedConfiguration('autoorganize');
-            const correction = await ApiClient.getFilePathCorrections();
-            addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
+            //const correction = await ApiClient.getFilePathCorrections();
+            //addCorrectionsTab = correction.Items.length > 0 && config.EnableFileNameCorrections;
             mainTabsManager.setTabs(this, 1, getTabs);
 
-            view.querySelector('#chkEnableFileNameCorrections').checked = config.EnableFileNameCorrections;
-            
+
             await loadPage(view, config);
 
             updateSeriesPatternHelp();

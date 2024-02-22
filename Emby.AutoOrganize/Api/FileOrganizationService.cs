@@ -254,7 +254,7 @@ namespace Emby.AutoOrganize.Api
         }
 
         private IFileOrganizationService InternalFileOrganizationService => PluginEntryPoint.Instance.FileOrganizationService;
-        private IFileCorrectionService InternalFileCorrectionService => PluginEntryPoint.Instance.FileCorrectionService;
+        //private IFileCorrectionService InternalFileCorrectionService => PluginEntryPoint.Instance.FileCorrectionService;
 
         public object Get(GetFileOrganizationActivity request)
         {
@@ -414,37 +414,37 @@ namespace Emby.AutoOrganize.Api
 
         }
 
-        public object Get(FileNameCorrectionRequest request)
-        {
-            var result = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery
-            {
-                StartsWith = !string.IsNullOrEmpty(request.StartsWith) ? request.StartsWith : ""
-            });
+        //public object Get(FileNameCorrectionRequest request)
+        //{
+        //    var result = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery
+        //    {
+        //        StartsWith = !string.IsNullOrEmpty(request.StartsWith) ? request.StartsWith : ""
+        //    });
 
-            return _resultFactory.GetResult(Request, result);
-        }
+        //    return _resultFactory.GetResult(Request, result);
+        //}
 
-        public void Post(UpdateFileNameCorrectionRequest request)
-        {
-            var correctionResult = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery());
+        //public void Post(UpdateFileNameCorrectionRequest request)
+        //{
+        //    var correctionResult = InternalFileCorrectionService.GetFilePathCorrections(new FileCorrectionResultQuery());
 
-            foreach (var id in request.Ids)
-            {
-                var correction = correctionResult.Items.FirstOrDefault(c => c.Id == id);
-                try
-                {
-                    InternalFileCorrectionService.CorrectFileNames(correction);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex.Message, "Error correcting file name");
-                    InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
-                    return;
-                    //InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
-                }
-            }
+        //    foreach (var id in request.Ids)
+        //    {
+        //        var correction = correctionResult.Items.FirstOrDefault(c => c.Id == id);
+        //        try
+        //        {
+        //            InternalFileCorrectionService.CorrectFileNames(correction);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Log.Error(ex.Message, "Error correcting file name");
+        //            InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
+        //            return;
+        //            //InternalFileCorrectionService.DeleteFilePathCorrection(correction.Id);
+        //        }
+        //    }
 
-        }
+        //}
 
         public long? Get(GetAvailableSpace request)
         {
